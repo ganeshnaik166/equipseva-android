@@ -12,6 +12,7 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.data.repair.RepairEquipmentCategory
 import com.equipseva.app.core.location.LocationFetcher
+import com.equipseva.app.features.auth.UserRole
 import com.equipseva.app.core.security.IntegrityVerifier
 import com.equipseva.app.core.storage.StorageRepository
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
@@ -278,6 +279,75 @@ class KycViewModelTest {
         val uncertain = uncertainVm.state.first { !it.loading }
         assertEquals("Telangana", uncertain.serviceState)
         assertNull(uncertain.serviceDistrict)
+    }
+
+    private fun profileWith(state: String?, district: String?) = com.equipseva.app.core.data.profile.Profile(
+        id = "user-1",
+        email = "e@x.test",
+        phone = null,
+        fullName = "Test Engineer",
+        avatarUrl = null,
+        role = UserRole.ENGINEER,
+        rawRoleKey = "engineer",
+        roleConfirmed = true,
+        onboardingCompleted = true,
+        isActive = true,
+        organizationId = null,
+        organizationName = null,
+        organizationCity = null,
+        organizationState = null,
+        state = state,
+        district = district,
+    )
+
+    private fun profileRepoWith(profile: com.equipseva.app.core.data.profile.Profile): ProfileRepository =
+        mockk(relaxed = true) { coEvery { fetchById(any()) } returns Result.success(profile) }
+
+    @Test fun `hydrate rescues legacy spellings in the onboarding profile fallback strictly`() = runTest {
+        val (vm, _) = newViewModel(
+            engineerRepo = repoWith(engineer()),
+            profileRepo = profileRepoWith(profileWith(state = "Orissa", district = "Khurda")),
+        )
+        val state = vm.state.first { !it.loading }
+        assertEquals("Odisha", state.serviceState)
+        assertEquals("Khordha", state.serviceDistrict)
+    }
+
+    @Test fun `hydrate does not let the profile fallback settle a text-vs-column conflict`() = runTest {
+        val seeded = engineer().copy(city = "Hyderabad, Telangana", state = "Karnataka")
+        val (vm, _) = newViewModel(
+            engineerRepo = repoWith(seeded),
+            profileRepo = profileRepoWith(profileWith(state = "Telangana", district = "Hyderabad")),
+        )
+        val state = vm.state.first { !it.loading }
+        assertNull(state.serviceState)
+        assertNull(state.serviceDistrict)
+    }
+
+    @Test fun `reverse-geocode labels the old substring matcher accepted are now rejected`() = runTest {
+        // Old code: "Nagar" contains-matched Karimnagar; "Nashik Division"
+        // contains-matched Nashik. Neither is a district label.
+        val nagar = mockk<LocationFetcher>(relaxed = true) {
+            coEvery { reverseGeocode(any()) } returns LocationFetcher.Resolved(
+                coords = LocationFetcher.Coords(18.4, 79.1), district = "Nagar", state = "Telangana",
+            )
+        }
+        val (vm1, _) = newViewModel(locationFetcher = nagar)
+        vm1.state.first { !it.loading }
+        vm1.onServiceCoordsChange(18.4, 79.1)
+        assertEquals("Telangana", vm1.state.value.serviceState)
+        assertNull(vm1.state.value.serviceDistrict)
+
+        val division = mockk<LocationFetcher>(relaxed = true) {
+            coEvery { reverseGeocode(any()) } returns LocationFetcher.Resolved(
+                coords = LocationFetcher.Coords(20.9, 74.8), district = "Nashik Division", state = "Maharashtra",
+            )
+        }
+        val (vm2, _) = newViewModel(locationFetcher = division)
+        vm2.state.first { !it.loading }
+        vm2.onServiceCoordsChange(20.9, 74.8)
+        assertEquals("Maharashtra", vm2.state.value.serviceState)
+        assertNull(vm2.state.value.serviceDistrict)
     }
 
     @Test fun `reverse-geocode labels are canonicalised through the catalog, not substring-matched`() = runTest {

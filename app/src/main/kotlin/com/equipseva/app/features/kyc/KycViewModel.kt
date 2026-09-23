@@ -591,7 +591,11 @@ class KycViewModel @Inject constructor(
                     .canonicalState(profile?.state, allowEmbedded = false)
                 val profileDistrict = com.equipseva.app.core.data.location.IndiaLocations
                     .canonicalDistrict(profileState, profile?.district)
-                val chosenState = savedState ?: parsedState ?: profileState
+                // When the row's text and its State column disagree, the
+                // engineer must decide; a third source (the onboarding
+                // profile) must not quietly win that argument.
+                val conflict = parsed.stateCandidates.isNotEmpty()
+                val chosenState = savedState ?: parsedState ?: profileState?.takeUnless { conflict }
                 val districtFinal = (savedDistrict ?: parsedDistrict ?: profileDistrict)?.takeIf { d ->
                     chosenState != null &&
                         d in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(chosenState)

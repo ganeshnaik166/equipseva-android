@@ -531,11 +531,26 @@ object IndiaLocations {
         districts.firstOrNull { IndiaRegionAliases.normalize(it) == key }?.let { return it }
         IndiaRegionAliases.DISTRICTS[st]?.get(key)?.let { return it }
         if (!allowEmbedded) return null
+        // A label that names a different administrative unit ("Nashik
+        // Division", "Greater Hyderabad Municipal Corporation") is not a
+        // district and must not pre-select the district that shares its name.
+        if (key.split(' ').any { it in NON_DISTRICT_UNIT_WORDS }) return null
         return embeddedDistrictPatterns[st].orEmpty()
             .mapNotNull { (district, regex) -> regex.find(key)?.let { district to it.value.length } }
             .maxByOrNull { it.second }
             ?.first
     }
+
+    /**
+     * Words that mark a Geocoder label as a non-district unit. "Nagar",
+     * "Urban", "Rural" and "Metropolitan" are deliberately absent — they occur
+     * in real district names (Kanpur Nagar, Bengaluru Urban, Kamrup
+     * Metropolitan).
+     */
+    private val NON_DISTRICT_UNIT_WORDS = setOf(
+        "division", "region", "zone", "mandal", "taluka", "taluk", "tehsil", "tahsil",
+        "block", "subdivision", "circle", "ward", "municipal", "municipality", "corporation",
+    )
 
     fun mandalsFor(state: String?, district: String?): List<String> {
         if (state.isNullOrBlank() || district.isNullOrBlank()) return emptyList()

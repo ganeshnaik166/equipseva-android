@@ -129,6 +129,14 @@ class IndiaRegionAliasesTest {
         )
         // Even prefill never accepts a partial word.
         assertNull(IndiaLocations.canonicalDistrict("Telangana", "Hyd", allowEmbedded = true))
+        // A label naming another administrative unit is not a district, even
+        // when it embeds a district's name.
+        assertNull(IndiaLocations.canonicalDistrict("Maharashtra", "Nashik Division", allowEmbedded = true))
+        assertNull(IndiaLocations.canonicalDistrict("Telangana", "Greater Hyderabad Municipal Corporation", allowEmbedded = true))
+        assertNull(IndiaLocations.canonicalDistrict("Telangana", "Medak Zone", allowEmbedded = true))
+        // Real names that contain such words as part of the name still resolve.
+        assertEquals("Kamrup Metropolitan", IndiaLocations.canonicalDistrict("Assam", "Kamrup Metropolitan", allowEmbedded = true))
+        assertEquals("Kanpur Nagar", IndiaLocations.canonicalDistrict("Uttar Pradesh", "Kanpur Nagar district", allowEmbedded = true))
     }
 
     @Test
