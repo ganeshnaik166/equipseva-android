@@ -24,14 +24,14 @@ Current app checkout on this laptop: `C:/Users/lokes/Documents/Codex/2026-09-07/
 
 ## Parallel branch: `claudedev-build-20260923` (Claude, opened 23 September 2026)
 
-Based on `main` `70c06420`; pushed to origin under that name; no PR yet. It does **not** touch the P1b files (`SignOutCleanup`, `OutboxSignOutCleaner`, the local-boundary regression tests) or any billing/SQL. Recorded scope and file ownership:
+Based on `main` `70c06420`; pushed to origin under that name; no PR yet. It does **not** touch the P1b files (`SignOutCleanup`, `OutboxSignOutCleaner`, the local-boundary regression tests) or any billing/SQL. Handoff with commands, counts and both review rounds: [HANDOFF_CLAUDEDEV_BUILD_2026-09-23.md](HANDOFF_CLAUDEDEV_BUILD_2026-09-23.md).
 
 | Slice | Files owned on this branch | Status |
 |---|---|---|
-| English-only resource cleanup | `app/src/main/res/values-hi/**`, `values-te/**` (deleted), `app/build.gradle.kts` `localeFilters` line, `app/src/test/kotlin/com/equipseva/app/i18n/StringsParityTest.kt` (replaced by an English-only guard) | in progress |
-| P2.2 client foundation: bundled region catalog reconciliation | `app/src/main/kotlin/com/equipseva/app/core/data/location/**` and its tests only; no UI, schema or RPC change | planned |
+| English-only resource cleanup | `app/src/main/res/values-hi/**`, `values-te/**` (deleted), `app/build.gradle.kts` `localeFilters` line, `app/src/test/kotlin/com/equipseva/app/i18n/EnglishOnlyResourcesTest.kt` (replaces `StringsParityTest`), `docs/ROADMAP_v05.md` annotation | **implemented + locally verified** at `a6e58067`, hardened in `22d343ac` |
+| P2.2 client foundation: bundled region catalog reconciliation, LGD State/UT codes, legacy aliases, needs-confirmation parser | `app/src/main/kotlin/com/equipseva/app/core/data/location/**` and its tests only; no UI, schema, RPC or caller change | **implemented + locally verified** at `23cc3ac5`, review fix pass `22d343ac` |
 
-Evidence, test counts and reviews for this branch are recorded in its handoff when each slice freezes; nothing here is main integration or release acceptance.
+Verified: full bar at `23cc3ac5` — 2,945 unit tests / 0 failures, lint 0 errors / 86 warnings / 2 hints, `assembleDebug` built; targeted 66 / 0 at `22d343ac`; full bar at `22d343ac`: 2,959 unit tests / 0 failures / 0 errors, lint 0 errors / 86 warnings / 2 hints, `assembleDebug` built. Reviews: round 1 critic 9.2 (not accepted: two majors, both fixed in `22d343ac`) and QA 9.7 (accepted for declared scope); round 2 on `22d343ac`: critic **9.6 accepted**; QA **9.5 not accepted** on one new major in the parser (an unrecognised Geocoder label in the district slot let an earlier locality token become the district without confirmation) — fixed with tests in the follow-up commit 44b1dcbe (full bar: 2,964 unit tests / 0 failures / 0 errors, lint 0 errors / 86 warnings / 2 hints, `assembleDebug` built; round-3 confirmations: critic **9.7 accepted**, QA **9.7 accepted** for the declared scope (branch implementation only; remaining items are non-gating nits listed in the handoff)). This is implementation on a branch, not main integration or release acceptance. Next for this line of work: KYC caller adoption of `parseLegacyCity` / `canonicalDistrict` (KYC file owner), then the coded LGD district import (P2.2 proper).
 
 ## Product direction
 
