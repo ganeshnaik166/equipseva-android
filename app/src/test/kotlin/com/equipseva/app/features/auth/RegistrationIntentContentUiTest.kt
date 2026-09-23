@@ -88,9 +88,17 @@ class RegistrationIntentContentUiTest {
         setContent()
         composeRule.onNodeWithText("Engineering team").performScrollTo().performClick()
         assertEquals(PublicRegistrationIntent.ENGINEERING_ORGANISATION, selectedIntent)
-        // The stored key is the draft key, never a backend role name.
+        // The stored key is the draft key, never a backend role storage key —
+        // for every purpose, not just the team one (HOSPITAL shares its enum
+        // constant name with UserRole.HOSPITAL, so names prove nothing).
         assertEquals("engineering_organisation", selectedIntent?.savedKey)
-        assertNull(UserRole.entries.firstOrNull { it.name == selectedIntent?.name })
+        val roleStorageKeys = UserRole.entries.map { it.storageKey }.toSet()
+        PublicRegistrationIntent.entries.forEach { intent ->
+            assertNull(
+                "draft key ${intent.savedKey} must not be a UserRole storage key",
+                roleStorageKeys.firstOrNull { it == intent.savedKey },
+            )
+        }
     }
 
     @Test

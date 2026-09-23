@@ -324,6 +324,19 @@ class KycViewModelTest {
         assertNull(state.serviceDistrict)
     }
 
+    @Test fun `hydrate still uses the profile for a lone ambiguous district when no State column exists`() = runTest {
+        // "Bilaspur" alone is ambiguous (Chhattisgarh, Himachal Pradesh); with
+        // no engineers.state column that is not a text-vs-column conflict, so
+        // the strictly matched onboarding profile remains a valid source.
+        val (vm, _) = newViewModel(
+            engineerRepo = repoWith(engineer().copy(city = "Bilaspur")),
+            profileRepo = profileRepoWith(profileWith(state = "Chhattisgarh", district = "Bilaspur")),
+        )
+        val state = vm.state.first { !it.loading }
+        assertEquals("Chhattisgarh", state.serviceState)
+        assertEquals("Bilaspur", state.serviceDistrict)
+    }
+
     @Test fun `reverse-geocode labels the old substring matcher accepted are now rejected`() = runTest {
         // Old code: "Nagar" contains-matched Karimnagar; "Nashik Division"
         // contains-matched Nashik. Neither is a district label.

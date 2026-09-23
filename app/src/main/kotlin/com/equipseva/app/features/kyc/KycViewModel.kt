@@ -593,8 +593,11 @@ class KycViewModel @Inject constructor(
                     .canonicalDistrict(profileState, profile?.district)
                 // When the row's text and its State column disagree, the
                 // engineer must decide; a third source (the onboarding
-                // profile) must not quietly win that argument.
-                val conflict = parsed.stateCandidates.isNotEmpty()
+                // profile) must not quietly win that argument. With a column
+                // present, candidates can only mean that disagreement; without
+                // one they mean a lone ambiguous name, where the profile is
+                // still a legitimate (strictly matched) source.
+                val conflict = parsed.stateCandidates.isNotEmpty() && !engineer.state.isNullOrBlank()
                 val chosenState = savedState ?: parsedState ?: profileState?.takeUnless { conflict }
                 val districtFinal = (savedDistrict ?: parsedDistrict ?: profileDistrict)?.takeIf { d ->
                     chosenState != null &&

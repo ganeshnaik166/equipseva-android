@@ -942,11 +942,11 @@
 
     <!-- N01 registration-intent chooser (PRODUCT_PLAN §1); prepared, not yet routed -->
     <string name="registration_intent_title">How will you use EquipSeva?</string>
-    <string name="registration_intent_subtitle">Pick what fits you today. This sets up your first workspace; you can add another later.</string>
+    <string name="registration_intent_subtitle">Pick what fits you today. This only sets where you start.</string>
     <string name="registration_intent_engineer_title">Biomedical engineer</string>
     <string name="registration_intent_engineer_body">Find suitable work, quote, perform authorised repairs and track earnings.</string>
     <string name="registration_intent_hospital_title">Hospital admin</string>
-    <string name="registration_intent_hospital_body">Manage equipment, service requests and the engineers who visit your sites.</string>
+    <string name="registration_intent_hospital_body">Manage your sites and equipment, request service, approve terms and verify completed work.</string>
     <string name="registration_intent_team_title">Engineering team</string>
     <string name="registration_intent_team_body">Run a service business: manage your engineers and dispatch their work as one organisation.</string>
     <string name="registration_intent_note">Choosing a purpose does not verify you or unlock team features. Verification and workspace access follow after checks.</string>
