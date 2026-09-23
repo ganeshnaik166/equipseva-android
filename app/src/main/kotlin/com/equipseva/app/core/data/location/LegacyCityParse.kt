@@ -23,9 +23,12 @@ package com.equipseva.app.core.data.location
  * - [needsConfirmation] is true when the State/UT was inferred rather than
  *   stated (a lone district name that is unique nationwide), when the text and
  *   the `knownState` column disagree, when a lone district exists in several
- *   States ([stateCandidates] lists them; the parser picks none), or when text
- *   was present but no district could be placed. Remnants beside a resolved
- *   district do not, by themselves, set it.
+ *   States ([stateCandidates] lists them; the parser picks none), when text was
+ *   present but no district could be placed, or when the district was taken
+ *   from an earlier locality token because the token in the writer's district
+ *   slot could not be read ("…, Hyderabad, Unknown Label, Telangana" keeps
+ *   Hyderabad only as a suggestion). Known remnants beside a resolved district
+ *   — a six-digit pincode, "India" — do not, by themselves, set it.
  */
 data class LegacyCityParse(
     val state: String?,
@@ -52,6 +55,20 @@ data class LegacyCityParse(
             stateCandidates = emptyList(),
             needsConfirmation = false,
         )
+
+        private val PINCODE = Regex("\\d{6}")
+        private val COUNTRY = setOf("india", "bharat")
+
+        /**
+         * Tokens the writer's layout puts after the district — a six-digit
+         * pincode or the country — carry no district information, so they do
+         * not make a district reading uncertain. Anything else to the right of
+         * the chosen district does.
+         */
+        internal fun isKnownRemnant(token: String): Boolean {
+            val trimmed = token.trim()
+            return PINCODE.matches(trimmed) || IndiaRegionAliases.normalize(trimmed) in COUNTRY
+        }
     }
 }
 
@@ -63,19 +80,30 @@ data class LegacyCityParse(
  * the State; anything to its right ("India", a pincode) is a remnant. Within the
  * tokens before it, the rightmost token that is a district of that State is the
  * district, and the token immediately before that may be a Telangana mandal.
- * Without any State — in the text or in [knownState] — only a lone last token
- * that is a nationally unique district may infer the State, and that inference
- * is flagged.
+ * If an unrecognised token sits between the chosen district and the State (or
+ * the end of the text), the district is only a suggestion and confirmation is
+ * required — the unrecognised token may be the real district under a label the
+ * catalog does not know. Without any State — in the text or in [knownState] —
+ * only a lone last token that is a nationally unique district may infer the
+ * State, and that inference is flagged.
  *
  * @param knownState the row's separate State/UT column, if any. It scopes the
  *   district lookup when the text has no State token, and is reported as a
  *   candidate (with confirmation required) when the text names a different one.
+ *   A value that does not resolve strictly is kept visible in [LegacyCityParse.unresolved].
  */
 fun parseLegacyCity(raw: String?, knownState: String? = null): LegacyCityParse {
     val tokens = raw.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
-    val column = IndiaLocations.canonicalState(knownState, allowEmbedded = false)
+    val columnRaw = knownState?.trim()?.takeIf { it.isNotEmpty() }
+    val column = IndiaLocations.canonicalState(columnRaw, allowEmbedded = false)
+    val columnUnresolved = columnRaw != null && column == null
+
     if (tokens.isEmpty()) {
-        return if (column == null) LegacyCityParse.EMPTY else LegacyCityParse.EMPTY.copy(state = column)
+        return when {
+            column != null -> LegacyCityParse.EMPTY.copy(state = column)
+            columnUnresolved -> LegacyCityParse.EMPTY.copy(unresolved = listOf(columnRaw!!), needsConfirmation = true)
+            else -> LegacyCityParse.EMPTY
+        }
     }
 
     val consumed = mutableSetOf<Int>()
@@ -121,6 +149,12 @@ fun parseLegacyCity(raw: String?, knownState: String? = null): LegacyCityParse {
     }
     if (districtIdx >= 0) consumed += districtIdx
 
+    // An unrecognised token between the chosen district and the State (or the
+    // end of the text) may be the real district under an unknown label; the
+    // chosen district is then only a suggestion.
+    val districtSlotUncertain = districtIdx >= 0 &&
+        head.subList(districtIdx + 1, head.size).any { !LegacyCityParse.isKnownRemnant(it) }
+
     // 3. Mandal: only the token immediately before the district.
     var mandal: String? = null
     if (district != null && state != null && districtIdx > 0) {
@@ -129,7 +163,8 @@ fun parseLegacyCity(raw: String?, knownState: String? = null): LegacyCityParse {
         if (mandal != null) consumed += districtIdx - 1
     }
 
-    val unresolved = tokens.filterIndexed { i, _ -> i !in consumed }
+    val unresolved = tokens.filterIndexed { i, _ -> i !in consumed } +
+        (if (columnUnresolved) listOf(columnRaw!!) else emptyList())
     return LegacyCityParse(
         state = state,
         district = district,
@@ -138,6 +173,8 @@ fun parseLegacyCity(raw: String?, knownState: String? = null): LegacyCityParse {
         stateCandidates = stateCandidates,
         needsConfirmation = inferred ||
             stateCandidates.isNotEmpty() ||
+            districtSlotUncertain ||
+            columnUnresolved ||
             (district == null && unresolved.isNotEmpty()),
     )
 }

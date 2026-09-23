@@ -14,8 +14,11 @@ package com.equipseva.app.core.data.location
  * (01 Jammu and Kashmir … 35 Andaman and Nicobar Islands). LGD later
  * assigned 36 (Telangana, 2014), 37 (Ladakh, 2019) and 38 (the merged
  * Dadra and Nagar Haveli and Daman and Diu, 2020). The retired codes 25
- * (Daman and Diu) and 26 (Dadra and Nagar Haveli) are deliberately absent;
- * legacy names for those two resolve through [IndiaLocations.canonicalState].
+ * (Daman and Diu) and 26 (Dadra and Nagar Haveli) are deliberately absent.
+ * "Daman and Diu" resolves to the merged UT through [IndiaLocations.canonicalState];
+ * "Dadra and Nagar Haveli" does not, because it is also a live district of the
+ * merged UT — it resolves through [IndiaLocations.canonicalDistrict] instead, so
+ * `lgdCode("Dadra and Nagar Haveli")` is null by design.
  */
 object IndiaStateCodes {
 

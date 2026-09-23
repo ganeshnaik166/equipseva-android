@@ -23,25 +23,36 @@ import java.util.Locale
  * Anything that straddles or could mean several — "Bombay" (two Mumbai
  * districts), "Delhi" (eleven), "Burdwan" (split in 2017), "Secunderabad"
  * (Hyderabad and Medchal-Malkajgiri) — is deliberately left out so it
- * surfaces as needing confirmation instead of a silent pick. Two entries run
+ * surfaces as needing confirmation instead of a silent pick. Three entries run
  * in reverse (current official name → the older spelling the bundled list
- * still carries): Narmadapuram → Hoshangabad and Ahilyanagar → Ahmednagar;
- * both flip when the coded LGD import lands.
+ * still carries): Narmadapuram → Hoshangabad, Ahilyanagar → Ahmednagar and
+ * Sribhumi → Karimganj; they flip when the coded LGD import lands. Geocoder
+ * labels that differ from the catalog spelling ("Gautam Buddh Nagar",
+ * "K.V.Rangareddy", "Malkajgiri") are listed so a "My location" address line
+ * resolves in its district slot instead of falling back to an earlier
+ * locality token.
  */
 internal object IndiaRegionAliases {
 
-    /** Canonical comparison form for catalog names and user/legacy input. */
+    /**
+     * Canonical comparison form for catalog names and user/legacy input. A
+     * trailing "district"/"dist" label is dropped ("Rangareddy District" →
+     * "rangareddy"): it is a label, not part of any catalog name, and Geocoder
+     * sub-admin areas carry it routinely.
+     */
     fun normalize(raw: String): String =
         raw.lowercase(Locale.ROOT)
             .replace("&", " and ")
             .replace(PUNCTUATION, " ")
             .replace(WHITESPACE, " ")
             .trim()
+            .replace(TRAILING_DISTRICT_LABEL, "")
 
     // Hyphen, en dash, em dash, full stop, comma, straight and curly apostrophe,
     // parentheses, slash — all read as word separators.
     private val PUNCTUATION = Regex("[\\-–—.,'’()/]")
     private val WHITESPACE = Regex("\\s+")
+    private val TRAILING_DISTRICT_LABEL = Regex(" (?:district|dist)$")
 
     /** Historical, abbreviated or variant State/UT names → canonical [IndiaLocations.STATES] entry. */
     val STATES: Map<String, String> = mapOf(
@@ -94,6 +105,8 @@ internal object IndiaRegionAliases {
         "Assam" to mapOf(
             "guwahati" to "Kamrup Metropolitan",
             "kamrup metro" to "Kamrup Metropolitan",
+            // Renamed in November 2024; the bundled list still carries Karimganj.
+            "sribhumi" to "Karimganj",
         ),
         "Goa" to mapOf(
             "panaji" to "North Goa",
@@ -179,7 +192,9 @@ internal object IndiaRegionAliases {
         "Telangana" to mapOf(
             "ranga reddy" to "Rangareddy",
             "rangareddi" to "Rangareddy",
+            "k v rangareddy" to "Rangareddy",
             "medchal" to "Medchal-Malkajgiri",
+            "malkajgiri" to "Medchal-Malkajgiri",
             "hanamkonda" to "Hanumakonda",
             "warangal urban" to "Hanumakonda",
             "warangal rural" to "Warangal",
@@ -203,6 +218,7 @@ internal object IndiaRegionAliases {
             "kanpur" to "Kanpur Nagar",
             "noida" to "Gautam Buddha Nagar",
             "greater noida" to "Gautam Buddha Nagar",
+            "gautam buddh nagar" to "Gautam Buddha Nagar",
             "benares" to "Varanasi",
             "banaras" to "Varanasi",
         ),

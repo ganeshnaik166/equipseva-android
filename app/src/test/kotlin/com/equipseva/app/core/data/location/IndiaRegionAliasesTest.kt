@@ -22,6 +22,19 @@ class IndiaRegionAliasesTest {
         assertEquals("y s r kadapa", IndiaRegionAliases.normalize("Y.S.R. Kadapa"))
         assertEquals("tamil nadu", IndiaRegionAliases.normalize("Tamil-Nadu"))
         assertEquals("", IndiaRegionAliases.normalize(" - "))
+        // A trailing "district"/"dist" label is dropped; the word inside a name is not.
+        assertEquals("rangareddy", IndiaRegionAliases.normalize("Rangareddy District"))
+        assertEquals("medak", IndiaRegionAliases.normalize("Medak Dist."))
+        assertEquals("district nine", IndiaRegionAliases.normalize("District Nine"))
+    }
+
+    @Test
+    fun `Geocoder district labels resolve strictly through normalization and aliases`() {
+        assertEquals("Rangareddy", IndiaLocations.canonicalDistrict("Telangana", "Rangareddy District"))
+        assertEquals("Rangareddy", IndiaLocations.canonicalDistrict("Telangana", "K.V.Rangareddy"))
+        assertEquals("Medchal-Malkajgiri", IndiaLocations.canonicalDistrict("Telangana", "Malkajgiri"))
+        assertEquals("Gautam Buddha Nagar", IndiaLocations.canonicalDistrict("Uttar Pradesh", "Gautam Buddh Nagar"))
+        assertEquals("Karimganj", IndiaLocations.canonicalDistrict("Assam", "Sribhumi"))
     }
 
     @Test
@@ -94,14 +107,20 @@ class IndiaRegionAliasesTest {
         assertEquals("Tamil Nadu", IndiaLocations.canonicalState("Tamil-Nadu, India"))
         assertEquals("Jammu and Kashmir", IndiaLocations.canonicalState("Jammu & Kashmir, India"))
         assertEquals("Telangana", IndiaLocations.canonicalState("Karnataka Colony, Hyderabad, Telangana"))
+        // A State named twice keeps its last position.
+        assertEquals("Goa", IndiaLocations.canonicalState("Goa Road, Karnataka, Goa"))
+        assertEquals("Telangana", IndiaLocations.canonicalState("Telangana Colony, Karnataka, Telangana"))
     }
 
     @Test
     fun `canonicalDistrict is strict by default and embeds only for prefill`() {
         assertNull(IndiaLocations.canonicalDistrict("Goa Velha", "North Goa"))
         assertEquals("North Goa", IndiaLocations.canonicalDistrict("Goa Velha", "North Goa", allowEmbedded = true))
-        assertNull(IndiaLocations.canonicalDistrict("Telangana", "Hyderabad District"))
-        assertEquals("Hyderabad", IndiaLocations.canonicalDistrict("Telangana", "Hyderabad District", allowEmbedded = true))
+        // A trailing "District" label is stripped by normalization, so this is
+        // an exact match even in strict mode; a genuinely embedded phrase is not.
+        assertEquals("Hyderabad", IndiaLocations.canonicalDistrict("Telangana", "Hyderabad District"))
+        assertNull(IndiaLocations.canonicalDistrict("Telangana", "Greater Hyderabad Area"))
+        assertEquals("Hyderabad", IndiaLocations.canonicalDistrict("Telangana", "Greater Hyderabad Area", allowEmbedded = true))
         // Longest embedded district wins over a shorter one it contains.
         assertEquals(
             "North West Delhi",

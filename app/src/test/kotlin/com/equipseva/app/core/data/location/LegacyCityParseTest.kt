@@ -88,6 +88,68 @@ class LegacyCityParseTest {
     }
 
     @Test
+    fun `Geocoder district labels in the district slot resolve to the real district, not an earlier locality`() {
+        // Google labels Rangareddy "K.V.Rangareddy"; the locality token before it
+        // is "Hyderabad", which is also a district name. The slot must win.
+        val kvr = parseLegacyCity("Plot 5, Gachibowli, Hyderabad, K.V.Rangareddy, Telangana, 500032", knownState = "Telangana")
+        assertEquals("Rangareddy", kvr.district)
+        assertEquals("Telangana", kvr.state)
+        assertFalse(kvr.needsConfirmation)
+        assertEquals(listOf("Plot 5", "Gachibowli", "Hyderabad", "500032"), kvr.unresolved)
+
+        val malkajgiri = parseLegacyCity("Kukatpally, Hyderabad, Malkajgiri, Telangana, 500072")
+        assertEquals("Medchal-Malkajgiri", malkajgiri.district)
+        assertFalse(malkajgiri.needsConfirmation)
+
+        val labelled = parseLegacyCity("Gachibowli, Hyderabad, Rangareddy District, Telangana, 500032")
+        assertEquals("Rangareddy", labelled.district)
+        assertFalse(labelled.needsConfirmation)
+    }
+
+    @Test
+    fun `an unreadable token in the district slot makes an earlier district match a suggestion only`() {
+        val withState = parseLegacyCity("Gachibowli, Hyderabad, Shamshabad Zone, Telangana, 500409")
+        assertEquals("Telangana", withState.state)
+        assertEquals("Hyderabad", withState.district)
+        assertTrue(withState.needsConfirmation)
+        assertEquals(listOf("Gachibowli", "Shamshabad Zone", "500409"), withState.unresolved)
+
+        // Same with the State only in the column: the pincode is a known remnant,
+        // the unknown label before it is not.
+        val withColumn = parseLegacyCity("Kukatpally, Hyderabad, Foo Bar, 500072", knownState = "Telangana")
+        assertEquals("Hyderabad", withColumn.district)
+        assertTrue(withColumn.needsConfirmation)
+        assertEquals(listOf("Kukatpally", "Foo Bar", "500072"), withColumn.unresolved)
+    }
+
+    @Test
+    fun `known remnants are a six-digit pincode or the country`() {
+        assertTrue(LegacyCityParse.isKnownRemnant("500034"))
+        assertTrue(LegacyCityParse.isKnownRemnant(" India "))
+        assertTrue(LegacyCityParse.isKnownRemnant("Bharat"))
+        assertFalse(LegacyCityParse.isKnownRemnant("Gachibowli"))
+        assertFalse(LegacyCityParse.isKnownRemnant("50003"))
+        assertFalse(LegacyCityParse.isKnownRemnant("5000340"))
+    }
+
+    @Test
+    fun `an unresolvable State column stays visible and asks`() {
+        val blank = parseLegacyCity("", knownState = "Atlantis")
+        assertNull(blank.state)
+        assertEquals(listOf("Atlantis"), blank.unresolved)
+        assertTrue(blank.needsConfirmation)
+        assertFalse(blank.isEmpty)
+
+        // "New Delhi" is a district, not a State, so the column is unusable;
+        // the lone district still infers its State and everything is flagged.
+        val lone = parseLegacyCity("Hyderabad", knownState = "New Delhi")
+        assertEquals("Telangana", lone.state)
+        assertEquals("Hyderabad", lone.district)
+        assertEquals(listOf("New Delhi"), lone.unresolved)
+        assertTrue(lone.needsConfirmation)
+    }
+
+    @Test
     fun `an India tail is a remnant, not a failure`() {
         val parsed = parseLegacyCity("Hyderabad, Telangana, India")
         assertEquals("Telangana", parsed.state)

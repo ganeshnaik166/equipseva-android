@@ -45,6 +45,9 @@ class IndiaStateCodesTest {
         assertEquals(21, IndiaStateCodes.lgdCode("Orissa"))
         assertEquals(1, IndiaStateCodes.lgdCode("jammu & kashmir"))
         assertEquals(38, IndiaStateCodes.lgdCode("Daman and Diu"))
+        // The other retired UT name is a live district of the merged UT, so it
+        // is deliberately not a State alias and yields no code (see KDoc).
+        assertNull(IndiaStateCodes.lgdCode("Dadra and Nagar Haveli"))
         assertEquals(36, IndiaStateCodes.lgdCode("  telangana "))
         assertNull(IndiaStateCodes.lgdCode("Atlantis"))
         assertNull(IndiaStateCodes.lgdCode(""))

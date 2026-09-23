@@ -107,9 +107,19 @@ object IndiaLocations {
 
     private fun embeddedState(normalizedText: String): String? =
         embeddedStatePatterns.entries
-            .mapNotNull { (name, regex) -> regex.find(normalizedText)?.let { name to it.range.first } }
+            .mapNotNull { (name, regex) ->
+                // Last occurrence, so a State named twice keeps its rightmost position.
+                regex.findAll(normalizedText).lastOrNull()?.let { name to it.range.first }
+            }
             .maxByOrNull { it.second }
             ?.first
+
+    /** Prefill-only whole-word patterns for [canonicalDistrict], precompiled per State/UT on first use. */
+    private val embeddedDistrictPatterns: Map<String, List<Pair<String, Regex>>> by lazy {
+        STATES.associateWith { state ->
+            districtsFor(state).map { district -> district to wholeWord(IndiaRegionAliases.normalize(district)) }
+        }
+    }
 
     /** Whole-word pattern over normalized (lower-case, punctuation-free) text. */
     private fun wholeWord(normalizedName: String): Regex =
@@ -521,11 +531,8 @@ object IndiaLocations {
         districts.firstOrNull { IndiaRegionAliases.normalize(it) == key }?.let { return it }
         IndiaRegionAliases.DISTRICTS[st]?.get(key)?.let { return it }
         if (!allowEmbedded) return null
-        return districts
-            .mapNotNull { district ->
-                val normalized = IndiaRegionAliases.normalize(district)
-                wholeWord(normalized).find(key)?.let { district to normalized.length }
-            }
+        return embeddedDistrictPatterns[st].orEmpty()
+            .mapNotNull { (district, regex) -> regex.find(key)?.let { district to it.value.length } }
             .maxByOrNull { it.second }
             ?.first
     }
