@@ -7,12 +7,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The legacy `engineers.city` string ("Mandal, District, State") is the
- * only place many engineer rows keep their geography. PRODUCT_PLAN §6 wants
- * such values readable and flagged as needing confirmation when anything
- * is inferred or unplaceable — never silently mapped. These tests pin that
- * contract, including a full round trip over every bundled pair so the
- * parser can never disagree with [IndiaLocations.compose].
+ * Legacy free-text location strings (`engineers.city` as written by the KYC
+ * flow — a bare district, or a "My location" address ending in "…, state,
+ * pincode" — plus the older "District, State" / "Mandal, District, State"
+ * shapes) must stay readable and be flagged as needing confirmation when
+ * anything is inferred, ambiguous or unplaceable — never silently mapped.
+ * These tests pin that contract, including a round trip over every bundled
+ * pair so the parser can never disagree with [IndiaLocations.compose].
  */
 class LegacyCityParseTest {
 
@@ -25,6 +26,15 @@ class LegacyCityParseTest {
             assertFalse(parsed.needsConfirmation)
             assertFalse(parsed.isComplete)
         }
+    }
+
+    @Test
+    fun `blank input with a known State column yields that State only`() {
+        val parsed = parseLegacyCity("", knownState = "Telangana")
+        assertEquals("Telangana", parsed.state)
+        assertNull(parsed.district)
+        assertFalse(parsed.isEmpty)
+        assertFalse(parsed.needsConfirmation)
     }
 
     @Test
@@ -67,6 +77,56 @@ class LegacyCityParseTest {
     }
 
     @Test
+    fun `a My-location address with pincode tail resolves State and district and keeps the remnants`() {
+        val parsed = parseLegacyCity("12 MG Road, Banjara Hills, Hyderabad, Hyderabad, Telangana, 500034")
+        assertEquals("Telangana", parsed.state)
+        assertEquals("Hyderabad", parsed.district)
+        assertNull(parsed.mandal)
+        assertEquals(listOf("12 MG Road", "Banjara Hills", "Hyderabad", "500034"), parsed.unresolved)
+        assertTrue(parsed.isComplete)
+        assertFalse(parsed.needsConfirmation)
+    }
+
+    @Test
+    fun `an India tail is a remnant, not a failure`() {
+        val parsed = parseLegacyCity("Hyderabad, Telangana, India")
+        assertEquals("Telangana", parsed.state)
+        assertEquals("Hyderabad", parsed.district)
+        assertEquals(listOf("India"), parsed.unresolved)
+        assertFalse(parsed.needsConfirmation)
+    }
+
+    @Test
+    fun `a bare district with the State column resolves without confirmation`() {
+        val parsed = parseLegacyCity("Rangareddy", knownState = "Telangana")
+        assertEquals("Telangana", parsed.state)
+        assertEquals("Rangareddy", parsed.district)
+        assertFalse(parsed.needsConfirmation)
+        val withPincode = parseLegacyCity("Hyderabad, 500034", knownState = "Telangana")
+        assertEquals("Hyderabad", withPincode.district)
+        assertEquals(listOf("500034"), withPincode.unresolved)
+        assertFalse(withPincode.needsConfirmation)
+    }
+
+    @Test
+    fun `text and State column disagreeing keeps the text reading and asks`() {
+        val parsed = parseLegacyCity("Hyderabad, Telangana", knownState = "Karnataka")
+        assertEquals("Telangana", parsed.state)
+        assertEquals("Hyderabad", parsed.district)
+        assertEquals(listOf("Telangana", "Karnataka"), parsed.stateCandidates)
+        assertTrue(parsed.needsConfirmation)
+    }
+
+    @Test
+    fun `a district that does not belong to the State column is not guessed into another State`() {
+        val parsed = parseLegacyCity("Hyderabad", knownState = "Karnataka")
+        assertEquals("Karnataka", parsed.state)
+        assertNull(parsed.district)
+        assertEquals(listOf("Hyderabad"), parsed.unresolved)
+        assertTrue(parsed.needsConfirmation)
+    }
+
+    @Test
     fun `a lone nationally unique district infers its State but needs confirmation`() {
         val parsed = parseLegacyCity("Hyderabad")
         assertEquals("Telangana", parsed.state)
@@ -87,14 +147,43 @@ class LegacyCityParseTest {
 
     @Test
     fun `an ambiguous lone district lists the candidate States and picks none`() {
-        val parsed = parseLegacyCity("Bilaspur")
+        val bilaspur = parseLegacyCity("Bilaspur")
+        assertNull(bilaspur.state)
+        assertNull(bilaspur.district)
+        assertEquals(listOf("Chhattisgarh", "Himachal Pradesh"), bilaspur.stateCandidates)
+        assertEquals(listOf("Bilaspur"), bilaspur.unresolved)
+        assertTrue(bilaspur.needsConfirmation)
+        assertFalse(bilaspur.isComplete)
+        assertFalse(bilaspur.isEmpty)
+        // Alias-driven ambiguity counts too: Maharashtra's renamed district and
+        // Karnataka's Vijayapura still answer to their old names.
+        assertEquals(listOf("Bihar", "Maharashtra"), parseLegacyCity("Aurangabad").stateCandidates)
+        assertEquals(listOf("Chhattisgarh", "Karnataka"), parseLegacyCity("Bijapur").stateCandidates)
+    }
+
+    @Test
+    fun `a lone city that is deliberately not aliased stays unresolved with no candidates`() {
+        val parsed = parseLegacyCity("Mumbai")
         assertNull(parsed.state)
         assertNull(parsed.district)
-        assertEquals(listOf("Chhattisgarh", "Himachal Pradesh"), parsed.stateCandidates)
-        assertEquals(listOf("Bilaspur"), parsed.unresolved)
+        assertTrue(parsed.stateCandidates.isEmpty())
+        assertEquals(listOf("Mumbai"), parsed.unresolved)
         assertTrue(parsed.needsConfirmation)
-        assertFalse(parsed.isComplete)
-        assertFalse(parsed.isEmpty)
+        // Secunderabad straddles two districts, so it is not an alias; under
+        // its State it stays visible and asks, rather than becoming Hyderabad.
+        val secunderabad = parseLegacyCity("Secunderabad, Telangana")
+        assertEquals("Telangana", secunderabad.state)
+        assertNull(secunderabad.district)
+        assertEquals(listOf("Secunderabad"), secunderabad.unresolved)
+        assertTrue(secunderabad.needsConfirmation)
+    }
+
+    @Test
+    fun `the retired UT name reads as the live district with its merged UT inferred`() {
+        val parsed = parseLegacyCity("Dadra and Nagar Haveli")
+        assertEquals("Dadra and Nagar Haveli and Daman and Diu", parsed.state)
+        assertEquals("Dadra and Nagar Haveli", parsed.district)
+        assertTrue(parsed.needsConfirmation)
     }
 
     @Test
@@ -118,17 +207,35 @@ class LegacyCityParseTest {
     }
 
     @Test
-    fun `an unknown mandal or extra leading part is reported, not dropped`() {
+    fun `a pre-2014 row naming Hyderabad under Andhra Pradesh is not silently moved`() {
+        val parsed = parseLegacyCity("Hyderabad, Andhra Pradesh")
+        assertEquals("Andhra Pradesh", parsed.state)
+        assertNull(parsed.district)
+        assertEquals(listOf("Hyderabad"), parsed.unresolved)
+        assertTrue(parsed.needsConfirmation)
+    }
+
+    @Test
+    fun `a reversed State-first string yields the State and flags the rest`() {
+        val parsed = parseLegacyCity("Telangana, Hyderabad")
+        assertEquals("Telangana", parsed.state)
+        assertNull(parsed.district)
+        assertEquals(listOf("Hyderabad"), parsed.unresolved)
+        assertTrue(parsed.needsConfirmation)
+    }
+
+    @Test
+    fun `remnants beside a resolved district are reported but do not require confirmation`() {
         val unknownMandal = parseLegacyCity("Somewhere, Hyderabad, Telangana")
         assertEquals("Hyderabad", unknownMandal.district)
         assertNull(unknownMandal.mandal)
         assertEquals(listOf("Somewhere"), unknownMandal.unresolved)
-        assertTrue(unknownMandal.needsConfirmation)
+        assertFalse(unknownMandal.needsConfirmation)
 
         val extra = parseLegacyCity("Extra, Medak, Medak, Telangana")
         assertEquals("Medak", extra.mandal)
         assertEquals(listOf("Extra"), extra.unresolved)
-        assertTrue(extra.needsConfirmation)
+        assertFalse(extra.needsConfirmation)
     }
 
     @Test
@@ -148,6 +255,7 @@ class LegacyCityParseTest {
                 assertEquals("state for $district, $state", state, parsed.state)
                 assertEquals("district for $district, $state", district, parsed.district)
                 assertNull(parsed.mandal)
+                assertTrue(parsed.unresolved.isEmpty())
                 assertFalse("$district, $state should not need confirmation", parsed.needsConfirmation)
             }
         }
@@ -163,6 +271,7 @@ class LegacyCityParseTest {
                     assertEquals(state, parsed.state)
                     assertEquals(district, parsed.district)
                     assertEquals("mandal for $mandal, $district, $state", mandal, parsed.mandal)
+                    assertTrue(parsed.unresolved.isEmpty())
                     assertFalse(parsed.needsConfirmation)
                     checked++
                 }

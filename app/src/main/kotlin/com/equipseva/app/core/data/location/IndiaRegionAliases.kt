@@ -18,10 +18,15 @@ import java.util.Locale
  * Aurangabad is still a Bihar district while Maharashtra's became
  * Chhatrapati Sambhaji Nagar.
  *
- * City-to-district entries are limited to undisputed district headquarters
- * (Guwahati → Kamrup Metropolitan). Anything ambiguous — "Bombay" (two Mumbai
- * districts), "Delhi" (eleven), "Burdwan" (split in 2017) — is deliberately
- * left out so it surfaces as needing confirmation instead of a silent pick.
+ * City-to-district entries are limited to cities that lie wholly within one
+ * district (Guwahati → Kamrup Metropolitan, Noida → Gautam Buddha Nagar).
+ * Anything that straddles or could mean several — "Bombay" (two Mumbai
+ * districts), "Delhi" (eleven), "Burdwan" (split in 2017), "Secunderabad"
+ * (Hyderabad and Medchal-Malkajgiri) — is deliberately left out so it
+ * surfaces as needing confirmation instead of a silent pick. Two entries run
+ * in reverse (current official name → the older spelling the bundled list
+ * still carries): Narmadapuram → Hoshangabad and Ahilyanagar → Ahmednagar;
+ * both flip when the coded LGD import lands.
  */
 internal object IndiaRegionAliases {
 
@@ -52,7 +57,9 @@ internal object IndiaRegionAliases {
         // of Delhi, so a lone "New Delhi" must resolve as district-with-
         // inferred-state (needs confirmation), not silently as the UT.
         "daman and diu" to "Dadra and Nagar Haveli and Daman and Diu",
-        "dadra and nagar haveli" to "Dadra and Nagar Haveli and Daman and Diu",
+        // "Dadra and Nagar Haveli" (the retired UT, code 26) is deliberately
+        // NOT a state alias: it is a live district of the merged UT, so a lone
+        // value resolves as district-with-inferred-UT and asks for confirmation.
         "dnh and dd" to "Dadra and Nagar Haveli and Daman and Diu",
         "andaman and nicobar" to "Andaman and Nicobar Islands",
         "a and n islands" to "Andaman and Nicobar Islands",
@@ -177,7 +184,8 @@ internal object IndiaRegionAliases {
             "warangal urban" to "Hanumakonda",
             "warangal rural" to "Warangal",
             "mahbubnagar" to "Mahabubnagar",
-            "secunderabad" to "Hyderabad",
+            // No "secunderabad": it straddles Hyderabad and Medchal-Malkajgiri
+            // (it remains reachable as a Hyderabad mandal).
             "bhuvanagiri" to "Yadadri Bhuvanagiri",
             "yadadri" to "Yadadri Bhuvanagiri",
             "gadwal" to "Jogulamba Gadwal",

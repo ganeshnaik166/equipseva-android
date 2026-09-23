@@ -58,7 +58,15 @@ class IndiaRegionAliasesTest {
         assertEquals("Delhi", IndiaLocations.canonicalState("NCT of Delhi"))
         assertEquals("Delhi", IndiaLocations.canonicalState("National Capital Territory of Delhi"))
         assertEquals("Dadra and Nagar Haveli and Daman and Diu", IndiaLocations.canonicalState("Daman and Diu"))
-        assertEquals("Dadra and Nagar Haveli and Daman and Diu", IndiaLocations.canonicalState("Dadra & Nagar Haveli"))
+        assertEquals("Dadra and Nagar Haveli and Daman and Diu", IndiaLocations.canonicalState("DNH & DD"))
+        // The retired UT "Dadra and Nagar Haveli" is a live district of the
+        // merged UT, so it is deliberately not a State alias (see the
+        // collision guard below); it resolves as a district instead.
+        assertNull(IndiaLocations.canonicalState("Dadra & Nagar Haveli"))
+        assertEquals(
+            "Dadra and Nagar Haveli",
+            IndiaLocations.canonicalDistrict("Dadra and Nagar Haveli and Daman and Diu", "Dadra & Nagar Haveli"),
+        )
         assertEquals("Andaman and Nicobar Islands", IndiaLocations.canonicalState("Andaman & Nicobar"))
         assertEquals("Tamil Nadu", IndiaLocations.canonicalState("Tamilnadu"))
         assertEquals("Tamil Nadu", IndiaLocations.canonicalState("tamil-nadu"))
@@ -81,6 +89,45 @@ class IndiaRegionAliasesTest {
         // Strict mode still accepts exact, normalized and aliased names.
         assertEquals("Odisha", IndiaLocations.canonicalState("Orissa", allowEmbedded = false))
         assertEquals("Jammu and Kashmir", IndiaLocations.canonicalState("Jammu & Kashmir", allowEmbedded = false))
+        // The embedded step runs on normalized text, so punctuation and
+        // ampersands do not defeat it, and the rightmost embedded name wins.
+        assertEquals("Tamil Nadu", IndiaLocations.canonicalState("Tamil-Nadu, India"))
+        assertEquals("Jammu and Kashmir", IndiaLocations.canonicalState("Jammu & Kashmir, India"))
+        assertEquals("Telangana", IndiaLocations.canonicalState("Karnataka Colony, Hyderabad, Telangana"))
+    }
+
+    @Test
+    fun `canonicalDistrict is strict by default and embeds only for prefill`() {
+        assertNull(IndiaLocations.canonicalDistrict("Goa Velha", "North Goa"))
+        assertEquals("North Goa", IndiaLocations.canonicalDistrict("Goa Velha", "North Goa", allowEmbedded = true))
+        assertNull(IndiaLocations.canonicalDistrict("Telangana", "Hyderabad District"))
+        assertEquals("Hyderabad", IndiaLocations.canonicalDistrict("Telangana", "Hyderabad District", allowEmbedded = true))
+        // Longest embedded district wins over a shorter one it contains.
+        assertEquals(
+            "North West Delhi",
+            IndiaLocations.canonicalDistrict("Delhi", "North West Delhi district", allowEmbedded = true),
+        )
+        // Even prefill never accepts a partial word.
+        assertNull(IndiaLocations.canonicalDistrict("Telangana", "Hyd", allowEmbedded = true))
+    }
+
+    @Test
+    fun `State names and aliases never double as district names except the recorded cases`() {
+        val districtKeys = IndiaLocations.STATES
+            .flatMap { IndiaLocations.districtsFor(it) }
+            .map { IndiaRegionAliases.normalize(it) }
+            .toSet()
+        // A state alias that is also a district name would let parseLegacyCity
+        // read a lone district as its State (the retired UT "Dadra and Nagar
+        // Haveli" was removed for exactly that reason).
+        val aliasCollisions = IndiaRegionAliases.STATES.keys.filter { it in districtKeys }.toSet()
+        assertEquals("state alias keys that are also district names", emptySet<String>(), aliasCollisions)
+        // Three single-district UTs share their name with their district.
+        val canonicalCollisions = IndiaLocations.STATES
+            .map { IndiaRegionAliases.normalize(it) }
+            .filter { it in districtKeys }
+            .toSet()
+        assertEquals(setOf("chandigarh", "lakshadweep", "puducherry"), canonicalCollisions)
     }
 
     @Test

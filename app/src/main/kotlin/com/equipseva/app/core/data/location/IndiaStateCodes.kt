@@ -79,15 +79,20 @@ object IndiaStateCodes {
 
     /**
      * LGD code for a State/UT given in any form [IndiaLocations.canonicalState]
-     * understands ("Orissa", "Jammu & Kashmir", "telangana"); null when the
-     * value cannot be resolved to a canonical entry.
+     * resolves strictly ("Orissa", "Jammu & Kashmir", "telangana"); null when
+     * the value cannot be resolved to a canonical entry. Strict by default
+     * because this is the persisted authority code: the embedded-phrase
+     * Geocoder step only runs when a prefill caller passes
+     * `allowEmbedded = true` (PRODUCT_PLAN §6: no fuzzy matching is an
+     * authority decision).
      */
-    fun lgdCode(state: String?): Int? =
-        IndiaLocations.canonicalState(state)?.let { LGD[it] }
+    fun lgdCode(state: String?, allowEmbedded: Boolean = false): Int? =
+        IndiaLocations.canonicalState(state, allowEmbedded)?.let { LGD[it] }
 
     /** Canonical State/UT name for an LGD code, or null for an unknown/retired code. */
     fun stateForCode(code: Int?): String? = code?.let { byCode[it] }
 
-    fun isUnionTerritory(state: String?): Boolean =
-        IndiaLocations.canonicalState(state)?.let { it in UNION_TERRITORIES } ?: false
+    /** Strict by default, like [lgdCode]. */
+    fun isUnionTerritory(state: String?, allowEmbedded: Boolean = false): Boolean =
+        IndiaLocations.canonicalState(state, allowEmbedded)?.let { it in UNION_TERRITORIES } ?: false
 }

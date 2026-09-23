@@ -52,6 +52,17 @@ class IndiaStateCodesTest {
     }
 
     @Test
+    fun `lgdCode and isUnionTerritory are strict unless a prefill caller opts in`() {
+        // The persisted authority code must not come from an embedded phrase.
+        assertNull(IndiaStateCodes.lgdCode("New Delhi"))
+        assertNull(IndiaStateCodes.lgdCode("Karnataka Colony, Hyderabad, Telangana"))
+        assertEquals(7, IndiaStateCodes.lgdCode("New Delhi", allowEmbedded = true))
+        assertEquals(36, IndiaStateCodes.lgdCode("Karnataka Colony, Hyderabad, Telangana", allowEmbedded = true))
+        assertFalse(IndiaStateCodes.isUnionTerritory("New Delhi"))
+        assertTrue(IndiaStateCodes.isUnionTerritory("New Delhi", allowEmbedded = true))
+    }
+
+    @Test
     fun `stateForCode round-trips every entry and rejects retired or unknown codes`() {
         IndiaStateCodes.LGD.forEach { (name, code) ->
             assertEquals(name, IndiaStateCodes.stateForCode(code))

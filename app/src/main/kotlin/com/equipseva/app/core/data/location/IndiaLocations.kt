@@ -17,15 +17,18 @@ package com.equipseva.app.core.data.location
  *     empty list and the UI hides the mandal step.
  *
  * Provenance and known staleness: names transcribed from the Local
- * Government Directory (lgdirectory.gov.in) around 2024 — NAMES ONLY, no
- * LGD district codes yet. Districts created or renamed since are not all
- * reflected (Madhya Pradesh's 2023 additions and the 2022 Narmadapuram
- * rename, Rajasthan's 2023/2024 reorganisation, Assam's 2025 re-creations);
- * historical spellings resolve through [IndiaRegionAliases] instead of
- * being rewritten here, because stored profile/engineer rows reference the
- * bundled spellings. PRODUCT_PLAN §6 (delivery-ledger P2.2) replaces this
- * with a reviewed, dated, coded LGD snapshot; until then the lists are a
- * picker convenience, never an authority decision. Persist
+ * Government Directory (lgdirectory.gov.in) at an unrecorded date — NAMES
+ * ONLY, no LGD district codes — and uneven across States: Chhattisgarh
+ * already carries its 2022 districts while Assam still lacks Bajali (2021)
+ * and Tamulpur (2022). [KNOWN_MISSING] names the districts known to be
+ * absent (pinned by IndiaLocationsCatalogIntegrityTest, so adding one forces
+ * that list and this header to move); Rajasthan predates its 2023
+ * reorganisation and Madhya Pradesh still carries Hoshangabad for
+ * Narmadapuram. Historical spellings resolve through [IndiaRegionAliases]
+ * instead of being rewritten here, because stored profile/engineer rows
+ * reference the bundled spellings. PRODUCT_PLAN §6 (delivery-ledger P2.2)
+ * replaces this with a reviewed, dated, coded LGD snapshot; until then the
+ * lists are a picker convenience, never an authority decision. Persist
  * [CATALOG_VERSION] with any pick so the migration can tell which snapshot
  * a record was validated against. State/UT codes live in [IndiaStateCodes].
  */
@@ -37,8 +40,26 @@ object IndiaLocations {
      * Identifies the bundled snapshot a State/UT + district pick was validated
      * against. Bump when the lists change; persist next to any stored pick
      * (PRODUCT_PLAN §6: "persist official stable codes plus catalog version").
+     * Deliberately carries no source year: the transcription date is not
+     * recorded and the lists are uneven across States (see the header).
      */
-    const val CATALOG_VERSION = "lgd-names-2024.v1"
+    const val CATALOG_VERSION = "bundled-names-v1"
+
+    /**
+     * Districts known to exist officially but absent from the bundled lists,
+     * by State/UT. Documentation as data: the integrity test asserts each is
+     * really absent, so adding one to the lists forces this map (and the
+     * header) to move with it. Not exhaustive — Rajasthan's 2023
+     * reorganisation alone adds more than this.
+     */
+    val KNOWN_MISSING: Map<String, List<String>> = mapOf(
+        "Arunachal Pradesh" to listOf("Bichom", "Keyi Panyor"),
+        "Assam" to listOf("Bajali", "Tamulpur"),
+        "Gujarat" to listOf("Vav-Tharad"),
+        "Ladakh" to listOf("Changthang", "Drass", "Nubra", "Sham", "Zanskar"),
+        "Madhya Pradesh" to listOf("Maihar", "Mauganj", "Pandhurna"),
+        "Nagaland" to listOf("Meluri"),
+    )
 
     /**
      * Maps a raw State/UT string — a stored profile value, a legacy
@@ -70,16 +91,29 @@ object IndiaLocations {
         STATES.firstOrNull { IndiaRegionAliases.normalize(it) == key }?.let { return it }
         IndiaRegionAliases.STATES[key]?.let { return it }
         if (!allowEmbedded) return null
-        return STATES.firstOrNull { containsAsWords(t, it) }
+        return embeddedState(key)
     }
 
     /**
-     * Whole-word containment for the Geocoder prefill step: "Karnataka, India"
-     * contains Karnataka, but "Goalpara" must not resolve to Goa.
+     * Step 4 of [canonicalState]: whole-word containment on the normalized
+     * text ("karnataka india" contains karnataka; "goalpara" does not contain
+     * goa), with one precompiled pattern per State/UT. When a phrase embeds
+     * several names ("Karnataka Colony, Hyderabad, Telangana") the rightmost
+     * wins — Geocoder and address strings put the enclosing region last.
      */
-    private fun containsAsWords(haystack: String, name: String): Boolean =
-        Regex("(?<!\\p{L})" + Regex.escape(name) + "(?!\\p{L})", RegexOption.IGNORE_CASE)
-            .containsMatchIn(haystack)
+    private val embeddedStatePatterns: Map<String, Regex> by lazy {
+        STATES.associateWith { name -> wholeWord(IndiaRegionAliases.normalize(name)) }
+    }
+
+    private fun embeddedState(normalizedText: String): String? =
+        embeddedStatePatterns.entries
+            .mapNotNull { (name, regex) -> regex.find(normalizedText)?.let { name to it.range.first } }
+            .maxByOrNull { it.second }
+            ?.first
+
+    /** Whole-word pattern over normalized (lower-case, punctuation-free) text. */
+    private fun wholeWord(normalizedName: String): Regex =
+        Regex("(?<!\\p{L})" + Regex.escape(normalizedName) + "(?!\\p{L})")
 
     /** All 28 states + 8 union territories, alphabetical. */
     val STATES: List<String> = listOf(
@@ -462,24 +496,38 @@ object IndiaLocations {
 
     /**
      * Maps a raw district string to its canonical entry within [state]
-     * (which itself may be given in any form [canonicalState] accepts), or
-     * null. Exact (case-insensitive) match first, then a match after
-     * [IndiaRegionAliases.normalize] ("Medchal–Malkajgiri" → the hyphenated
-     * catalog spelling), then the State/UT-scoped legacy alias table
-     * ("Bangalore" → "Bengaluru Urban"; Maharashtra's "Aurangabad" →
+     * (resolved through [canonicalState] with the same [allowEmbedded]
+     * setting), or null. Exact (case-insensitive) match first, then a match
+     * after [IndiaRegionAliases.normalize] ("Medchal–Malkajgiri" → the
+     * hyphenated catalog spelling), then the State/UT-scoped legacy alias
+     * table ("Bangalore" → "Bengaluru Urban"; Maharashtra's "Aurangabad" →
      * "Chhatrapati Sambhaji Nagar" while Bihar's "Aurangabad" stays itself).
-     * No substring matching: an unknown name returns null so the caller can
-     * show it as needing confirmation.
+     *
+     * Strict by default: an unknown name returns null so the caller can show
+     * it as needing confirmation. Geocoder prefill callers pass
+     * `allowEmbedded = true` to also accept a phrase that embeds the district
+     * as whole words ("Hyderabad District"; the longest embedded name wins,
+     * so "North West Delhi district" is not read as West Delhi). That step
+     * pre-selects a dropdown the user still confirms; it never decides
+     * authority.
      */
-    fun canonicalDistrict(state: String?, raw: String?): String? {
-        val st = canonicalState(state) ?: return null
+    fun canonicalDistrict(state: String?, raw: String?, allowEmbedded: Boolean = false): String? {
+        val st = canonicalState(state, allowEmbedded) ?: return null
         val t = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         val districts = districtsFor(st)
         districts.firstOrNull { it.equals(t, ignoreCase = true) }?.let { return it }
         val key = IndiaRegionAliases.normalize(t)
         if (key.isEmpty()) return null
         districts.firstOrNull { IndiaRegionAliases.normalize(it) == key }?.let { return it }
-        return IndiaRegionAliases.DISTRICTS[st]?.get(key)
+        IndiaRegionAliases.DISTRICTS[st]?.get(key)?.let { return it }
+        if (!allowEmbedded) return null
+        return districts
+            .mapNotNull { district ->
+                val normalized = IndiaRegionAliases.normalize(district)
+                wholeWord(normalized).find(key)?.let { district to normalized.length }
+            }
+            .maxByOrNull { it.second }
+            ?.first
     }
 
     fun mandalsFor(state: String?, district: String?): List<String> {

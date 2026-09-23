@@ -67,7 +67,22 @@ class IndiaLocationsCatalogIntegrityTest {
 
     @Test
     fun `CATALOG_VERSION is the pinned snapshot id`() {
-        assertEquals("lgd-names-2024.v1", IndiaLocations.CATALOG_VERSION)
+        assertEquals("bundled-names-v1", IndiaLocations.CATALOG_VERSION)
+    }
+
+    @Test
+    fun `KNOWN_MISSING districts are really absent from the bundled lists`() {
+        assertTrue(IndiaLocations.KNOWN_MISSING.isNotEmpty())
+        IndiaLocations.KNOWN_MISSING.forEach { (state, names) ->
+            assertTrue("KNOWN_MISSING names an unknown State: $state", state in IndiaLocations.STATES)
+            val bundled = IndiaLocations.districtsFor(state).map { IndiaRegionAliases.normalize(it) }.toSet()
+            names.forEach { name ->
+                assertTrue(
+                    "$name is now bundled for $state — remove it from KNOWN_MISSING and update the header",
+                    IndiaRegionAliases.normalize(name) !in bundled,
+                )
+            }
+        }
     }
 
     @Test

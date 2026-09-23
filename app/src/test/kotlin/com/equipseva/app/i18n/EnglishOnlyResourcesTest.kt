@@ -26,11 +26,16 @@ import javax.xml.parsers.DocumentBuilderFactory
 class EnglishOnlyResourcesTest {
 
     @Test
-    fun `no locale-qualified values directory exists under res`() {
-        val resDir = locate("app/src/main/res")
-        val localized = resDir.listFiles { f -> f.isDirectory && isLocaleQualified(f.name) }
-            .orEmpty()
-            .map { it.name }
+    fun `no locale-qualified values directory exists in any source set`() {
+        val srcDir = locate("app/src")
+        val sourceSets = srcDir.listFiles { f -> f.isDirectory }.orEmpty()
+        assertTrue("expected source sets under app/src", sourceSets.any { it.name == "main" })
+        val localized = sourceSets
+            .mapNotNull { set -> File(set, "res").takeIf { it.isDirectory } }
+            .flatMap { res ->
+                res.listFiles { f -> f.isDirectory && isLocaleQualified(f.name) }.orEmpty().toList()
+            }
+            .map { dir -> dir.parentFile.parentFile.name + "/res/" + dir.name }
             .sorted()
         assertTrue(
             "English only (owner decision 2026-09-23): remove translated resource " +
@@ -52,12 +57,16 @@ class EnglishOnlyResourcesTest {
     @Test
     fun `build script ships the en locale only`() {
         val gradle = locate("app/build.gradle.kts").readText()
-        val line = gradle.lineSequence().firstOrNull { "localeFilters +=" in it }
-            ?: error("localeFilters line missing from app/build.gradle.kts")
+        // Anchor on the statement itself, not on a comment that mentions it.
+        val statements = gradle.lineSequence()
+            .map { it.trim() }
+            .filter { it.startsWith("localeFilters +=") }
+            .toList()
+        assertEquals("expected exactly one localeFilters statement, got $statements", 1, statements.size)
         assertEquals(
-            "English only: localeFilters must list exactly \"en\" — got: ${line.trim()}",
+            "English only: localeFilters must list exactly \"en\" — got: ${statements.single()}",
             """localeFilters += setOf("en")""",
-            line.trim(),
+            statements.single(),
         )
     }
 
@@ -65,16 +74,25 @@ class EnglishOnlyResourcesTest {
      * Android resource qualifiers that denote a locale: a 2-3 letter
      * language (`values-hi`, `values-te`, `values-en-rIN`) or a BCP-47
      * `b+` form (`values-b+sr+Latn`). Everything else — `values-night`,
-     * `values-v26`, `values-sw600dp`, `values-land` — is not a locale.
-     * `tv` and `car` are UI-mode qualifiers that happen to be short.
+     * `values-v26`, `values-sw600dp`, `values-land`, `values-ldrtl` — is
+     * not a locale. Qualifiers are case-insensitive on Android, so the name
+     * is lower-cased first (`values-HI` would still ship Hindi), and the
+     * mobile-country/network-code qualifiers that legally precede the
+     * language (`values-mcc404-hi`) are skipped before the language segment
+     * is examined. `car` is a UI-mode qualifier that happens to be three
+     * letters.
      */
     private fun isLocaleQualified(dirName: String): Boolean {
-        if (!dirName.startsWith("values-")) return false
-        val first = dirName.removePrefix("values-").substringBefore('-')
+        val lower = dirName.lowercase()
+        if (!lower.startsWith("values-")) return false
+        val segments = lower.removePrefix("values-").split('-')
+        val first = segments.firstOrNull { !MCC_MNC.matches(it) } ?: return false
         if (first.startsWith("b+")) return true
-        if (first in setOf("tv", "car")) return false
+        if (first in setOf("car", "tv")) return false
         return first.length in 2..3 && first.all { it in 'a'..'z' }
     }
+
+    private val MCC_MNC = Regex("m[cn]c\\d+")
 
     private fun countStringResources(file: File): Int {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
