@@ -1,41 +1,85 @@
 package com.equipseva.app.core.data.location
 
 /**
- * Bundled cascade of India administrative geography for the KYC service-area
- * picker and any address form that needs structured input. Country is fixed
- * to India; the cascade is State → District → Mandal (Tehsil/Taluka).
+ * Bundled cascade of India administrative geography — State/UT → District →
+ * (Telangana only) Mandal — used by the KYC service-area picker, both
+ * onboarding flows and the address form. Country is fixed to India.
  *
- * Coverage today is intentionally narrow:
- *   - All 28 states + 8 union territories as the State list.
- *   - Districts hard-coded for Telangana (active market) + a curated sample
- *     for adjacent / high-traffic states. Other states return an empty
- *     district list, in which case the UI falls back to a free-text District
- *     input so the user can still progress.
- *   - Mandals only for Telangana districts. Other districts return empty
- *     and the UI hides the Mandal step.
+ * What is actually bundled (measured 2026-09-23; pinned by
+ * IndiaLocationsCatalogIntegrityTest, so this comment cannot drift again):
+ *   - 36 States/UTs (28 states + 8 union territories).
+ *   - A district list for EVERY State/UT — from 1 (Chandigarh, Lakshadweep)
+ *     to 75 (Uttar Pradesh). The free-text district fallback in the
+ *     onboarding forms is therefore reached only when the state value is
+ *     not a member of [STATES] (legacy or corrupted data), not for whole
+ *     states, as older comments here claimed.
+ *   - Mandals for 14 Telangana districts only; other districts return an
+ *     empty list and the UI hides the mandal step.
  *
- * Data source: Local Government Directory (lgdirectory.gov.in) +
- * data.gov.in. Update by replacing the maps below with a richer asset (e.g.
- * a bundled JSON in `assets/india_locations.json` and a parser) when the
- * full ~6,000 mandal dataset lands.
+ * Provenance and known staleness: names transcribed from the Local
+ * Government Directory (lgdirectory.gov.in) around 2024 — NAMES ONLY, no
+ * LGD district codes yet. Districts created or renamed since are not all
+ * reflected (Madhya Pradesh's 2023 additions and the 2022 Narmadapuram
+ * rename, Rajasthan's 2023/2024 reorganisation, Assam's 2025 re-creations);
+ * historical spellings resolve through [IndiaRegionAliases] instead of
+ * being rewritten here, because stored profile/engineer rows reference the
+ * bundled spellings. PRODUCT_PLAN §6 (delivery-ledger P2.2) replaces this
+ * with a reviewed, dated, coded LGD snapshot; until then the lists are a
+ * picker convenience, never an authority decision. Persist
+ * [CATALOG_VERSION] with any pick so the migration can tell which snapshot
+ * a record was validated against. State/UT codes live in [IndiaStateCodes].
  */
 object IndiaLocations {
 
     const val COUNTRY = "India"
 
     /**
-     * Maps a raw state string (e.g. an Android Geocoder adminArea) to its
-     * canonical [STATES] entry, or null if it can't be matched. Handles
-     * case/whitespace and common Geocoder variants that embed the state name
-     * (e.g. "National Capital Territory of Delhi" -> "Delhi"). Callers use this
-     * so a non-canonical value never fills the state field (the dropdown only
-     * renders canonical members, and non-canonical strings were being saved).
+     * Identifies the bundled snapshot a State/UT + district pick was validated
+     * against. Bump when the lists change; persist next to any stored pick
+     * (PRODUCT_PLAN §6: "persist official stable codes plus catalog version").
      */
-    fun canonicalState(raw: String?): String? {
+    const val CATALOG_VERSION = "lgd-names-2024.v1"
+
+    /**
+     * Maps a raw State/UT string — a stored profile value, a legacy
+     * `engineers.city` tail or an Android Geocoder adminArea — to its
+     * canonical [STATES] entry, or null if it cannot be matched.
+     *
+     * Resolution order, strictest first:
+     *   1. exact match ignoring case/whitespace;
+     *   2. match after [IndiaRegionAliases.normalize] ("Jammu & Kashmir",
+     *      "tamil-nadu");
+     *   3. explicit legacy alias ("Orissa", "Pondicherry", "NCT of Delhi",
+     *      "Daman and Diu");
+     *   4. Only when [allowEmbedded] (the default, for Geocoder prefill): a
+     *      longer phrase that embeds a canonical name as whole words
+     *      ("Karnataka, India", "New Delhi" → Delhi). It is never used to
+     *      decide authority — it only pre-selects a dropdown the user still
+     *      confirms. Pass `allowEmbedded = false` when reading stored or
+     *      composed values, where the State/UT is always written in full and
+     *      an embedded match would swallow a district name such as "New Delhi".
+     *
+     * Callers use this so a non-canonical value never fills the state field
+     * (the dropdown only renders canonical members).
+     */
+    fun canonicalState(raw: String?, allowEmbedded: Boolean = true): String? {
         val t = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         STATES.firstOrNull { it.equals(t, ignoreCase = true) }?.let { return it }
-        return STATES.firstOrNull { t.contains(it, ignoreCase = true) }
+        val key = IndiaRegionAliases.normalize(t)
+        if (key.isEmpty()) return null
+        STATES.firstOrNull { IndiaRegionAliases.normalize(it) == key }?.let { return it }
+        IndiaRegionAliases.STATES[key]?.let { return it }
+        if (!allowEmbedded) return null
+        return STATES.firstOrNull { containsAsWords(t, it) }
     }
+
+    /**
+     * Whole-word containment for the Geocoder prefill step: "Karnataka, India"
+     * contains Karnataka, but "Goalpara" must not resolve to Goa.
+     */
+    private fun containsAsWords(haystack: String, name: String): Boolean =
+        Regex("(?<!\\p{L})" + Regex.escape(name) + "(?!\\p{L})", RegexOption.IGNORE_CASE)
+            .containsMatchIn(haystack)
 
     /** All 28 states + 8 union territories, alphabetical. */
     val STATES: List<String> = listOf(
@@ -415,6 +459,28 @@ object IndiaLocations {
 
     fun districtsFor(state: String?): List<String> =
         DISTRICTS[state.orEmpty()].orEmpty()
+
+    /**
+     * Maps a raw district string to its canonical entry within [state]
+     * (which itself may be given in any form [canonicalState] accepts), or
+     * null. Exact (case-insensitive) match first, then a match after
+     * [IndiaRegionAliases.normalize] ("Medchal–Malkajgiri" → the hyphenated
+     * catalog spelling), then the State/UT-scoped legacy alias table
+     * ("Bangalore" → "Bengaluru Urban"; Maharashtra's "Aurangabad" →
+     * "Chhatrapati Sambhaji Nagar" while Bihar's "Aurangabad" stays itself).
+     * No substring matching: an unknown name returns null so the caller can
+     * show it as needing confirmation.
+     */
+    fun canonicalDistrict(state: String?, raw: String?): String? {
+        val st = canonicalState(state) ?: return null
+        val t = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val districts = districtsFor(st)
+        districts.firstOrNull { it.equals(t, ignoreCase = true) }?.let { return it }
+        val key = IndiaRegionAliases.normalize(t)
+        if (key.isEmpty()) return null
+        districts.firstOrNull { IndiaRegionAliases.normalize(it) == key }?.let { return it }
+        return IndiaRegionAliases.DISTRICTS[st]?.get(key)
+    }
 
     fun mandalsFor(state: String?, district: String?): List<String> {
         if (state.isNullOrBlank() || district.isNullOrBlank()) return emptyList()
