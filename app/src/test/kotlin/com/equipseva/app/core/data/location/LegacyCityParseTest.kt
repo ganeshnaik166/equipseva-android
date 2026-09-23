@@ -125,11 +125,40 @@ class LegacyCityParseTest {
     @Test
     fun `known remnants are a six-digit pincode or the country`() {
         assertTrue(LegacyCityParse.isKnownRemnant("500034"))
+        assertTrue(LegacyCityParse.isKnownRemnant("500 034"))
         assertTrue(LegacyCityParse.isKnownRemnant(" India "))
         assertTrue(LegacyCityParse.isKnownRemnant("Bharat"))
         assertFalse(LegacyCityParse.isKnownRemnant("Gachibowli"))
         assertFalse(LegacyCityParse.isKnownRemnant("50003"))
         assertFalse(LegacyCityParse.isKnownRemnant("5000340"))
+    }
+
+    @Test
+    fun `an unreadable token after the State token also makes the district a suggestion`() {
+        val parsed = parseLegacyCity("Hyderabad, Telangana, Rangareddy Zone")
+        assertEquals("Telangana", parsed.state)
+        assertEquals("Hyderabad", parsed.district)
+        assertTrue(parsed.needsConfirmation)
+        assertEquals(listOf("Rangareddy Zone"), parsed.unresolved)
+        // Known remnants after the State do not.
+        assertFalse(parseLegacyCity("Hyderabad, Telangana, 500 034, India").needsConfirmation)
+    }
+
+    @Test
+    fun `explicit text with an unresolvable State column still asks`() {
+        val parsed = parseLegacyCity("Hyderabad, Telangana", knownState = "Atlantis")
+        assertEquals("Telangana", parsed.state)
+        assertEquals("Hyderabad", parsed.district)
+        assertEquals(listOf("Atlantis"), parsed.unresolved)
+        assertTrue(parsed.needsConfirmation)
+    }
+
+    @Test
+    fun `stateInferred distinguishes a worked-out State from a stated one`() {
+        assertTrue(parseLegacyCity("Hyderabad").stateInferred)
+        assertFalse(parseLegacyCity("Hyderabad, Telangana").stateInferred)
+        assertFalse(parseLegacyCity("Hyderabad", knownState = "Telangana").stateInferred)
+        assertFalse(parseLegacyCity("Bilaspur").stateInferred)
     }
 
     @Test

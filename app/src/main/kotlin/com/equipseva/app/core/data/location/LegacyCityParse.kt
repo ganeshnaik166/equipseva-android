@@ -37,6 +37,8 @@ data class LegacyCityParse(
     val unresolved: List<String>,
     val stateCandidates: List<String>,
     val needsConfirmation: Boolean,
+    /** True when [state] was worked out from a lone unique district rather than read from the text or the column. */
+    val stateInferred: Boolean = false,
 ) {
     /** Nothing to read: blank input and no known State. Distinct from "read but unresolved". */
     val isEmpty: Boolean
@@ -56,14 +58,14 @@ data class LegacyCityParse(
             needsConfirmation = false,
         )
 
-        private val PINCODE = Regex("\\d{6}")
+        private val PINCODE = Regex("\\d{3}\\s?\\d{3}")
         private val COUNTRY = setOf("india", "bharat")
 
         /**
          * Tokens the writer's layout puts after the district — a six-digit
-         * pincode or the country — carry no district information, so they do
-         * not make a district reading uncertain. Anything else to the right of
-         * the chosen district does.
+         * pincode (optionally written "500 034") or the country — carry no
+         * district information, so they do not make a district reading
+         * uncertain. Anything else to the right of the chosen district does.
          */
         internal fun isKnownRemnant(token: String): Boolean {
             val trimmed = token.trim()
@@ -149,11 +151,14 @@ fun parseLegacyCity(raw: String?, knownState: String? = null): LegacyCityParse {
     }
     if (districtIdx >= 0) consumed += districtIdx
 
-    // An unrecognised token between the chosen district and the State (or the
-    // end of the text) may be the real district under an unknown label; the
+    // An unrecognised token between the chosen district and the State, or
+    // anywhere after the State (the writers only ever put a pincode or the
+    // country there), may be the real district under an unknown label; the
     // chosen district is then only a suggestion.
-    val districtSlotUncertain = districtIdx >= 0 &&
-        head.subList(districtIdx + 1, head.size).any { !LegacyCityParse.isKnownRemnant(it) }
+    val districtSlotUncertain = districtIdx >= 0 && (
+        head.subList(districtIdx + 1, head.size).any { !LegacyCityParse.isKnownRemnant(it) } ||
+            (stateIdx != null && tokens.subList(stateIdx + 1, tokens.size).any { !LegacyCityParse.isKnownRemnant(it) })
+        )
 
     // 3. Mandal: only the token immediately before the district.
     var mandal: String? = null
@@ -176,5 +181,6 @@ fun parseLegacyCity(raw: String?, knownState: String? = null): LegacyCityParse {
             districtSlotUncertain ||
             columnUnresolved ||
             (district == null && unresolved.isNotEmpty()),
+        stateInferred = inferred,
     )
 }

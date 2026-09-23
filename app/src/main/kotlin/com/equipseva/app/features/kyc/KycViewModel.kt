@@ -555,16 +555,19 @@ class KycViewModel @Inject constructor(
                 it.copy(loading = false)
             } else {
                 val raw = engineer.city.orEmpty()
-                val (parsedState, parsedDistrict) = run {
-                    val parts = raw.split(",").map { it.trim() }
-                    val maybeState = parts.lastOrNull()?.takeIf {
-                        it in com.equipseva.app.core.data.location.IndiaLocations.STATES
-                    }
-                    val maybeDistrict = parts.dropLast(1).lastOrNull()?.takeIf {
-                        maybeState != null && it in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(maybeState)
-                    }
-                    maybeState to maybeDistrict
-                }
+                // `engineers.city` is free text — a "My location" line
+                // ("…, city, district, state, pincode"), the bare district the
+                // engineer picked, or the older "District, State" shape — with
+                // the State/UT usually in the separate `engineers.state`
+                // column. Read it through the catalog parser (exact, normalized
+                // and alias matching only) and prefill ONLY what it read
+                // explicitly: an inferred State, a conflicting column or a
+                // district that needs confirmation stays blank so the engineer
+                // picks it, instead of a guess becoming the persisted service
+                // area (PRODUCT_PLAN §6).
+                val parsed = com.equipseva.app.core.data.location.parseLegacyCity(raw, knownState = engineer.state)
+                val parsedState = parsed.state?.takeIf { !parsed.stateInferred && parsed.stateCandidates.isEmpty() }
+                val parsedDistrict = parsed.district?.takeIf { parsedState != null && !parsed.needsConfirmation }
                 // Resolve final state first, then re-validate any
                 // candidate district against it. Otherwise a user who
                 // changed state mid-flow (savedState=Karnataka, raw still
@@ -581,13 +584,13 @@ class KycViewModel @Inject constructor(
                 // with state+district already chosen, instead of
                 // having to re-pick the same dropdowns they just
                 // filled on the Welcome screen.
-                val profileState = profile?.state?.takeIf { ps ->
-                    ps in com.equipseva.app.core.data.location.IndiaLocations.STATES
-                }
-                val profileDistrict = profile?.district?.takeIf { pd ->
-                    profileState != null &&
-                        pd in com.equipseva.app.core.data.location.IndiaLocations.districtsFor(profileState)
-                }
+                // Profile values were picked from the dropdowns, so an exact
+                // match is expected; strict canonicalisation additionally
+                // rescues legacy spellings ("Orissa") without any guessing.
+                val profileState = com.equipseva.app.core.data.location.IndiaLocations
+                    .canonicalState(profile?.state, allowEmbedded = false)
+                val profileDistrict = com.equipseva.app.core.data.location.IndiaLocations
+                    .canonicalDistrict(profileState, profile?.district)
                 val chosenState = savedState ?: parsedState ?: profileState
                 val districtFinal = (savedDistrict ?: parsedDistrict ?: profileDistrict)?.takeIf { d ->
                     chosenState != null &&
@@ -688,24 +691,19 @@ class KycViewModel @Inject constructor(
                 resolved.state,
                 resolved.pincode,
             ).joinToString(", ").trim()
-            // Match resolved.state against the canonical IndiaLocations.STATES
-            // list (case-insensitive contains both ways) so dropdowns
-            // pre-select correctly even when the geocoder uses a slightly
-            // different label ("Telangana State" vs "Telangana").
-            val matchedState = resolved.state?.let { rs ->
-                com.equipseva.app.core.data.location.IndiaLocations.STATES.firstOrNull { st ->
-                    st.equals(rs, ignoreCase = true) ||
-                        st.contains(rs, ignoreCase = true) ||
-                        rs.contains(st, ignoreCase = true)
-                }
-            }
-            val matchedDistrict = if (matchedState != null && resolved.district != null) {
-                com.equipseva.app.core.data.location.IndiaLocations.districtsFor(matchedState).firstOrNull { d ->
-                    d.equals(resolved.district, ignoreCase = true) ||
-                        d.contains(resolved.district, ignoreCase = true) ||
-                        resolved.district.contains(d, ignoreCase = true)
-                }
-            } else null
+            // Canonicalise the Geocoder labels through the catalog: exact,
+            // normalized ("Rangareddy District") and alias ("K.V.Rangareddy",
+            // "Telangana State") matches, plus the whole-word embedded step
+            // that prefill callers opt into ("Greater Hyderabad Area"). This
+            // replaces contains-both-ways matching, under which a label like
+            // "Nagar" could pre-select Ahmednagar. Prefill only: the engineer
+            // still confirms both dropdowns before submitting.
+            val matchedState = com.equipseva.app.core.data.location.IndiaLocations.canonicalState(resolved.state)
+            val matchedDistrict = com.equipseva.app.core.data.location.IndiaLocations.canonicalDistrict(
+                matchedState,
+                resolved.district,
+                allowEmbedded = true,
+            )
             // Re-check inside the coroutine — user may have started typing
             // while reverse-geocode was in flight. Only fill blank fields so
             // we never clobber a user's edit.

@@ -25,6 +25,7 @@ class IndiaRegionAliasesTest {
         // A trailing "district"/"dist" label is dropped; the word inside a name is not.
         assertEquals("rangareddy", IndiaRegionAliases.normalize("Rangareddy District"))
         assertEquals("medak", IndiaRegionAliases.normalize("Medak Dist."))
+        assertEquals("rangareddy", IndiaRegionAliases.normalize("Rangareddy Distt"))
         assertEquals("district nine", IndiaRegionAliases.normalize("District Nine"))
     }
 

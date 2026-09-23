@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -106,12 +107,12 @@ class KycViewModelTest {
         integrity: IntegrityVerifier = mockk {
             coEvery { requestVerification(any()) } returns Result.success(true)
         },
+        locationFetcher: LocationFetcher = mockk(relaxed = true),
     ): Pair<KycViewModel, EngineerRepository> {
         val authRepo = mockk<AuthRepository>(relaxed = true) {
             every { sessionState } returns signedInSession
         }
         val photoStash = mockk<PhotoUploadStash>(relaxed = true)
-        val locationFetcher = mockk<LocationFetcher>(relaxed = true)
         val userPrefs = mockk<UserPrefs>(relaxed = true)
         val storageRepo = mockk<StorageRepository>(relaxed = true)
         val analytics = mockk<AnalyticsClient>(relaxed = true)
@@ -231,6 +232,72 @@ class KycViewModelTest {
 
         assertEquals("user-1/aadhaar-x.jpg", state.aadhaarDocPath)
         assertEquals(listOf("user-1/cert-a.pdf", "user-1/cert-b.pdf"), state.certDocPaths)
+    }
+
+    // ---- Legacy `engineers.city` → service-area prefill (claudedev-build-20260923).
+    //  The row's city column is free text; hydrate reads it through the
+    //  catalog parser and prefills only what was stated explicitly.
+
+    private fun repoWith(seeded: Engineer): EngineerRepository = mockk(relaxed = true) {
+        coEvery { fetchByUserId(any()) } returns Result.success(seeded)
+        coEvery { fetchMySuspension() } returns Result.success(null)
+    }
+
+    @Test fun `hydrate prefills State and district from a legacy alias city string`() = runTest {
+        val (vm, _) = newViewModel(engineerRepo = repoWith(engineer().copy(city = "Ranga Reddy, Telangana")))
+        val state = vm.state.first { !it.loading }
+        assertEquals("Telangana", state.serviceState)
+        assertEquals("Rangareddy", state.serviceDistrict)
+    }
+
+    @Test fun `hydrate reads a My-location city line with the State column and keeps the real district`() = runTest {
+        val seeded = engineer().copy(
+            city = "Plot 5, Gachibowli, Hyderabad, K.V.Rangareddy, Telangana, 500032",
+            state = "Telangana",
+        )
+        val (vm, _) = newViewModel(engineerRepo = repoWith(seeded))
+        val state = vm.state.first { !it.loading }
+        assertEquals("Telangana", state.serviceState)
+        // The district slot ("K.V.Rangareddy") wins over the earlier locality
+        // token "Hyderabad", which is also a district name.
+        assertEquals("Rangareddy", state.serviceDistrict)
+    }
+
+    @Test fun `hydrate leaves an inferred State or an uncertain district blank for the engineer to pick`() = runTest {
+        // A lone unique district would only INFER its State: prefill nothing.
+        val (inferredVm, _) = newViewModel(engineerRepo = repoWith(engineer().copy(city = "Hyderabad")))
+        val inferred = inferredVm.state.first { !it.loading }
+        assertNull(inferred.serviceState)
+        assertNull(inferred.serviceDistrict)
+
+        // An unreadable label in the district slot: the stated State is
+        // prefilled, the district (only a suggestion) is not.
+        val (uncertainVm, _) = newViewModel(
+            engineerRepo = repoWith(engineer().copy(city = "Gachibowli, Hyderabad, Shamshabad Zone, Telangana, 500409")),
+        )
+        val uncertain = uncertainVm.state.first { !it.loading }
+        assertEquals("Telangana", uncertain.serviceState)
+        assertNull(uncertain.serviceDistrict)
+    }
+
+    @Test fun `reverse-geocode labels are canonicalised through the catalog, not substring-matched`() = runTest {
+        val fetcher = mockk<LocationFetcher>(relaxed = true) {
+            coEvery { reverseGeocode(any()) } returns LocationFetcher.Resolved(
+                coords = LocationFetcher.Coords(17.44, 78.35),
+                line1 = "Plot 5",
+                city = "Hyderabad",
+                district = "Rangareddy District",
+                state = "Telangana State",
+                pincode = "500032",
+            )
+        }
+        val (vm, _) = newViewModel(locationFetcher = fetcher)
+        vm.state.first { !it.loading }
+        vm.onServiceCoordsChange(17.44, 78.35)
+        val state = vm.state.value
+        assertEquals("Telangana", state.serviceState)
+        assertEquals("Rangareddy", state.serviceDistrict)
+        assertTrue(state.serviceAddress.startsWith("Plot 5, Hyderabad, Rangareddy District"))
     }
 
     @Test fun `save surfaces repository failure as user message`() = runTest {

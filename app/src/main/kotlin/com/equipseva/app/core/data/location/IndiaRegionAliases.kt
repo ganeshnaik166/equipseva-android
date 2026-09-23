@@ -52,7 +52,7 @@ internal object IndiaRegionAliases {
     // parentheses, slash — all read as word separators.
     private val PUNCTUATION = Regex("[\\-–—.,'’()/]")
     private val WHITESPACE = Regex("\\s+")
-    private val TRAILING_DISTRICT_LABEL = Regex(" (?:district|dist)$")
+    private val TRAILING_DISTRICT_LABEL = Regex(" (?:district|distt|dist)$")
 
     /** Historical, abbreviated or variant State/UT names → canonical [IndiaLocations.STATES] entry. */
     val STATES: Map<String, String> = mapOf(
