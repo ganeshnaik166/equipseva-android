@@ -89,18 +89,19 @@ function b64urlEncodeStr(s: string): string {
   return b64urlEncode(new TextEncoder().encode(s));
 }
 
-function pemToPkcs8(pem: string): Uint8Array<ArrayBuffer> {
+function pemToPkcs8(pem: string): ArrayBuffer {
   const cleaned = pem
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
     .replace(/\\n/g, "\n")
     .replace(/\s+/g, "");
   const raw = atob(cleaned);
-  // WebCrypto's BufferSource requires an ArrayBuffer-backed view. Explicitly
-  // allocate one so newer Deno types do not widen this to SharedArrayBuffer.
-  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  // Return the exact ArrayBuffer accepted by both older and newer WebCrypto
+  // type declarations; no generic typed-array syntax is needed.
+  const buffer = new ArrayBuffer(raw.length);
+  const out = new Uint8Array(buffer);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
+  return buffer;
 }
 
 async function signJwtRs256(sa: ServiceAccount): Promise<string> {
