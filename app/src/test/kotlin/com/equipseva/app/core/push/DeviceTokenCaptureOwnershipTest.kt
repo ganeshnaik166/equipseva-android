@@ -24,6 +24,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -45,15 +46,19 @@ class DeviceTokenCaptureOwnershipTest {
         var release: CompletableDeferred<Unit>? = null
         var readFailure: Exception? = null
         var ignoreCancellation = false
+        var failInsideNonCancellable = false
 
         override suspend fun current(): DeviceTokenEntity? {
             currentCalls++
             entered?.complete(Unit)
             val gate = release
             if (gate != null) {
-                if (ignoreCancellation) withContext(NonCancellable) { gate.await() } else gate.await()
+                if (ignoreCancellation) withContext(NonCancellable) {
+                    gate.await()
+                    if (failInsideNonCancellable) readFailure?.let { throw it }
+                } else gate.await()
             }
-            readFailure?.let { throw it }
+            if (!failInsideNonCancellable) readFailure?.let { throw it }
             return row
         }
 
@@ -69,11 +74,17 @@ class DeviceTokenCaptureOwnershipTest {
         val dao = HoldingTokenDao()
         val requests = mutableListOf<HttpRequestData>()
         var deleteFailure: Exception? = null
+        var deleteEntered: CompletableDeferred<Unit>? = null
+        var releaseDelete: CompletableDeferred<Unit>? = null
         val client = createSupabaseClient(TestSupabaseClient.HOST, TestSupabaseClient.ANON_KEY) {
             defaultLogLevel = LogLevel.NONE
             httpEngine = MockEngine { request ->
                 requests += request
-                if (request.method == HttpMethod.Delete) deleteFailure?.let { throw it }
+                if (request.method == HttpMethod.Delete) {
+                    deleteEntered?.complete(Unit)
+                    releaseDelete?.let { gate -> withContext(NonCancellable) { gate.await() } }
+                    deleteFailure?.let { throw it }
+                }
                 respond("", HttpStatusCode.NoContent, headersOf(HttpHeaders.ContentType, "application/json"))
             }
             install(Auth) {
@@ -239,6 +250,71 @@ class DeviceTokenCaptureOwnershipTest {
             assertTrue("network cancellation must escape revoke", escaped)
             assertEquals(HttpMethod.Delete, h.requests.single().method)
         } finally {
+            h.client.close()
+        }
+    }
+
+    @Test fun `cancelled token capture cannot swallow ordinary DAO failure and return null`() = runTest {
+        val h = Harness(this)
+        try {
+            h.signIn(A, "login-A")
+            runCurrent()
+            val ticket = requireNotNull(h.ownership.capture())
+            h.dao.entered = CompletableDeferred()
+            h.dao.release = CompletableDeferred()
+            h.dao.ignoreCancellation = true
+            h.dao.failInsideNonCancellable = true
+            h.dao.readFailure = IllegalStateException("storage failed after caller cancellation")
+            var cancelled = false
+            var returned = false
+            val capture = launch {
+                try {
+                    h.registrar.captureRevocation(ticket)
+                    returned = true
+                } catch (_: CancellationException) {
+                    cancelled = true
+                }
+            }
+            h.dao.entered!!.await()
+            capture.cancel(CancellationException("sign-out cancelled"))
+            h.dao.release!!.complete(Unit)
+            capture.join()
+            assertTrue("cancelled caller must see cancellation, even if DAO throws another error", cancelled)
+            assertFalse("cancelled capture must not report an absent token", returned)
+        } finally {
+            h.dao.release?.complete(Unit)
+            h.client.close()
+        }
+    }
+
+    @Test fun `noncooperative DELETE completion after cancellation cannot count as successful revoke`() = runTest {
+        val h = Harness(this)
+        try {
+            h.signIn(A, "login-A")
+            runCurrent()
+            val capture = h.registrar.captureRevocation(requireNotNull(h.ownership.capture()))
+            assertEquals(DeviceTokenRegistrar.Revocation(A, "fcm-A"), capture)
+            h.deleteEntered = CompletableDeferred()
+            h.releaseDelete = CompletableDeferred()
+            var cancelled = false
+            var returned = false
+            val revoke = launch {
+                try {
+                    h.registrar.revoke(capture)
+                    returned = true
+                } catch (_: CancellationException) {
+                    cancelled = true
+                }
+            }
+            h.deleteEntered!!.await()
+            revoke.cancel(CancellationException("caller cancelled while DELETE waited"))
+            h.releaseDelete!!.complete(Unit)
+            revoke.join()
+            assertTrue("a late DELETE result must not hide caller cancellation", cancelled)
+            assertFalse("a cancelled revoke cannot report normal completion", returned)
+            assertEquals(HttpMethod.Delete, h.requests.single().method)
+        } finally {
+            h.releaseDelete?.complete(Unit)
             h.client.close()
         }
     }

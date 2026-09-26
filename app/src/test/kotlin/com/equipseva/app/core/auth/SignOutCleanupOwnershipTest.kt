@@ -13,8 +13,13 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.TestScope
@@ -162,5 +167,53 @@ class SignOutCleanupOwnershipTest {
         val bDraft = sampleRequestDraft("B after cancelled sign-out")
         h.draftFixture.store.saveDraft(bLease, bDraft)
         assertEquals(bDraft, h.draftFixture.store.loadDraft(bLease))
+    }
+
+    @Test fun `already cancelled signout with no current ticket cannot enter global wipes`() = runTest {
+        val h = Harness(this)
+        val ticket = requireNotNull(h.ownership.capture())
+        assertTrue(h.ownership.retire(ticket))
+        assertNull(h.ownership.capture())
+        var cancelled = false
+        val wipe = launch(start = CoroutineStart.UNDISPATCHED) {
+            currentCoroutineContext().cancel(CancellationException("caller cancelled before cleanup"))
+            try {
+                h.cleanup.wipeLocalUserState()
+            } catch (_: CancellationException) {
+                cancelled = true
+            }
+        }
+        wipe.join()
+        assertTrue("an already-cancelled caller must exit cleanup", cancelled)
+        assertTrue("no router, outbox or other global wipe may run", h.order.isEmpty())
+    }
+
+    @Test fun `cancelled stale A capture cannot continue into B's global cleanup`() = runTest {
+        val h = Harness(this)
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        coEvery { h.registrar.captureRevocation(any()) } coAnswers {
+            entered.complete(Unit)
+            withContext(NonCancellable) { release.await() }
+            DeviceTokenRegistrar.Revocation("A", "fcm-token-A")
+        }
+        var cancelled = false
+        val wipe = launch {
+            try {
+                h.cleanup.wipeLocalUserState()
+            } catch (_: CancellationException) {
+                cancelled = true
+            }
+        }
+        entered.await()
+        h.draftFixture.signIn("B", "session-B")
+        runCurrent()
+        wipe.cancel(CancellationException("A caller cancelled after B login"))
+        release.complete(Unit)
+        wipe.join()
+        assertTrue("cancelled A capture must escape", cancelled)
+        assertFalse("late A must not clear B router", h.order.contains("router"))
+        assertFalse("late A must not clear B outbox", h.order.contains("outbox"))
+        assertFalse("late A must not revoke under B", h.order.contains("revoke:start"))
     }
 }
