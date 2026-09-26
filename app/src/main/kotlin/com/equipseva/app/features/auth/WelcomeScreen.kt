@@ -6,16 +6,22 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,148 +33,171 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
-import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.R
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.EsFontFamily
 import com.equipseva.app.designsystem.theme.SevaGreen900
 
-// Round B redesign — full-bleed dark green hero with logo + tagline,
-// two CTAs at the bottom (lime "Sign in" + outlined "Create account"),
-// 11sp legal text. Matches `screens-auth.jsx:Welcome`.
+private const val TERMS_URL = "https://equipseva.com/terms"
+private const val PRIVACY_URL = "https://equipseva.com/privacy"
+
 @Composable
 fun WelcomeScreen(
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
 ) {
     val context = LocalContext.current
+    WelcomeContent(
+        onSignIn = onSignIn,
+        onSignUp = onSignUp,
+        onTerms = { openExternalUrl(context, TERMS_URL) },
+        onPrivacy = { openExternalUrl(context, PRIVACY_URL) },
+    )
+}
 
+/** Stateless content keeps the legal actions independently testable offline. */
+@Composable
+internal fun WelcomeContent(
+    onSignIn: () -> Unit,
+    onSignUp: () -> Unit,
+    onTerms: () -> Unit,
+    onPrivacy: () -> Unit,
+) {
     Surface(modifier = Modifier.fillMaxSize(), color = SevaGreen900) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.systemBars)
-                .padding(horizontal = 24.dp, vertical = 40.dp),
-        ) {
-            // Top + middle: logo + brand + tagline.
+        BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
+            val compact = maxHeight < 600.dp
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.Center,
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(horizontal = 24.dp, vertical = if (compact) 16.dp else 24.dp),
+                verticalArrangement = if (compact) Arrangement.Top else Arrangement.SpaceBetween,
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_logo_mark),
-                    contentDescription = "EquipSeva",
+                Column(
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                )
-                Spacer(Modifier.height(28.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    fontFamily = EsFontFamily,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 38.sp,
-                    letterSpacing = (-0.72).sp, // -0.02em × 36sp
-                    color = Color.White,
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.welcome_tagline),
-                    fontFamily = EsFontFamily,
-                    fontSize = 16.sp,
-                    lineHeight = 23.sp,
-                    color = Color.White.copy(alpha = 0.75f),
-                )
-            }
+                        .fillMaxWidth()
+                        .padding(vertical = if (compact) 0.dp else 32.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_logo_mark),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(if (compact) 48.dp else 64.dp)
+                            .clip(RoundedCornerShape(16.dp)),
+                    )
+                    Spacer(Modifier.height(if (compact) 12.dp else 28.dp))
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        fontFamily = EsFontFamily,
+                        fontSize = if (compact) 28.sp else 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = if (compact) 34.sp else 38.sp,
+                        letterSpacing = (-0.72).sp,
+                        color = Color.White,
+                    )
+                    if (!compact) {
+                        Spacer(Modifier.height(12.dp))
+                        WelcomeTagline()
+                    }
+                }
 
-            // Bottom: CTAs + legal.
-            EsBtn(
-                text = "Sign in",
-                onClick = onSignIn,
-                kind = EsBtnKind.Lime,
-                size = EsBtnSize.Lg,
-                full = true,
-            )
-            Spacer(Modifier.height(10.dp))
-            // "Create account" — outlined transparent on dark bg. EsBtn doesn't
-            // ship a transparent-on-dark variant, so render a custom outlined
-            // button here. Matches the design's inline `boxShadow: inset 0 0 0
-            // 1px rgba(255,255,255,0.3)` pattern.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                    .background(Color.Transparent)
-                    .clickable(onClick = onSignUp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.welcome_create_account),
-                    fontFamily = EsFontFamily,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                )
+                if (compact) Spacer(Modifier.height(16.dp))
+                Column(Modifier.fillMaxWidth()) {
+                    EsBtn(
+                        text = "Sign in",
+                        onClick = onSignIn,
+                        kind = EsBtnKind.Lime,
+                        size = EsBtnSize.Lg,
+                        full = true,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                            .background(Color.Transparent)
+                            .clickable(role = Role.Button, onClick = onSignUp)
+                            .defaultMinSize(minHeight = 52.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.welcome_create_account),
+                            fontFamily = EsFontFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            color = Color.White,
+                        )
+                    }
+                    if (compact) {
+                        Spacer(Modifier.height(16.dp))
+                        WelcomeTagline()
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "By continuing you agree to our",
+                        fontFamily = EsFontFamily,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        textAlign = TextAlign.Center,
+                        color = Color.White.copy(alpha = 0.75f),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LegalAction("Terms", onTerms)
+                        Text("and", fontSize = 12.sp, color = Color.White.copy(alpha = 0.75f))
+                        LegalAction("Privacy", onPrivacy)
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            // Terms + Privacy as tappable spans. Required for Play Store
-            // listing compliance + IT Act 2000 informed-consent — saying
-            // "you agree" without a way to read the agreement is hostile
-            // UX and a Play policy risk.
-            val termsTag = "TERMS"
-            val privacyTag = "PRIVACY"
-            val baseColor = Color.White.copy(alpha = 0.55f)
-            val linkColor = Color.White.copy(alpha = 0.85f)
-            val annotated = buildAnnotatedString {
-                withStyle(SpanStyle(color = baseColor)) {
-                    append("By continuing you agree to our ")
-                }
-                pushStringAnnotation(termsTag, "https://equipseva.com/terms")
-                withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
-                    append("Terms")
-                }
-                pop()
-                withStyle(SpanStyle(color = baseColor)) {
-                    append(" and ")
-                }
-                pushStringAnnotation(privacyTag, "https://equipseva.com/privacy")
-                withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
-                    append("Privacy")
-                }
-                pop()
-            }
-            ClickableText(
-                text = annotated,
-                style = TextStyle(
-                    fontFamily = EsFontFamily,
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { offset ->
-                    val tag = annotated.getStringAnnotations(termsTag, offset, offset).firstOrNull()
-                        ?: annotated.getStringAnnotations(privacyTag, offset, offset).firstOrNull()
-                    tag?.item?.let { url -> openExternalUrl(context, url) }
-                },
-            )
         }
+    }
+}
+
+@Composable
+private fun WelcomeTagline() {
+    Text(
+        text = stringResource(R.string.welcome_tagline),
+        fontFamily = EsFontFamily,
+        fontSize = 16.sp,
+        lineHeight = 23.sp,
+        color = Color.White.copy(alpha = 0.75f),
+    )
+}
+
+@Composable
+private fun LegalAction(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontFamily = EsFontFamily,
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+            textDecoration = TextDecoration.Underline,
+            color = Color.White,
+        )
     }
 }
