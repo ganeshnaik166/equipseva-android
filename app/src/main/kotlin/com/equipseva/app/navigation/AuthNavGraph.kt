@@ -75,7 +75,12 @@ fun NavGraphBuilder.authNavGraph(
     }
 }
 
-/** Shared with the stack regression test; this first extraction preserves the existing behavior. */
+/** Return to the existing SignIn entry, or replace a direct Welcome → SignUp entry. */
 internal fun NavHostController.returnToSignInFromSignUp() {
-    popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
+    if (popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)) return
+
+    navigate(Routes.AUTH_SIGN_IN) {
+        popUpTo(Routes.AUTH_SIGN_UP) { inclusive = true }
+        launchSingleTop = true
+    }
 }

@@ -1,5 +1,6 @@
 package com.equipseva.app.navigation
 
+import android.app.Application
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.composable
@@ -14,7 +15,7 @@ import org.robolectric.annotation.Config
 
 /** The SignUp footer has two real entry stacks; its destination and Back must agree for both. */
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
+@Config(application = Application::class, manifest = Config.NONE)
 class SignUpToSignInNavigationTest {
     private fun authController(): NavHostController =
         NavHostController(ApplicationProvider.getApplicationContext()).apply {
