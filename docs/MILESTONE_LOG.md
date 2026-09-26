@@ -81,3 +81,14 @@ Append dated results. Keep design, implementation, main integration and release 
 - Code SHA `13bef61efd9d986d7f8b1b6a238b37d0d6376daf`; reviewed PR1885 head `c37568a9aaa33c5baff29b787aedf885f2fd5b1f`. The diff is confined to 27 Sharp-family lock entries. QA checked all 16 Linux selectors against npm registry metadata (16/16 match).
 - Fresh local `npm ci`, typecheck, smoke and Next build exit 0. Fresh GitHub Node 20/Linux web CI and PR/push Gitleaks passed on the reviewed head. Independent [critic](helper-reviews/codex-20260926/sharp-security-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260926/sharp-security-qa.md) **9.7/10** accept only the corrected web dependency patch.
 - PR1885 showed 4/4 checks passed, no conflicts and remained draft at the record. Main merge, alert closure and production/runtime deployment were not yet observed. The broader P7.2/Android app remain unaccepted.
+
+## 2026-09-26 — Sharp advisory closed on main
+
+- Final [PR1885](https://github.com/ganeshnaik166/equipseva-android/pull/1885) head `0b890c3505246b204a1d10d70d4ff7b63fcc8c4c`: fresh Node 20/Linux install/typecheck/DataTable smoke/build passed, both Gitleaks checks passed, no base conflicts. Corrected code `13bef61e` remained unchanged. Independent scoped critic 9.6, QA 9.7.
+- The PR merged main at `a645a59300c9ab1ec9ce93a16efdcdf3ef6f8f8b`. GitHub [Dependabot alert #17](https://github.com/ganeshnaik166/equipseva-android/security/dependabot/17) displays **Fixed** and records closure by PR1885. Hosted web runtime/deployment and the rest of P7.2 are separate.
+
+## 2026-09-26 — P1d-0 sender-only main integration in review
+
+- Fresh-main base `6a6b2246`, then merged accepted main `a645a593`; branch `codex/p1d0-main-20260926`. Six selective sender commits end at `f38f6196`; all four production/config/test blobs match locally accepted helper source `85b91ddd`. New path-scoped CI workflow `4a21a2ed`; no Android/SQL app candidate ancestry in the PR diff.
+- Node 24 and each of Deno 1.46.3/2.9.7 run 13 synthetic tests with 0 failures. Both Deno versions pass `check --no-lock index.ts` and lint; actionlint 1.7.12 passes. Independent helper critic/QA each 9.6 for sender code; integration critic 9.6 and QA preliminary 9.6 for the selective port and CI workflow. Hosted PR CI, final integration QA, Supabase deploy, live DB/FCM and shared-device pilot remain pending.
+- [Integration handoff](HANDOFF_P1D0_MAIN_INTEGRATION_2026-09-26.md) names the exact boundary and P1d-1 claim/release blocker. Do not merge blocked Android app PR1877 or deploy the function from this local result.

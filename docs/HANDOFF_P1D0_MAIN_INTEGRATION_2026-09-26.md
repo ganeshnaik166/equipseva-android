@@ -3,6 +3,7 @@
 ## Frozen boundary
 
 - Branch `codex/p1d0-main-20260926`, isolated worktree `C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-p1d0-main-20260926`, from fetched `origin/main` `6a6b224681d3595b3c358a029e056e74496bac67`. Verify the current branch and head; the Sharp security PR may advance main separately.
+- Synced accepted Sharp main merge `a645a59300c9ab1ec9ce93a16efdcdf3ef6f8f8b` by an ordinary merge after its [PR1885](https://github.com/ganeshnaik166/equipseva-android/pull/1885) passed all checks and merged. GitHub [alert #17](https://github.com/ganeshnaik166/equipseva-android/security/dependabot/17) shows Fixed. This main sync adds the reviewed web patch to ancestry, not to the sender-only PR diff.
 - Selectively cherry-picked the six sender-only commits from the locally accepted helper source `85b91ddd88619bb062468d37b0afa63880759056`: RED tests `0a231783` (source `5f333826`), implementation `7568536b` (`092e8c88`), WebCrypto type fix `c5e25dcb` (`2ca77f19`), test lint fix `de06a1de` (`1834af37`), pinned import config `03a5dccc` (`7b75bb4b`), and older-Deno compatibility `f38f6196` (`85b91ddd`). Exact blobs of the four sender/config/test files match the helper's accepted source.
 - Owned code is only `supabase/functions/send_push_notification/{index.ts,push_contract.ts,push_contract.test.mjs,deno.json}`. The blocked P1a/P1b/P1c Android ancestry, SQL grants/schema, app UI and hosted Supabase deployment are not included. An additional path-scoped sender CI workflow is under review; record its exact result before main acceptance.
 
@@ -12,7 +13,7 @@ The sender re-fetches a notification by webhook ID and uses its stored recipient
 
 The helper's test-first record began with a missing-module RED (no runnable assertions) and ended at 13/13 synthetic offline tests under Node 24. On this main-based integration, Node 24 `node --test push_contract.test.mjs` passed **13/13**. Deno **1.46.3** and **2.9.7**, each run from `supabase/functions/send_push_notification/`, passed `check --no-lock index.ts`, `test --no-lock --allow-read push_contract.test.mjs` (**13/13** each) and `lint index.ts push_contract.ts push_contract.test.mjs`; all six commands exit 0. These are local CLI checks, not a Supabase hosted build or device/provider pilot. No Gradle run was warranted because Android files are unchanged.
 
-Independent [critic](helper-reviews/codex-20260926/p1d0-critic.md) and [QA](helper-reviews/codex-20260926/p1d0-qa.md) each scored **9.6/10**, limited to the helper's frozen sender code. The exact code blobs were rechecked after selective port. An integration-level QA/CI review is pending at this document checkpoint. Do not turn the sender score into a whole-app or hosted-deployment score.
+Independent [critic](helper-reviews/codex-20260926/p1d0-critic.md) and [QA](helper-reviews/codex-20260926/p1d0-qa.md) each scored **9.6/10**, limited to the helper's frozen sender code. The exact code blobs were rechecked after selective port. A separate integration critic scored the local port/workflow **9.6/10** with no mandatory defect; independent integration QA is preliminary **9.6/10** pending GitHub PR CI and final docs. All three action pins in the workflow were checked against upstream tags; actionlint 1.7.12 exited 0. Do not turn the sender score into a whole-app or hosted-deployment score.
 
 ## Open gates
 
