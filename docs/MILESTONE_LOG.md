@@ -2,12 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
-## 2026-09-26 — Sign-in recovery action target, local candidate (review pending)
+## 2026-09-26 — Sign-in recovery action target, locally scoped acceptance
 
 - Branch `codex/signin-recovery-target-20260926`, fetched-main base `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`; frozen app/test code `ffbc930f9a97334a7a17605c00f44cab7eb02135`. Only `SignInScreen.kt` and a new `SignInRecoveryTargetTest.kt` changed in the code commit.
 - Focused test-first RED: 3 tests / 2 failures on the original source (missing button role and <48dp target at 320×420dp/2× text); pending-auth disabled behavior passed. Minimal fix uses `Spacing.MinTouchTarget` and `Role.Button` on the recovery action while keeping its caption, callback and disabled rule. Focused GREEN: 3/0. No auth/reset repository call occurs on that navigation callback.
 - Design-lint ratchet passes with all negative signals unchanged. Full combined local unit/lint/debug/unsigned-R8 run at code `ffbc930f`: **2,910 tests / 342 suites / 0 failures/errors/skips**, lint **0 errors / 87 warnings / 2 hints**, both assemblies green, Gradle exit 0. `PRECHECK_LOOSE=1` allowed missing signing certificate/keystore; this is not a shippable release. Logs and boundaries: [handoff](HANDOFF_SIGNIN_RECOVERY_TARGET_2026-09-26.md).
-- Independent critic/QA, hosted CI, main integration and physical TalkBack/device and hosted-reset behavior are pending. No app-wide or auth-wide score is claimed; the coordinator owns acceptance and integration.
+- Independent [critic](helper-reviews/codex-20260926/signin-recovery-critic.md) **9.7/10** and [QA](helper-reviews/codex-20260926/signin-recovery-qa.md) **9.6/10** pass the frozen action-target slice with no mandatory blocker. Critic confirmed 48dp/Button semantics, unchanged submitting guard, and callback isolation; QA checked RED/GREEN, compact 2× text and the full local gate. An attempted disabled tap and physical edge-tap are optional follow-up evidence. Hosted CI, main integration, physical TalkBack/device and hosted-reset behavior remain pending; no app-wide or auth-wide score is claimed. The coordinator owns integration.
 
 ## 2026-09-19 — P0 product plan published
 
