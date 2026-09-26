@@ -1,11 +1,15 @@
 package com.equipseva.app.core.push
 
+import com.equipseva.app.core.auth.LocalSessionOwnership
 import com.equipseva.app.core.data.dao.DeviceTokenDao
 import com.equipseva.app.core.data.entities.DeviceTokenEntity
 import com.google.firebase.messaging.FirebaseMessaging
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.auth.auth
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -17,6 +21,7 @@ import javax.inject.Singleton
 class DeviceTokenRegistrar @Inject constructor(
     private val dao: DeviceTokenDao,
     private val supabase: SupabaseClient,
+    private val ownership: LocalSessionOwnership,
 ) {
 
     @Serializable
@@ -72,6 +77,10 @@ class DeviceTokenRegistrar @Inject constructor(
             // rotates. This DELETE is owner-gated by RLS so it can only
             // remove rows that belong to the caller (B); rows owned by A
             // are deferred to the server-side dedupe in send_push.
+            // P1d blocker: migration 20260428320000 revokes authenticated
+            // table DELETE, so this can fail before the upsert below. Replace
+            // both operations with a narrow versioned server claim contract;
+            // restoring broad client DELETE would reopen a security hazard.
             supabase.from("device_tokens").delete {
                 filter { eq("token", token) }
             }
@@ -89,33 +98,76 @@ class DeviceTokenRegistrar @Inject constructor(
     }
 
     /**
-     * Snapshot of what [revoke] must delete for the CURRENT user, taken before
-     * any network I/O. Returns null when nobody is signed in or no token is
-     * cached (then there is nothing server-side to revoke).
+     * Sign-out snapshot bound to the first-operation login ticket. The cached
+     * installation token read may suspend; a replacement account or login
+     * invalidates the ticket before any revocation pair is published.
+     */
+    suspend fun captureRevocation(ticket: LocalSessionOwnership.Ticket?): Revocation? {
+        currentCoroutineContext().ensureActive()
+        val departing = ticket ?: return null
+        if (!ownership.withCurrent(departing) {}) {
+            currentCoroutineContext().ensureActive()
+            return null
+        }
+        val cachedToken = try {
+            dao.current()?.token
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            currentCoroutineContext().ensureActive()
+            return null
+        }
+        currentCoroutineContext().ensureActive()
+        if (!ownership.withCurrent(departing) {}) {
+            currentCoroutineContext().ensureActive()
+            return null
+        }
+        if (cachedToken.isNullOrBlank()) return null
+        return Revocation(departing.identity.ownerId, cachedToken)
+    }
+
+    /**
+     * Convenience snapshot for immediate capture/revoke callers. Sign-out uses
+     * the ticketed overload above; this no-argument path has no cross-login
+     * ownership guarantee if a caller suspends between capture and revoke.
      */
     suspend fun captureRevocation(): Revocation? {
+        currentCoroutineContext().ensureActive()
         val userId = supabase.auth.currentUserOrNull()?.id ?: return null
-        val cachedToken = runCatching { dao.current()?.token }.getOrNull()
+        val cachedToken = try {
+            dao.current()?.token
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            currentCoroutineContext().ensureActive()
+            return null
+        }
+        currentCoroutineContext().ensureActive()
         if (cachedToken.isNullOrBlank()) return null
         return Revocation(userId, cachedToken)
     }
 
     /**
-     * Sign-out cleanup. Drops the server-side device_tokens row for the CAPTURED
-     * user + token so the outgoing user stops receiving FCM messages on this
-     * device. Retains the installation-scoped local token: it contains no user
-     * identity, Firebase still owns that same token, and every sign-in refresh
-     * re-registers it independently of cache presence. Clearing it after a slow
+     * Sign-out cleanup attempts a server-side device_tokens delete for the
+     * CAPTURED user + token. Retains the installation-scoped local token: it
+     * contains no user identity; Firebase still owns it, and sign-in refresh
+     * needs it for registration. Clearing it after a slow
      * DELETE would erase the next login's cache and prevent its later revoke.
      * Never reads live auth: by the time a slow DELETE runs, the next
      * user may already be signed in and own this same token. Must be called
      * BEFORE [SupabaseAuthRepository.signOut] so the DELETE still has a valid
-     * auth session; runCatching on the network call so a flaky connection
-     * doesn't block sign-out.
+     * auth session; a flaky connection does not block sign-out, but caller
+     * cancellation must still propagate.
+     *
+     * Repository migration 20260428320000 revokes authenticated DELETE on
+     * device_tokens. Until a separate, versioned server release/claim contract
+     * replaces this request, a correct local capture does not prove that the
+     * remote row was removed. Do not re-grant broad client table DELETE.
      */
     suspend fun revoke(capture: Revocation?) {
+        currentCoroutineContext().ensureActive()
         if (capture != null) {
-            runCatching {
+            try {
                 supabase.from("device_tokens")
                     .delete {
                         filter {
@@ -123,6 +175,12 @@ class DeviceTokenRegistrar @Inject constructor(
                             eq("token", capture.token)
                         }
                     }
+                currentCoroutineContext().ensureActive()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Sign-out is best effort if the remote delete fails.
+                currentCoroutineContext().ensureActive()
             }
         }
     }

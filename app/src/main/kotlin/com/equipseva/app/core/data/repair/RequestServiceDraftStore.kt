@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.LocalSessionOwnership
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import java.util.Base64
@@ -21,6 +22,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -106,6 +109,13 @@ class RequestServiceDraftStore internal constructor(
 
     /** Captured before asynchronous work. Fresh login invalidates even the same owner's lease. */
     class Lease internal constructor(val identity: Identity, internal val generation: Long)
+
+    /** The exact departing login and draft envelope fenced before any disk suspension. */
+    class SignOutFence internal constructor(
+        internal val ticket: LocalSessionOwnership.Ticket,
+        internal val identity: Identity,
+        internal val ownership: LocalSessionOwnership,
+    )
 
     private val fence = Any()
     private var generation = 0L
@@ -239,9 +249,49 @@ class RequestServiceDraftStore internal constructor(
     }
 
     /**
-     * Fence synchronously, before the first disk/network suspension. A failed disk
-     * clear still leaves every old callback invalid. A new session's draft cannot
-     * be erased by a delayed cleanup from the departing session.
+     * Retire only the departing login's draft lease before token or disk I/O.
+     * The ownership monitor is held through the short in-memory mutation; a
+     * stale ticket cannot fence B or an observed A→B→A replacement.
+     */
+    fun fenceForSignOut(
+        ticket: LocalSessionOwnership.Ticket?,
+        ownership: LocalSessionOwnership,
+    ): SignOutFence? {
+        val departing = ticket ?: return null
+        val expected = Identity(departing.identity.ownerId, departing.identity.sessionId)
+        var handle: SignOutFence? = null
+        ownership.withCurrent(departing) {
+            synchronized(fence) {
+                val active = _activeSession.value?.identity
+                if (currentIdentity() == expected && (active == null || active == expected)) {
+                    blockedIdentity = expected
+                    generation++
+                    _activeSession.value = null
+                    handle = SignOutFence(departing, expected, ownership)
+                }
+            }
+        }
+        return handle
+    }
+
+    /**
+     * The disk mutation rechecks the exact ticket after DataStore admission.
+     * If a successor has appeared, retain the old envelope rather than clear
+     * a new login's draft that happens to have the same owner/session fields.
+     */
+    suspend fun clearFencedForSignOut(handle: SignOutFence?) {
+        if (handle == null) return
+        dataStore.edit { prefs ->
+            currentCoroutineContext().ensureActive()
+            handle.ownership.withCurrent(handle.ticket) {
+                if (prefs.belongsTo(handle.identity)) prefs.removeDraft()
+            }
+        }
+    }
+
+    /**
+     * Legacy direct convenience path. SignOutCleanup uses the ticketed two-phase
+     * methods above so its token capture precedes the draft disk suspension.
      */
     suspend fun fenceAndClearForSignOut() {
         val departing = synchronized(fence) {

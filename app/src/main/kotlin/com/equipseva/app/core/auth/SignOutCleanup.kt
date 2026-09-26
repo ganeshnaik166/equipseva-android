@@ -17,6 +17,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,19 +31,13 @@ import javax.inject.Singleton
  * outbox / FCM token / DataStore prefs survived into the next user's
  * sign-in on the same device.
  *
- * Current ordering moves token revocation after local cleanup and uses a
- * captured remote token row. This closes the old network-delay ordering gap,
- * but it does NOT establish account isolation: draft persistence, Room,
- * DataStore, cache locks and realtime removal can also suspend. The token
- * snapshot still occurs after draft persistence, and unowned local wipes can
- * resume against a replacement login. AMC and outbox deletion use an independent
- * ticket captured first and checked inside their actual storage transaction.
- * Its producers/readers and historical global records remain unowned. A4
- * remains open: the outbox regression stays enabled, while the token-capture
- * regression still fails in SignOutCleanupLocalBoundaryRegressionTest. Other
- * cleanup resources need ownership at their own mutation boundaries. The plan at
- * docs/helper-reviews/codex-20260919/signout-ownership-plan.md describes the
- * required ownership migration. A precheck or another reorder is insufficient.
+ * The token pair is captured with the first-operation exact login ticket,
+ * before draft disk I/O; its remote revoke remains last. Draft, AMC and Room
+ * outbox deletion check that ticket at their own storage mutation boundaries.
+ * Other local wipes, producers/readers, historical global records and final
+ * SDK logout remain separate ownership work. This bounded sequence does not
+ * establish whole-app account isolation. See the S1 boundary plan at
+ * docs/helper-reviews/codex-20260919/signout-ownership-plan.md.
  *
  * Each step is best-effort: sign-out must never block on a flaky DELETE.
  * Unlike the old `runCatching`, [bestEffort] rethrows [CancellationException]
@@ -77,12 +73,18 @@ class SignOutCleanup @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     suspend fun wipeLocalUserState() {
+        currentCoroutineContext().ensureActive()
         val departingTicket = localSessionOwnership.capture()
-        // Revoke draft leases before slow FCM/network cleanup. Even if the disk
-        // clear fails, an old form cannot restore or repopulate a later session.
-        bestEffort { requestServiceDraftStore.fenceAndClearForSignOut() }
-        // Snapshot WHO is signing out while they still are the current user.
-        val revocation = bestEffort { deviceTokenRegistrar.captureRevocation() }
+        // Retire only this login's draft lease synchronously, before the first
+        // token/database suspension. A stale A cannot fence B's live form.
+        val draftFence = bestEffort {
+            requestServiceDraftStore.fenceForSignOut(departingTicket, localSessionOwnership)
+        }
+        // The DAO read may suspend: revalidate the exact ticket after it before
+        // publishing a (user, token) pair. Never derive the owner from live B.
+        val revocation = bestEffort { deviceTokenRegistrar.captureRevocation(departingTicket) }
+        // Disk clear checks the same ticket inside DataStore's admitted edit.
+        bestEffort { requestServiceDraftStore.clearFencedForSignOut(draftFence) }
 
         // ---- local wipes: nothing below suspends on the network ----
         bestEffort { deepLinkRouter.clear() }
@@ -135,11 +137,20 @@ class SignOutCleanup @Inject constructor(
      * so a cancelled sign-out kept marching through every global wipe. This
      * rethrows cancellation and swallows everything else.
      */
-    private inline fun <T> bestEffort(block: () -> T): T? = try {
-        block()
-    } catch (ce: CancellationException) {
-        throw ce
-    } catch (_: Throwable) {
-        null
+    private suspend inline fun <T> bestEffort(block: () -> T): T? {
+        currentCoroutineContext().ensureActive()
+        return try {
+            val result = block()
+            currentCoroutineContext().ensureActive()
+            result
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            // A noncooperative dependency may throw an ordinary error after
+            // the caller was cancelled. Never treat that as permission to
+            // continue with the next device-wide cleanup step.
+            currentCoroutineContext().ensureActive()
+            null
+        }
     }
 }
