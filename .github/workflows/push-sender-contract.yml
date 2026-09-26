@@ -1,0 +1,69 @@
+name: push-sender-contract
+
+# Synthetic, offline-at-test-time sender contract checks. No FCM, Supabase
+# project, GitHub secret, Android build, or provider account is used here.
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/send_push_notification/**"
+      - ".github/workflows/push-sender-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/send_push_notification/**"
+      - ".github/workflows/push-sender-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-sender-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node-contract:
+    name: Node 24 contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: supabase/functions/send_push_notification
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+      - name: Run synthetic contract tests
+        run: node --test push_contract.test.mjs
+
+  deno-contract:
+    name: Deno ${{ matrix.deno }} contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        deno: ["1.46.3", "2.9.7"]
+    defaults:
+      run:
+        working-directory: supabase/functions/send_push_notification
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Deno
+        uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb # v2.0.3
+        with:
+          deno-version: ${{ matrix.deno }}
+      - name: Type check sender
+        run: deno check --no-lock index.ts
+      - name: Run synthetic contract tests
+        run: deno test --no-lock --allow-read push_contract.test.mjs
+      - name: Lint sender and contract
+        run: deno lint index.ts push_contract.ts push_contract.test.mjs
