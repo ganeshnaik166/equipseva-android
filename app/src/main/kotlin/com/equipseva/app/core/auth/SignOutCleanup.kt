@@ -34,8 +34,8 @@ import javax.inject.Singleton
  * but it does NOT establish account isolation: draft persistence, Room,
  * DataStore, cache locks and realtime removal can also suspend. The token
  * snapshot still occurs after draft persistence, and unowned local wipes can
- * resume against a replacement login. AMC deletion alone uses an independent
- * ticket captured first and checked inside its actual DataStore transform.
+ * resume against a replacement login. AMC and outbox deletion use an independent
+ * ticket captured first and checked inside their actual storage transaction.
  * Its producers/readers and historical global records remain unowned. A4
  * remains open: token capture and outbox deletion regressions stay enabled in
  * SignOutCleanupLocalBoundaryRegressionTest, and other cleanup resources still
