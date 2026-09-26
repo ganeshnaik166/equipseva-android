@@ -27,6 +27,7 @@ class SignUpToSignInNavigationTest {
                 composable(Routes.AUTH_WELCOME) {}
                 composable(Routes.AUTH_SIGN_IN) {}
                 composable(Routes.AUTH_SIGN_UP) {}
+                composable(Routes.AUTH_FORGOT_PASSWORD) {}
             }
         }
 
@@ -64,5 +65,30 @@ class SignUpToSignInNavigationTest {
         viaSignIn.navigate(Routes.AUTH_SIGN_UP)
         assertTrue(viaSignIn.popBackStack())
         assertEquals(Routes.AUTH_SIGN_IN, viaSignIn.currentDestination?.route)
+    }
+
+    @Test fun `repeated footer callback after SignIn does not add a duplicate entry`() {
+        val controller = authController()
+        controller.navigate(Routes.AUTH_SIGN_UP)
+        controller.returnToSignInFromSignUp()
+
+        controller.returnToSignInFromSignUp()
+
+        assertEquals(Routes.AUTH_SIGN_IN, controller.currentDestination?.route)
+        assertTrue(controller.popBackStack())
+        assertEquals(Routes.AUTH_WELCOME, controller.currentDestination?.route)
+    }
+
+    @Test fun `late footer callback cannot pull a later recovery screen back to SignIn`() {
+        val controller = authController()
+        controller.navigate(Routes.AUTH_SIGN_UP)
+        controller.returnToSignInFromSignUp()
+        controller.navigate(Routes.AUTH_FORGOT_PASSWORD)
+
+        controller.returnToSignInFromSignUp()
+
+        assertEquals(Routes.AUTH_FORGOT_PASSWORD, controller.currentDestination?.route)
+        assertTrue(controller.popBackStack())
+        assertEquals(Routes.AUTH_SIGN_IN, controller.currentDestination?.route)
     }
 }
