@@ -1,5 +1,9 @@
 # EquipSeva — current work and resume point
 
+## Independent signup navigation WIP, 26 September 2026
+
+Branch `codex/signup-nav-fallback-20260926` is an isolated checkout of fetched `origin/main` at `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`. This branch owns only the sign-up-to-sign-in navigation callback in `AuthNavGraph.kt`, focused auth-stack regression tests, and its continuity record. The defect is direct Welcome → SignUp → “Sign in”: `popBackStack(AUTH_SIGN_IN, false)` has no matching destination and leaves SignUp visible. SignIn → SignUp → “Sign in” already pops correctly; physical Back must retain each entry path. Welcome source/tests, P1d sender code, and other worktrees are outside this slice. This is WIP, unverified and unreviewed; do not merge or push it until targeted checks and independent review are complete. The shared Gradle slot was BUSY under the Welcome accessibility work at slice entry.
+
 ## P1d-0 sender-only main integration accepted, 26 September 2026
 
 [PR1886](https://github.com/ganeshnaik166/equipseva-android/pull/1886) merged the isolated sender-only candidate into `main` at **`7915f04a228ddfc4c54af8a74dc0b84b7f8d96f5`**. Final PR head `ed7267a254c067b15f1fc5c63195b73f9d51e47b` passed all seven GitHub checks: Android unit/lint/design/debug/unsigned R8, Node 24, Deno 1.46.3/2.9.7, PR/push Gitleaks and CodeRabbit status. Local Node and both Deno runs passed **13/13** synthetic sender tests each; Deno check/lint and actionlint passed. The four sender blobs match locally reviewed helper source `85b91ddd`. Independent helper critic/QA and integration critic/QA each scored **9.6/10 for their bounded sender/port scope**; final integration QA lifted its CI hold. Read [the handoff](HANDOFF_P1D0_MAIN_INTEGRATION_2026-09-26.md). No P1a/P1b/P1c Android ancestry, SQL grant change, hosted Supabase function deployment, real FCM or shared-device pilot was merged or verified by this PR.

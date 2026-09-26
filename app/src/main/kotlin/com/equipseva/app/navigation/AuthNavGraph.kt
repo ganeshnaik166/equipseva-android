@@ -43,7 +43,7 @@ fun NavGraphBuilder.authNavGraph(
                 onShowMessage = showSnackbar,
                 onBack = { navController.popBackStack() },
                 onSignIn = {
-                    navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
+                    navController.returnToSignInFromSignUp()
                 },
                 // v0.3.4 — hospitals route into the phone-onboarding gate
                 // immediately after a successful signup so AppNavGraph's
@@ -73,4 +73,9 @@ fun NavGraphBuilder.authNavGraph(
             )
         }
     }
+}
+
+/** Shared with the stack regression test; this first extraction preserves the existing behavior. */
+internal fun NavHostController.returnToSignInFromSignUp() {
+    popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
 }
