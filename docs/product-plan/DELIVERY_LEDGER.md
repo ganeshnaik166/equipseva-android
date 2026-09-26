@@ -1,6 +1,6 @@
 # Delivery ledger — four-persona EquipSeva
 
-Updated 20 September 2026. Governing decisions: [PRODUCT_PLAN.md](../../PRODUCT_PLAN.md).
+Updated 26 September 2026. Governing decisions: [PRODUCT_PLAN.md](../../PRODUCT_PLAN.md).
 
 This is a requirements/evidence ledger, not a percentage-complete counter. A design review does not accept an implementation. No app-wide numeric score is assigned.
 
@@ -24,7 +24,7 @@ Statuses: **planned**, **partial** (some reusable implementation), **blocked** (
 | ID | Outcome | Design | Implementation | Main integration | Required release evidence |
 |---|---|---|---|---|---|
 | P0 | Governing plan and 98-page carry-forward/new-page tree | Critic 9.5 / QA 9.6, planning only | Documentation and seven-page PDF | PR1879 merged at `24e01999`; portable continuity PR1880 merged at `62da836f` | Not an app-release gate |
-| P1.1 | Captured login ownership and safe cleanup | Concrete boundary plan | Partial: P1a AMC guard at `434663c0`, test polish `8d80ba3c`, scoped critic/QA **9.6 each**, full 3,734/2. P1b pre-fix Room test scaffold at `1493b870` is **WIP, unaccepted** | Blocked candidate; [P1a handoff](../HANDOFF_P1A_AMC_CLEANUP_2026-09-19.md), [P1b checkpoint](../HANDOFF_P1B_OUTBOX_CLEANUP_2026-09-20.md) | Real Room fix/verification and remaining resource ownership; producer/reader/confidentiality migration; ordinary cleanup controls |
+| P1.1 | Captured login ownership and safe cleanup | Concrete boundary plan | Partial: P1a AMC guard `434663c0` plus test polish `8d80ba3c`, critic/QA **9.6 each** for AMC; P1b real Room outbox guard `5b5fa68b` with final fixture `ed9de0c3`, critic/QA **9.6 each** for committed successor rows. Final full **3,743/1**, original token-capture assertion remains | Blocked candidate/draft PR1877; [P1a handoff](../HANDOFF_P1A_AMC_CLEANUP_2026-09-19.md), [P1b handoff](../HANDOFF_P1B_OUTBOX_CLEANUP_2026-09-20.md) | P1c token-capture boundary and remaining resource ownership; producers/readers/confidentiality, SQLCipher/device and ordinary logout controls before app/main acceptance |
 | P1.2 | Cancelled logout/account restoration retires stale work | Planned; existing S3 finding | Partial, earlier scope critic 9.2 | Blocked candidate | Root/session/router integration, logout and same-ID relogin |
 | P1.3 | Safe owner/workspace queue, photos, caches and push | Architecture mapped | Partial legacy protections | New scope not integrated | Delayed producers/readers, process death, revocation and reconnect |
 | P2.1 | Tenant membership, capabilities and immutable job parties | Planned source-bound migration | Existing hospital organisations/chain hierarchy only | New team model absent | Direct cross-tenant REST/RPC/storage/realtime/export denial tests |
