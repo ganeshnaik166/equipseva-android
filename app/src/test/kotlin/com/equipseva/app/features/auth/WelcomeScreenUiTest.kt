@@ -98,6 +98,13 @@ class WelcomeScreenUiTest {
         }
 
         composeRule.onNodeWithText("Sign in").assertIsDisplayed()
+        composeRule.onNodeWithText("Create account").assertIsDisplayed()
+        val agreementTop = composeRule.onNodeWithText("By continuing you agree to our")
+            .getUnclippedBoundsInRoot().top
+        val taglineTop = composeRule.onNodeWithText(
+            "Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.",
+        ).getUnclippedBoundsInRoot().top
+        assertTrue("Legal disclosure must come before marketing copy", agreementTop < taglineTop)
         listOf("Sign in", "Create account", "Terms", "Privacy").forEach { label ->
             composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
         }

@@ -142,10 +142,6 @@ internal fun WelcomeContent(
                             color = Color.White,
                         )
                     }
-                    if (compact) {
-                        Spacer(Modifier.height(16.dp))
-                        WelcomeTagline()
-                    }
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = "By continuing you agree to our",
@@ -164,6 +160,10 @@ internal fun WelcomeContent(
                         LegalAction("Terms", onTerms)
                         Text("and", fontSize = 12.sp, color = Color.White.copy(alpha = 0.75f))
                         LegalAction("Privacy", onPrivacy)
+                    }
+                    if (compact) {
+                        Spacer(Modifier.height(16.dp))
+                        WelcomeTagline()
                     }
                 }
             }
