@@ -27,3 +27,7 @@
 ## Review and integration gates
 
 This fixes only the sign-up footer stack. It does not add the planned third registration persona, alter authentication policy, or establish an app-wide score. Critic feedback on the earlier code led to the stale-callback guard. Independent final-code critic **9.7/10** and QA **9.6/10** reviewed `88f136d1` plus the five focused tests; neither ran Gradle independently, and both exclude device navigation. Applicable hosted PR Android/secret-scan checks and coordinator review remain before main integration. Physical direct/nested/recovery/Back smoke remains a later device gate; no live account or production request was used.
+
+## Closure update — 26 September 2026
+
+[PR1889](https://github.com/ganeshnaik166/equipseva-android/pull/1889) passed all seven GitHub checks and merged into main as `edae85ed50aa9f819a0a4fddaeea50ebae93ff64`. Its test/source blobs were preserved byte-for-byte when the parallel Welcome candidate merged main at `26f0ba2a`; combined targeted Welcome and signup-nav tests subsequently passed **10/0**. Earlier unmerged/pending wording above describes the historical checkpoint, not the current branch state. Device navigation and signed release remain open.

@@ -38,6 +38,35 @@ val EsText6xl  = 80.sp
 // is the same dead-simple pattern Material3 Typography uses.
 
 object EsType {
+    // Welcome's existing measured scale. Keep these paired with the compact
+    // layout so large-text users see the primary actions before scrolling.
+    val WelcomeBrand: TextStyle = TextStyle(
+        fontFamily = EsFontFamily,
+        fontSize = 36.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 38.sp,
+        letterSpacing = (-0.72).sp,
+    )
+    val WelcomeBrandCompact: TextStyle = WelcomeBrand.copy(
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+    )
+    val WelcomeAction: TextStyle = TextStyle(
+        fontFamily = EsFontFamily,
+        fontSize = EsTextSm,
+        fontWeight = FontWeight.Medium,
+    )
+    val WelcomeTagline: TextStyle = TextStyle(
+        fontFamily = EsFontFamily,
+        fontSize = EsTextMd,
+        lineHeight = 23.sp,
+    )
+    val WelcomeLegal: TextStyle = TextStyle(
+        fontFamily = EsFontFamily,
+        fontSize = EsTextXs,
+        lineHeight = 18.sp,
+    )
+
     val Display1: TextStyle = TextStyle(
         fontFamily = EsFontFamily,
         fontSize = EsText6xl,
