@@ -43,7 +43,7 @@ fun NavGraphBuilder.authNavGraph(
                 onShowMessage = showSnackbar,
                 onBack = { navController.popBackStack() },
                 onSignIn = {
-                    navController.popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)
+                    navController.returnToSignInFromSignUp()
                 },
                 // v0.3.4 — hospitals route into the phone-onboarding gate
                 // immediately after a successful signup so AppNavGraph's
@@ -72,5 +72,17 @@ fun NavGraphBuilder.authNavGraph(
                 onShowMessage = showSnackbar,
             )
         }
+    }
+}
+
+/** Return to the existing SignIn entry, or replace a direct Welcome → SignUp entry. */
+internal fun NavHostController.returnToSignInFromSignUp() {
+    // A queued/double tap from the old SignUp composition must not rewrite a later auth screen.
+    if (currentDestination?.route != Routes.AUTH_SIGN_UP) return
+    if (popBackStack(Routes.AUTH_SIGN_IN, inclusive = false)) return
+
+    navigate(Routes.AUTH_SIGN_IN) {
+        popUpTo(Routes.AUTH_SIGN_UP) { inclusive = true }
+        launchSingleTop = true
     }
 }

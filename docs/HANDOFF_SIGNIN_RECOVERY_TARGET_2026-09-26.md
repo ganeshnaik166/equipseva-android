@@ -28,4 +28,8 @@ Source trace: `SignInScreen` invokes only its `onForgotPassword` callback; `Auth
 
 ## Next steps
 
-The coordinator will reconcile this isolated branch with advancing `main`, run hosted CI, and decide integration. The branch is deliberately local and unpushed. Keep physical TalkBack/device, hosted password-reset behavior and signed release open. Preserve the distinction between the locally accepted action target and wider auth/security acceptance.
+The coordinator is reconciling this isolated branch with advancing `main` before hosted CI and integration. The reviewed local branch head `9dbf7f9ca7a584fc62e242004e251a814a7fb46b` was pushed only to `origin/codex/signin-recovery-target-20260926`; it is not on main yet. Keep physical TalkBack/device, hosted password-reset behavior and signed release open. Preserve the distinction between the locally accepted action target and wider auth/security acceptance.
+
+## Integration update — 26 September 2026
+
+Welcome PR1888 passed all six applicable GitHub checks and merged main as `afe2bd33cdc37ca842b921c9817d75cdc645fc74`, after signup navigation PR1889 had merged as `edae85ed50aa9f819a0a4fddaeea50ebae93ff64`. This Sign in candidate merged the new main tree without app-source conflict; only continuity docs required reconciliation. Its original full check and critic/QA scores apply to frozen `ffbc930f`; require combined-head focused tests, design ratchet, and hosted CI before merging this branch. No session-identity fix is included.
