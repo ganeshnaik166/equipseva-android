@@ -11,6 +11,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.LocalSessionOwnership
 import com.equipseva.app.core.auth.SignOutCleanup
 import com.equipseva.app.core.data.engineers.EngineerDirectoryRepository
 import com.equipseva.app.core.data.moderation.UserBlockRepository
@@ -87,7 +88,8 @@ import org.robolectric.annotation.Config
  *  - RequestServiceViewModel over a real SavedStateHandle, including an android.os.Parcel round trip
  *    of its saved Bundle (Robolectric provides Bundle/Parcel);
  *  - SignOutCleanup.wipeLocalUserState(), hand-built: real RequestServiceDraftStore, real
- *    DefaultPhotoUploadStash (Robolectric filesDir), real UserBlockRepository.
+ *    DefaultPhotoUploadStash (Robolectric filesDir), real UserBlockRepository and the exact-login
+ *    LocalSessionOwnership monitor shared with the draft store's A/B identity fixture.
  * Fake / no-op:
  *  - FakeAuthRepository (SignedIn / SignedOut / Unknown emissions);
  *  - relaxed mocks for DeviceTokenRegistrar, OutboxDao, OutboxScheduler, UserPrefs and the three
@@ -130,6 +132,7 @@ class RequestServiceAccountSwitchIntegrationTest {
 
     private val auth = FakeAuthRepository(AuthSession.SignedIn("A", "a@test.invalid"))
     private var identity: RequestServiceDraftStore.Identity? = RequestServiceDraftStore.Identity("A", "session-A")
+    private lateinit var localSessionOwnership: LocalSessionOwnership
     private var now = 1_000_000L
 
     @Before fun setUp() {
@@ -180,13 +183,24 @@ class RequestServiceAccountSwitchIntegrationTest {
 
     // ---------------------------------------------------------------- fixtures
 
-    private fun TestScope.newStore(): RequestServiceDraftStore = RequestServiceDraftStore(
-        dataStore = dataStore,
-        authRepository = auth,
-        currentIdentity = { identity },
-        scope = backgroundScope,
-        nowMillis = { now },
-    )
+    private fun TestScope.newStore(): RequestServiceDraftStore {
+        localSessionOwnership = LocalSessionOwnership(
+            auth,
+            {
+                identity?.let { raw ->
+                    raw.sessionId?.let { LocalSessionOwnership.Identity(raw.ownerId, it) }
+                }
+            },
+            backgroundScope,
+        )
+        return RequestServiceDraftStore(
+            dataStore = dataStore,
+            authRepository = auth,
+            currentIdentity = { identity },
+            scope = backgroundScope,
+            nowMillis = { now },
+        )
+    }
 
     private fun signIn(owner: String, session: String) {
         identity = RequestServiceDraftStore.Identity(owner, session)
@@ -277,7 +291,7 @@ class RequestServiceAccountSwitchIntegrationTest {
         pendingAmcContractsStore = mockk(relaxed = true),
         requestServiceDraftStore = store,
         deepLinkRouter = mockk(relaxed = true),
-        localSessionOwnership = mockk(relaxed = true),
+        localSessionOwnership = localSessionOwnership,
         context = context,
     )
 
