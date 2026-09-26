@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-26 — A3-01 external-intent boundary paused WIP
+
+- Branch `codex/deeplink-extra-policy-20260926` from main `afe2bd33`: test-only initial RED `5a86ec05` yielded **4/3 behavioral failures** after fixing invalid Robolectric bootstrap. A syntax allow-list candidate in `DeepLinkPolicy.kt` and `DeepLinkRouter.kt` is unverified. Independent provisional source critique **9.2/10** identified lost founder push landings and role-specific route admission; no acceptance score.
+- New test-only commits `a831cd85` and `b2985f7d` require known founder/KYC/AMC-visits notifications to land in the safe inbox and valid App Links to retain precedence. These new tests have **not** run. Claude owns the shared Gradle slot; no Codex GREEN/full/lint/assembly run or main merge. Next: wait for explicit slot release, run new RED unchanged, implement fallback, verify GREEN/full, then independent critic/QA and CI. [Handoff](HANDOFF_DEEPLINK_EXTRA_POLICY_2026-09-26.md).
+
 ## 2026-09-19 — P0 product plan published
 
 - Main: `24e0199937c09c137e8045aa7664dcd4f746dbb1`; content: `5541df8f43d656951bf53197f74da5a7b0291768`; PR1879 merged.

@@ -14,8 +14,8 @@ import javax.inject.Singleton
  *
  * Two entry points handled, in priority order:
  *  1. [EXTRA_ROUTE] string extra — stamped by the FCM service after running
- *     NotificationDeepLink. Wins because the notification payload is the most
- *     specific signal.
+ *     NotificationDeepLink. The activity is exported, so this value is
+ *     untrusted and must pass [DeepLinkPolicy] before navigation.
  *  2. [Intent.getData] HTTPS URI on `equipseva.com` / `www.equipseva.com` — the
  *     App Link path declared with autoVerify=true in the manifest. A small
  *     whitelist of paths maps to nav routes; anything else is ignored so the
@@ -38,7 +38,7 @@ class DeepLinkRouter @Inject constructor() {
     fun dispatch(intent: Intent?) {
         if (intent == null) return
         val route = intent.getStringExtra(EXTRA_ROUTE)
-            ?.takeIf { it.isNotBlank() }
+            ?.takeIf(DeepLinkPolicy::allows)
             ?: routeFor(intent.data)
         route?.let { channel.trySend(Event.OpenRoute(it)) }
     }
