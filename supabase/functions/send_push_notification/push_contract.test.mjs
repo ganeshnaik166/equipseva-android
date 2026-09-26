@@ -140,17 +140,17 @@ test("only a structured token-specific FCM 404 counts as unregistered", () => {
 });
 
 test("a failed token send does not lose a successful sibling or expose token IDs", async () => {
-  const outcome = await sendBatch(["good-token", "timeout-token", "dead-token"], async (token) => {
-    if (token === "timeout-token") throw new Error("network timeout with token");
-    if (token === "dead-token") return { ok: false, status: 404, unregistered: true };
-    return { ok: true, status: 200, unregistered: false };
+  const outcome = await sendBatch(["good-token", "timeout-token", "dead-token"], (token) => {
+    if (token === "timeout-token") return Promise.reject(new Error("network timeout with token"));
+    if (token === "dead-token") return Promise.resolve({ ok: false, status: 404, unregistered: true });
+    return Promise.resolve({ ok: true, status: 200, unregistered: false });
   });
   assert.deepEqual(outcome, { sent: 1, failed: 2, unregistered: 1, transportFailure: true });
   assert.equal(JSON.stringify(outcome).includes("token"), false);
 });
 
 test("completed FCM rate-limit and server errors keep the prior acknowledgement contract", async () => {
-  const outcome = await sendBatch(["rate-limit", "server-error"], async (token) => ({
+  const outcome = await sendBatch(["rate-limit", "server-error"], (token) => Promise.resolve({
     ok: false,
     status: token === "rate-limit" ? 429 : 503,
     unregistered: false,
@@ -162,9 +162,9 @@ test("real fan-out boundary gives every send the sanitized fetched row", async (
   const sentMessages = [];
   const outcome = await deliverNotification(row({
     data: { conversation_id: CONVERSATION, user_id: B, patient_name: "Patient R" },
-  }), ["token-one", "token-two"], async (message) => {
+  }), ["token-one", "token-two"], (message) => {
     sentMessages.push(message);
-    return { ok: true, status: 200, unregistered: false };
+    return Promise.resolve({ ok: true, status: 200, unregistered: false });
   });
   assert.deepEqual(outcome, { sent: 2, failed: 0, unregistered: 0, transportFailure: false });
   assert.equal(sentMessages.length, 2);
@@ -176,7 +176,7 @@ test("real fan-out boundary gives every send the sanitized fetched row", async (
 });
 
 test("stale token invalidity is counted but never offered as a deletion key", async () => {
-  const result = await deliverNotification(row(), ["token-now-owned-by-B"], async () => ({
+  const result = await deliverNotification(row(), ["token-now-owned-by-B"], () => Promise.resolve({
     ok: false,
     status: 404,
     unregistered: true,
@@ -191,9 +191,9 @@ test("sender-to-FCM path transmits only generic text and validated tap fields", 
     data: { conversation_id: CONVERSATION, user_id: B, title: "secret", body: "secret" },
   }), ["current-token"], (message) => sendToFcm(
     "project-id", "synthetic-oauth", message,
-    async (url, init) => {
+    (url, init) => {
       requests.push({ url, init });
-      return new Response(JSON.stringify({ name: "synthetic-message" }), { status: 200 });
+      return Promise.resolve(new Response(JSON.stringify({ name: "synthetic-message" }), { status: 200 }));
     },
   ));
   assert.deepEqual(outcome, { sent: 1, failed: 0, unregistered: 0, transportFailure: false });
@@ -218,7 +218,7 @@ test("sender-to-FCM path transmits only generic text and validated tap fields", 
 test("FCM response parser does not mistake generic 404 for a dead token", async () => {
   const message = buildSafePushMessage(row(), "current-token");
   const generic = await sendToFcm("project", "synthetic-oauth", message,
-    async () => new Response(JSON.stringify({ error: { status: "NOT_FOUND" } }), { status: 404 }));
+    () => Promise.resolve(new Response(JSON.stringify({ error: { status: "NOT_FOUND" } }), { status: 404 })));
   assert.deepEqual(generic, { ok: false, status: 404, unregistered: false });
 });
 
