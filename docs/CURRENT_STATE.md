@@ -1,5 +1,9 @@
 # EquipSeva — current work and resume point
 
+## P1d-0 sender privacy slice opened 26 September 2026
+
+Isolated branch `codex/p1d0-sender-privacy-20260926` starts from fetched candidate `19b909aa9989f35f447ec8c333d6052c580d9243`. This branch owns only `supabase/functions/send_push_notification/**`, focused synthetic sender tests, and P1d-0 continuity documents. It will make the FCM visible payload generic, allow only validated routing data with the recipient derived from the fetched notification, distinguish token-specific FCM invalidity from generic errors, and stop unsafe token-only reaping while a versioned device claim is absent. Preserve valid sends and Android's authenticated destination fetch after a tap. No SQL/grant/schema, Android client/UI, live account, production FCM or other branch changes belong to this slice. Test-first evidence, final code hash, critic and QA disposition remain pending; this entry is scope ownership, not acceptance.
+
 Updated 26 September 2026. Read this before coding; verify branch/HEAD and remote state rather than assuming this dated snapshot is still latest.
 
 Historical 21 September resume: the owner explicitly authorised using the remaining allowance, overriding the earlier threshold stop for that session. Base `144dac5a44cc1c115f50470fe8331416e261748c`, fetched and clean. The coordinator took ownership of the test agent's `OutboxSignOutCleanerTest.kt` cancellation fixture and then the bounded adapter fix. That work is completed and reviewed below.
