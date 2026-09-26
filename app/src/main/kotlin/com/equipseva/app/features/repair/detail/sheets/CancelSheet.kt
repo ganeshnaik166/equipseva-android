@@ -34,7 +34,7 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 internal fun CancelSheet(
     updating: Boolean,
     jobStatus: RepairJobStatus?,
-    escrowHeldRupees: Int?,
+    escrowHeldRupees: Double?,
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit,
 ) {
@@ -81,7 +81,10 @@ internal fun CancelSheet(
             )
             if (escrowHeldRupees != null) {
                 Text(
-                    text = stringResource(R.string.repair_cancel_escrow_refund, escrowHeldRupees),
+                    text = stringResource(
+                        R.string.repair_cancel_escrow_refund,
+                        com.equipseva.app.core.util.formatRupeesPaise(escrowHeldRupees),
+                    ),
                     fontSize = 12.sp,
                     color = SevaInk700,
                 )

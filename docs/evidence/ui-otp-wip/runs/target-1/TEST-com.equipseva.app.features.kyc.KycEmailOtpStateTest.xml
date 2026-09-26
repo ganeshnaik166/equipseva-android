@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.equipseva.app.features.kyc.KycEmailOtpStateTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-09-13T06:23:04.322Z" hostname="LOKESH" time="3.628">
+  <properties/>
+  <testcase name="complete submit remains allowed while sending as in current sheet contract" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="2.868"/>
+  <testcase name="dismissing a failed verification clears inline error and code before reopening" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.046"/>
+  <testcase name="editing keeps only six ASCII digits without losing leading zeros" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.037"/>
+  <testcase name="verify failure retains code and open sheet preserves mapped effect and allows retry" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.101"/>
+  <testcase name="sending permits editing and dismissal and late send completion does not reopen sheet" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.048"/>
+  <testcase name="duplicate submit before dispatch and during suspended verification makes one request then permits retry" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.065"/>
+  <testcase name="complete leading-zero code reaches provider unchanged and confirmed refresh closes sheet" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.042"/>
+  <testcase name="cancelling view model cancels suspended verification without publishing an error effect" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.043"/>
+  <testcase name="duplicate send before dispatch and during suspended send makes one request then permits fresh resend" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.066"/>
+  <testcase name="resending after verify failure clears inline error and rejected code before awaiting send" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.062"/>
+  <testcase name="send failure still closes sheet preserves mapped effect and allows a fresh attempt" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.052"/>
+  <testcase name="incomplete submit never calls provider or starts verifying" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.033"/>
+  <testcase name="resend clears the previous code before awaiting its response" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.051"/>
+  <testcase name="resend while verifying neither sends nor clears the submitted code" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.054"/>
+  <testcase name="verifying blocks edit and dismissal until the pending attempt fails" classname="com.equipseva.app.features.kyc.KycEmailOtpStateTest" time="0.046"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

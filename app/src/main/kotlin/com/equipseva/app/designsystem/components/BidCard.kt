@@ -105,7 +105,7 @@ fun BidCard(
                 if (isVerified) {
                     Icon(
                         imageVector = Icons.Filled.Verified,
-                        contentDescription = "Verified",
+                        contentDescription = stringResource(R.string.verified_badge_label),
                         tint = Info,
                         modifier = Modifier.size(16.dp),
                     )

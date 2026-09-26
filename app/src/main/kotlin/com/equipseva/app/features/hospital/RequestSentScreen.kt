@@ -40,6 +40,7 @@ import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.LightEsColors
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -142,6 +143,8 @@ fun RequestSentScreen(
                         kind = EsBtnKind.Ghost,
                         size = EsBtnSize.Lg,
                         full = true,
+                        // This footer keeps a fixed white surface in both themes.
+                        contentColor = LightEsColors.text,
                     )
                 }
             }

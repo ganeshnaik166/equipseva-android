@@ -47,11 +47,23 @@ jobs:
             exit 1
           fi
           URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/cron-tick?slot=sweep-code-reds"
-          curl --fail-with-body \
-               --silent --show-error \
+          umask 077
+          RESPONSE_BODY="$(mktemp "${RUNNER_TEMP}/cron-code-red-response.XXXXXX")"
+          trap 'rm -f -- "${RESPONSE_BODY}"' EXIT
+          CURL_EXIT=0
+          # Run logs on this repository are world-readable and the sweep body
+          # names the escalated safety requests, so the only captured stdout
+          # is the numeric HTTP status. Raw response content and curl errors
+          # must never reach Actions logs or summaries.
+          HTTP_STATUS="$(curl --fail-with-body \
+               --silent \
                --max-time 60 \
+               --output "${RESPONSE_BODY}" \
+               --write-out '%{http_code}' \
                -X POST "$URL" \
                -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
                -H "x-cron-secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
-               -d '{}'
+               -d '{}' 2>/dev/null)" || CURL_EXIT=$?
+          echo "cron-tick sweep-code-reds HTTP ${HTTP_STATUS}"
+          exit "${CURL_EXIT}"

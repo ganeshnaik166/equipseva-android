@@ -252,7 +252,14 @@ class SupabaseRepairJobRepository @Inject constructor(
  * doubling so the escape itself is escaped).
  */
 internal fun sanitizeForIlike(input: String): String =
-    input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    input
+        // The pattern is interpolated into PostgREST's `or=(col.ilike.<value>,…)`
+        // grammar, where an unquoted comma or parenthesis ends the value and a
+        // double quote opens a quoted one. supabase-kt does not quote for us, so
+        // "GE, Philips (new)" produced PGRST100 and an errored feed. Neutralise
+        // the delimiters before escaping the LIKE wildcards.
+        .replace(Regex("[,()\"]"), " ")
+        .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 /**
  * Normalises a free-form rating review string before sending to

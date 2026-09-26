@@ -128,10 +128,15 @@ class CreateAmcWizardCanProceedTest {
         )
     }
 
-    @Test fun `Sla fractional hours allowed (e_g_ 0_5h emergency response)`() {
-        // Some hospitals offer 30-minute emergency SLAs — pin so the
-        // > 0 check (not >= 1) stays.
-        assertTrue(
+    @Test fun `Sla fractional hours block because the contract cannot store them`() {
+        // `amc_contracts.response_time_emergency_hours` is an integer with a
+        // 4-hour default, and submit parses the field with toIntOrNull(). A
+        // "0.5" that passed this gate therefore arrived as null and the
+        // server wrote 4 hours: the hospital signed an SLA eight times
+        // longer than the one it chose, with nothing on screen to say so.
+        // Blocking at the gate keeps the promise and the stored contract the
+        // same thing. Sub-hour SLAs need a minutes column first.
+        assertFalse(
             state(
                 CreateAmcWizardViewModel.Step.Sla,
                 responseTimeStandardHours = "8",

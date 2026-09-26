@@ -1,5 +1,7 @@
 package com.equipseva.app.features.mybids
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -107,7 +109,7 @@ class JobProfitabilityViewModel @Inject constructor(
         viewModelScope.launch {
             repo.updateFloor(floorRupees)
                 .onSuccess {
-                    _state.update { it.copy(savingFloor = false, floorSaved = true) }
+                    _state.update { it.copy(savingFloor = false, floorSaved = true, error = null) }
                     refresh()
                 }
                 .onFailure { e ->
@@ -152,6 +154,11 @@ fun JobProfitabilityScreen(
                         currentFloor = state.data!!.profitabilityFloorRupees,
                         saving = state.savingFloor,
                         saved = state.floorSaved,
+                        // The full-screen error branch above only renders when
+                        // there is no data, so a failed floor save on a loaded
+                        // screen was invisible: the button said "Saving…", then
+                        // nothing, and the floor was unchanged.
+                        errorText = state.error,
                         onSave = viewModel::saveFloor,
                     )
                     Text(
@@ -208,7 +215,7 @@ private fun ProfitabilityCard(p: JobProfitabilityRepository.Profitability) {
             ProfitLine(
                 stringResource(R.string.job_profitability_travel_cost),
                 "− ${formatRupees(p.estimatedTravelCostRupees)}" +
-                    (p.distanceKm?.let { " ($it km round trip)" } ?: ""),
+                    (p.distanceKm?.let { " (${roundTripDistanceLabel(it)} round trip)" } ?: ""),
             )
             Box(Modifier.fillMaxWidth().height(1.dp).background(BorderDefault).padding(vertical = 4.dp))
             ProfitLine(
@@ -235,6 +242,7 @@ private fun FloorEditor(
     currentFloor: Double,
     saving: Boolean,
     saved: Boolean,
+    errorText: String?,
     onSave: (Double) -> Unit,
 ) {
     var text by rememberSaveable(currentFloor) { mutableStateOf(currentFloor.toInt().toString()) }
@@ -259,6 +267,8 @@ private fun FloorEditor(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 EsField(
+                    palette = LightEsColors,
+                    label = stringResource(R.string.es_input_minimum_payout_label),
                     value = text,
                     onChange = { text = it.filter(Char::isDigit) },
                     type = EsFieldType.Number,
@@ -283,6 +293,24 @@ private fun FloorEditor(
                     color = SevaGreen700,
                 )
             }
+            if (errorText != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(errorText, style = EsType.Caption, color = SevaDanger500)
+            }
         }
     }
 }
+
+/**
+ * Travel distance on the profitability breakdown, as "12.3 km".
+ *
+ * The RPC returns a raw Double, which interpolated verbatim as
+ * "12.345678 km round trip" — six decimals of GPS noise presented as a
+ * cost input. One decimal, matching every other distance in the app.
+ *
+ * Pin Locale.US: a Hindi or German device locale renders the separator
+ * as a comma ("12,3 km"), which reads as two values inside a
+ * parenthesised phrase.
+ */
+internal fun roundTripDistanceLabel(distanceKm: Double): String =
+    "%.1f km".format(java.util.Locale.US, distanceKm)

@@ -1,5 +1,7 @@
 package com.equipseva.app.features.kyc
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -92,9 +94,7 @@ import com.equipseva.app.designsystem.theme.Surface50
 import com.equipseva.app.designsystem.theme.Surface200
 import com.equipseva.app.designsystem.theme.Warning
 import com.equipseva.app.designsystem.theme.WarningBg
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
@@ -190,7 +190,11 @@ fun KycScreen(
             com.equipseva.app.designsystem.components.EsTopBar(
                 title = "Verification (KYC)",
                 subtitle = subtitle,
-                onBack = onBack,
+                // Leaving mid-submit tears down the ViewModel while the upsert
+                // is still in flight, and the scope teardown runs the
+                // orphan-document cleanup against a row the server is at that
+                // moment storing those very paths into.
+                onBack = { if (!state.saving) onBack() },
             )
         },
         bottomBar = {
@@ -264,88 +268,8 @@ fun KycScreen(
             onSubmit = viewModel::submitEmailOtp,
             onDismiss = viewModel::closeEmailVerifySheet,
             onResend = viewModel::startEmailVerification,
+            error = state.emailOtpError,
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EmailVerifySheet(
-    email: String,
-    code: String,
-    sending: Boolean,
-    verifying: Boolean,
-    onCodeChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    onDismiss: () -> Unit,
-    onResend: () -> Unit,
-) {
-    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
-        onDismissRequest = { if (!verifying) onDismiss() },
-        sheetState = sheetState,
-    ) {
-        // Round 454 — imePadding lifts the OTP field above the IME so
-        // the user can see what they're typing. ModalBottomSheet handles
-        // safe-content (nav-bar) insets but does not push above the
-        // soft keyboard on its own.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .imePadding()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(stringResource(R.string.kyc_verify_your_email), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink900)
-            Text(stringResource(R.string.kyc_email_code_sent, email), fontSize = 13.sp, color = Ink500)
-            OutlinedTextField(
-                value = code,
-                onValueChange = onCodeChange,
-                label = { Text(stringResource(R.string.kyc_email_otp_label)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.NumberPassword,
-                    // Round 464 — Done lets the user submit the 6-digit
-                    // OTP from the keyboard once it's complete, instead
-                    // of having to dismiss the keyboard first and then
-                    // reach for the Verify button.
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = { if (!verifying && code.length == 6) onSubmit() },
-                ),
-                enabled = !verifying,
-                supportingText = if (sending) {
-                    { Text(stringResource(R.string.kyc_email_sending_code), fontSize = 12.sp, color = Ink500) }
-                } else null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(
-                    onClick = onResend,
-                    enabled = !sending && !verifying,
-                    modifier = Modifier.weight(1f),
-                ) { Text(if (sending) stringResource(R.string.kyc_email_resending) else stringResource(R.string.kyc_email_resend_code)) }
-                Button(
-                    onClick = onSubmit,
-                    enabled = !verifying && code.length == 6,
-                    modifier = Modifier.weight(1.4f),
-                ) {
-                    if (verifying) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                        Spacer(Modifier.size(Spacing.sm))
-                        Text(stringResource(R.string.kyc_email_verifying))
-                    } else {
-                        Text(stringResource(R.string.kyc_verify_action))
-                    }
-                }
-            }
-            Spacer(Modifier.height(Spacing.sm))
-        }
     }
 }
 
@@ -622,16 +546,18 @@ private fun PersonalStep(
         val districts = remember(state.serviceState) {
             com.equipseva.app.core.data.location.IndiaLocations.districtsFor(state.serviceState)
         }
-        FieldLabel("State")
         com.equipseva.app.designsystem.components.EsDropdown(
+            palette = LightEsColors,
+            label = stringResource(R.string.es_input_state_label),
             value = state.serviceState,
             onValueChange = onServiceStateChange,
             options = com.equipseva.app.core.data.location.IndiaLocations.STATES,
             placeholder = "Select state",
             modifier = Modifier.fillMaxWidth(),
         )
-        FieldLabel("District")
         com.equipseva.app.designsystem.components.EsDropdown(
+            palette = LightEsColors,
+            label = stringResource(R.string.es_input_district_label),
             value = state.serviceDistrict,
             onValueChange = onServiceDistrictChange,
             options = districts,
@@ -1217,6 +1143,30 @@ private inline fun readAndUpload(
     val resolver = context.contentResolver
     val mime = resolver.getType(uri)
     val name = queryDisplayName(context, uri) ?: uri.lastPathSegment ?: "upload"
+    // Check the provider's reported size BEFORE reading the stream: the
+    // bucket's own limit was only applied to the finished ByteArray, so a
+    // 200 MB PDF was fully materialised in memory just to be rejected.
+    //
+    // Only when the provider reports a real size, though. The validator
+    // answers TooLarge for a non-positive size as well as an oversize one,
+    // and a DocumentsProvider that fills OpenableColumns.SIZE with 0 rather
+    // than NULL for streamed content is common — taking that as oversize
+    // would refuse a perfectly good KYC document, before reading a byte,
+    // with copy about a 15 MB limit. An unknown size falls through to the
+    // read-then-validate path, which still catches a genuinely empty or
+    // oversize file.
+    val reportedSize = queryReportedSize(context, uri)?.takeIf { it > 0 }
+    if (reportedSize != null) {
+        val tooLarge = com.equipseva.app.core.storage.UploadValidator.validate(
+            bucket = com.equipseva.app.core.storage.StorageRepository.Buckets.KYC_DOCS,
+            contentType = mime,
+            size = reportedSize,
+        ).exceptionOrNull() as? com.equipseva.app.core.storage.UploadError.TooLarge
+        if (tooLarge != null) {
+            onError("That file is over ${tooLarge.max / (1024 * 1024)} MB. Pick a smaller photo or PDF.")
+            return
+        }
+    }
     val bytes = try {
         resolver.openInputStream(uri)?.use { it.readBytes() }
     } catch (t: Throwable) {
@@ -1232,6 +1182,17 @@ private inline fun readAndUpload(
         return
     }
     send(name, bytes, mime)
+}
+
+/** Null when the provider does not report a size (some cloud documents). */
+private fun queryReportedSize(context: android.content.Context, uri: Uri): Long? {
+    return context.contentResolver.query(
+        uri,
+        arrayOf(android.provider.OpenableColumns.SIZE),
+        null, null, null,
+    )?.use { cursor ->
+        if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null
+    }
 }
 
 private fun queryDisplayName(context: android.content.Context, uri: Uri): String? {

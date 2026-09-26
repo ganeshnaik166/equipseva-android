@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import androidx.activity.compose.BackHandler
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -30,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -39,6 +42,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +64,7 @@ import com.equipseva.app.core.util.MIME_JPEG
 import com.equipseva.app.core.util.MIME_PNG
 import com.equipseva.app.core.util.MIME_WEBP
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.components.sheetDismissAllowed
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.Paper2
 import com.equipseva.app.designsystem.theme.PaperDefault
@@ -203,7 +209,11 @@ class FounderCategoriesViewModel @Inject constructor(
             _state.update { it.copy(error = "Scope must be spare_part, repair, or both") }
             return
         }
-        val sort = draft.sortOrder.toIntOrNull() ?: 100
+        val sort = categorySortOrderOrNull(draft.sortOrder)
+        if (sort == null) {
+            _state.update { it.copy(error = "Sort order must be a whole number, 0 or more") }
+            return
+        }
         _state.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
             repo.upsertCategory(
@@ -279,11 +289,26 @@ fun FounderCategoriesScreen(
         ) { uri: Uri? ->
             if (uri != null) viewModel.uploadImage(context, uri)
         }
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        // Keep the saved SheetState predicate stable and read current busy
+        // state through a state holder. Refusing only the dismiss callback
+        // can leave a hidden modal window swallowing
+        // every tap, with the save error rendered behind it.
+        val busy by rememberUpdatedState(state.saving)
+        val confirmTransition = remember {
+            { next: SheetValue -> sheetDismissAllowed(next, busy) }
+        }
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = confirmTransition,
+        )
+        val dismiss = { if (!busy) viewModel.closeSheet() }
         ModalBottomSheet(
             sheetState = sheetState,
-            onDismissRequest = { viewModel.closeSheet() },
+            onDismissRequest = dismiss,
+            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
         ) {
+            // Native Back bypasses confirmValueChange in Material3 1.3.1.
+            BackHandler(onBack = dismiss)
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -398,7 +423,17 @@ fun FounderCategoriesScreen(
                 }
                 OutlinedTextField(
                     value = draft.sortOrder,
-                    onValueChange = { v -> viewModel.onDraftChange { it.copy(sortOrder = v.filter { ch -> ch in '0'..'9' }) } },
+                    // Digits only, but every digit typed. Truncating the input
+                    // turned 1234567 into 123456 and a pasted "0000009" into
+                    // 0, with nothing on screen to say so — the same silent
+                    // substitution this field was fixed to stop, just moved
+                    // from the save to the keystroke. save() refuses what the
+                    // column cannot hold.
+                    onValueChange = { v ->
+                        viewModel.onDraftChange {
+                            it.copy(sortOrder = v.filter { ch -> ch in '0'..'9' })
+                        }
+                    },
                     label = { Text(stringResource(R.string.founder_categories_sort_order_label)) },
                     enabled = !state.saving,
                     singleLine = true,
@@ -519,3 +554,30 @@ internal fun categoryActiveLabel(isActive: Boolean): String =
  */
 internal fun categoryScopeOrderLine(scope: String, sortOrder: Int): String =
     "scope: $scope · order: $sortOrder"
+
+/**
+ * Sort order parsed from the founder's typed digits, or null when the value
+ * cannot be honoured.
+ *
+ * Blank means "leave it at the default" — the field starts empty for a new
+ * category — so it resolves to [CATEGORY_SORT_ORDER_DEFAULT].
+ *
+ * Critical pin: anything that is not a non-negative int returns null so the
+ * caller can refuse the save. The previous `toIntOrNull() ?: 100` substituted
+ * the default for an out-of-Int-range value, so a stray extra digit or a
+ * pasted number silently overwrote the founder's intended ordering with 100
+ * and reported success.
+ *
+ * The bound is the column's, not a display preference. `sort_order` is a plain
+ * `int` with no CHECK and the upsert takes the whole range, so a tighter
+ * client rule would refuse to save an existing row it had no part in
+ * creating — the founder renames a category and is told to retype an ordering
+ * they never chose.
+ */
+internal fun categorySortOrderOrNull(raw: String): Int? {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return CATEGORY_SORT_ORDER_DEFAULT
+    return trimmed.toIntOrNull()?.takeIf { it >= 0 }
+}
+
+internal const val CATEGORY_SORT_ORDER_DEFAULT = 100

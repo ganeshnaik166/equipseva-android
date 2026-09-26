@@ -97,9 +97,14 @@ class CanProceedAmcWizardStepTest {
         assertFalse(canProceedSlaStep("24", ""))
     }
 
-    @Test fun `decimal hours allowed`() {
-        // 4.5-hour SLA is valid.
-        assertTrue(canProceedSlaStep("24.5", "4.5"))
+    @Test fun `decimal hours blocked because submit sends whole hours`() {
+        // submitAndPay parses these with toIntOrNull() and falls back to the
+        // 24 h / 4 h defaults, so a "4.5" that passed this gate was silently
+        // replaced — the hospital would sign an SLA it never chose. Blocking
+        // at the gate keeps the agreed number and the sent number identical.
+        assertFalse(canProceedSlaStep("24.5", "4.5"))
+        assertFalse(canProceedSlaStep("24", "4.5"))
+        assertFalse(canProceedSlaStep("24.5", "4"))
     }
 
     // ---- canProceedEngineerStep --------------------------------------

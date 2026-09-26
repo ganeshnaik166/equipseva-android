@@ -313,8 +313,6 @@
     <string name="home_spot_audit_feedback_placeholder">Optional comments (e.g. parts replaced as expected, slow response, etc.)</string>
     <string name="home_cash_survey_title">Quick check-in</string>
     <string name="home_cash_survey_privacy_note">Your answer is private and only visible to our team.</string>
-    <string name="home_first_job_cta_title">Book your first repair</string>
-    <string name="home_first_job_cta_subtitle">Find verified engineers near you</string>
     <string name="home_phone_missing_banner_title">Add your phone number</string>
     <string name="home_phone_missing_banner_subtitle">Engineers call this number during a job. Without it they can\'t reach you.</string>
     <string name="home_pending_amc_payment_banner_subtitle">If your bank shows the charge but your AMC pool hasn\'t credited yet, contact support and we\'ll reconcile.</string>
@@ -401,7 +399,7 @@
     <string name="repair_cancel_title">Cancel job?</string>
     <string name="repair_cancel_body_assigned">The engineer may have already started travel — they\'ll be notified immediately.</string>
     <string name="repair_cancel_body_default">This cannot be undone. The other party will be notified.</string>
-    <string name="repair_cancel_escrow_refund">₹%1$d in escrow will be refunded to your account within 3 working days.</string>
+    <string name="repair_cancel_escrow_refund">%1$s in escrow will be refunded to your account within 3 working days.</string>
     <string name="repair_cancel_reason_required_label">Reason (required, 10+ chars)</string>
     <string name="repair_cancel_reason_placeholder">e.g. equipment self-repaired, schedule conflict…</string>
     <string name="repair_notfound_body">This repair job is no longer available.</string>
@@ -465,7 +463,7 @@
     <string name="earnings_projection_load_error_title">Couldn\'t load</string>
     <string name="earnings_projection_no_data">No projection data yet.</string>
     <string name="earnings_projection_top_tier_title">You\'re at the top tier.</string>
-    <string name="earnings_projection_top_tier_sub">Gold rates are the lowest we offer (5%).</string>
+    <string name="earnings_projection_top_tier_sub" formatted="false">Gold rates are the lowest we offer (5%).</string>
     <string name="earnings_projection_reach_tier_title">Reach %1$s to unlock benefits.</string>
     <string name="earnings_projection_reach_tier_sub">Silver and Gold offer lower platform fees.</string>
     <string name="earnings_projection_reach_uplift_title">Reach %1$s → earn %2$s/mo more</string>
@@ -621,7 +619,7 @@
     <string name="job_profitability_below_floor">Below your floor</string>
     <string name="job_profitability_estimated_net_label">Estimated net payout</string>
     <string name="job_profitability_gross_bid">Gross bid</string>
-    <string name="job_profitability_platform_fee">Platform fee (7%)</string>
+    <string name="job_profitability_platform_fee" formatted="false">Platform fee (7%)</string>
     <string name="job_profitability_tds_estimate">TDS estimate</string>
     <string name="job_profitability_travel_cost">Estimated travel cost</string>
     <string name="job_profitability_your_floor">Your minimum (floor)</string>
@@ -629,7 +627,7 @@
     <string name="job_profitability_floor_save">Save</string>
     <string name="job_profitability_floor_saving">Saving…</string>
     <string name="job_profitability_floor_saved">Saved — future bids below this get flagged.</string>
-    <string name="job_profitability_explainer">Estimate assumes the standard 7% platform fee and a round-trip travel cost from your saved location. Actual payout may differ slightly based on your hospital\'s loyalty tier.</string>
+    <string name="job_profitability_explainer" formatted="false">Estimate assumes the standard 7% platform fee and a round-trip travel cost from your saved location. Actual payout may differ slightly based on your hospital\'s loyalty tier.</string>
     <string name="hospital_tier_preview_title">Payout preview</string>
     <string name="hospital_tier_preview_couldnt_load">Couldn\'t load</string>
     <string name="hospital_tier_preview_try_again">Try again</string>
@@ -859,8 +857,16 @@
     <string name="engineer_location_drag_pin_instructions">Drag the pin or use the location button to set the centre of your service area. The radius circle on Available Jobs always anchors here.</string>
 
     <!-- WelcomeScreen -->
-    <string name="welcome_tagline">Hospitals book verified biomedical engineers. Engineers find local jobs and get paid on time.</string>
+    <string name="welcome_tagline">Connect for medical equipment service.</string>
+    <string name="welcome_sign_in">Sign in</string>
     <string name="welcome_create_account">Create account</string>
+    <string name="welcome_hospital_title">For hospitals</string>
+    <string name="welcome_hospital_description">Request service and compare engineer bids.</string>
+    <string name="welcome_engineer_title">For engineers</string>
+    <string name="welcome_engineer_description">Find nearby jobs and send your quote.</string>
+    <string name="welcome_legal_intro">By continuing, you agree to our terms and privacy policy.</string>
+    <string name="welcome_terms">Terms of service</string>
+    <string name="welcome_privacy">Privacy policy</string>
 
     <!-- RequestSentScreen -->
     <string name="request_sent_title">Request posted</string>
@@ -939,4 +945,29 @@
     <string name="dsr_serial_row">Equipment serial</string>
     <string name="dsr_serial_missing">Not recorded</string>
     <string name="dsr_entry_cta_hospital">Review / sign report</string>
+    <string name="request_service_draft_check_failed">Could not check for a saved draft. Retry to resume draft saving.</string>
+    <string name="request_service_draft_restore_failed">Could not restore your saved draft. Your current form is unchanged. Retry.</string>
+    <string name="request_service_draft_discard_failed">Could not delete your saved draft. Retry to finish discarding it.</string>
+    <string name="request_service_draft_save_failed">Could not save your draft. Keep this form open and retry.</string>
+    <string name="request_service_photo_pick_again">Your photo selection could not be restored. Please select the photo again.</string>
+    <!-- Shared control names read by TalkBack. Localised because the visible
+         label next to them is, and a Hindi/Telugu screen-reader user otherwise
+         hears English control names on every screen. -->
+    <string name="common_back">Back</string>
+    <string name="common_close">Close</string>
+    <string name="common_dismiss_error">Dismiss error</string>
+    <string name="bottom_nav_unread_cd">%1$s, %2$d unread</string>
+    <string name="verified_badge_info_title">How we verify engineers</string>
+    <string name="notifications_mark_all_read_cd">Mark all read</string>
+    <string name="notifications_settings_cd">Notification settings</string>
+    <string name="home_help_support_cd">Open help and support</string>
+    <string name="home_notifications_cd">Open notifications</string>
+    <string name="home_notifications_unread_cd">Open notifications, unread</string>
+    <string name="home_kyc_banner_cd">Open KYC</string>
+    <string name="home_directory_banner_cd">Complete your engineer profile</string>
+    <string name="home_sla_credits_cd">View SLA breaches</string>
+    <string name="home_spot_audit_rate_star_cd">Rate %1$d out of 5</string>
+    <string name="founder_users_account_active_cd">Active account</string>
+    <string name="founder_users_account_inactive_cd">Inactive account</string>
+    <string name="founder_users_change_role_cd">Change role</string>
 </resources>

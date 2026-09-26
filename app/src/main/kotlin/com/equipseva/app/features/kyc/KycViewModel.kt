@@ -22,6 +22,9 @@ import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.core.util.timestampedName
 import kotlin.time.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
 @HiltViewModel
@@ -100,13 +104,7 @@ class KycViewModel @Inject constructor(
         // weight in storage. Delete each so the kyc-docs bucket doesn't
         // accumulate every "I changed my mind on aadhaar photo" attempt.
         // RLS gates each delete; failures are swallowed (best-effort).
-        val snap = _state.value
-        val live = buildSet {
-            snap.aadhaarDocPath?.let { add(it) }
-            snap.panDocPath?.let { add(it) }
-            addAll(snap.certDocPaths)
-        }
-        val orphans = live - persistedDocPaths
+        val orphans = orphanDocPathsForCleanup()
         if (orphans.isNotEmpty()) {
             kotlinx.coroutines.GlobalScope.launch {
                 orphans.forEach { path ->
@@ -120,6 +118,25 @@ class KycViewModel @Inject constructor(
             }
         }
         super.onCleared()
+    }
+
+    /**
+     * Uploaded document paths that nothing on the server is known to
+     * reference, i.e. exactly what [onCleared] would delete if the screen
+     * went away right now.
+     *
+     * Kept as a named seam because the SET matters less than the TIMING: a
+     * submit in flight must already have claimed its paths, or leaving the
+     * screen mid-submit deletes the files the engineer just submitted.
+     */
+    internal fun orphanDocPathsForCleanup(): Set<String> {
+        val snap = _state.value
+        val live = buildSet {
+            snap.aadhaarDocPath?.let { add(it) }
+            snap.panDocPath?.let { add(it) }
+            addAll(snap.certDocPaths)
+        }
+        return live - persistedDocPaths
     }
 
     /** Refreshes [persistedDocPaths] from a server snapshot. Called from
@@ -200,6 +217,7 @@ class KycViewModel @Inject constructor(
         val emailOtpCode: String = "",
         val sendingEmailOtp: Boolean = false,
         val verifyingEmailOtp: Boolean = false,
+        val emailOtpError: String? = null,
     ) {
         /**
          * Returns null when the current step's required fields are filled in
@@ -377,7 +395,19 @@ class KycViewModel @Inject constructor(
         userId = uid
         // Fetch profile for email + phone + full name. KYC submit blocks if
         // either contact field is missing — hospitals reach out via these.
-        val profile = profileRepository.fetchById(uid).getOrNull()
+        val profileResult = profileRepository.fetchById(uid)
+        val profileError = profileResult.exceptionOrNull()
+        if (profileError != null && profileError !is kotlinx.coroutines.CancellationException) {
+            // Swallowing this failure left fullName/email null, and the
+            // Personal step then told the engineer to "add your name from
+            // Profile settings" about a profile that exists and already has
+            // one. A retryable error is the honest state: the engineer row
+            // fetch below treats its own failure the same way.
+            val msg = profileError.toUserMessage()
+            _state.update { it.copy(loading = false, errorMessage = msg) }
+            return
+        }
+        val profile = profileResult.getOrNull()
         engineerRepository.fetchByUserId(uid).fold(
             onSuccess = { engineer ->
                 hydrate(engineer, profile)
@@ -428,6 +458,7 @@ class KycViewModel @Inject constructor(
      */
     fun startEmailVerification() {
         val snap = _state.value
+        if (snap.sendingEmailOtp || snap.verifyingEmailOtp) return
         val email = snap.email
         if (email.isNullOrBlank() || !com.equipseva.app.core.util.Validators.emailIsValid(email)) {
             viewModelScope.launch {
@@ -437,36 +468,48 @@ class KycViewModel @Inject constructor(
         }
         if (snap.emailVerified) return
         _state.update {
-            it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true)
+            it.copy(emailVerifySheetOpen = true, emailOtpCode = "", sendingEmailOtp = true, emailOtpError = null)
         }
         viewModelScope.launch {
-            authRepository.sendEmailOtp(email)
-                .onSuccess {
+            try {
+                val result = authRepository.sendEmailOtp(email)
+                currentCoroutineContext().ensureActive()
+                result.onSuccess {
                     _state.update { it.copy(sendingEmailOtp = false) }
                     _effects.emit(Effect.ShowMessage("Code sent to $email"))
-                }
-                .onFailure { err ->
+                }.onFailure { err ->
+                    val message = err.toUserMessage() // Propagates wrapped cancellation first.
                     _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false) }
-                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
+                    _effects.emit(Effect.ShowMessage(message))
                 }
+            } catch (cancelled: CancellationException) {
+                // A provider interruption may leave the caller alive. Unlock recovery
+                // without a delivery claim; a retired caller must publish nothing.
+                if (currentCoroutineContext().isActive) {
+                    _state.update { it.copy(sendingEmailOtp = false, emailVerifySheetOpen = false, emailOtpCode = "") }
+                }
+                throw cancelled
+            }
         }
     }
 
     fun onEmailOtpChange(code: String) {
+        if (_state.value.verifyingEmailOtp) return
         // ASCII-only digits — Char.isDigit() also accepts Devanagari /
         // Arabic codepoints, which break toIntOrNull on the server-side
         // OTP comparison and leave the user stuck on "Verify failed".
         val cleaned = code.filter { it in '0'..'9' }.take(6)
-        _state.update { it.copy(emailOtpCode = cleaned) }
+        _state.update { it.copy(emailOtpCode = cleaned, emailOtpError = null) }
     }
 
     fun closeEmailVerifySheet() {
         if (_state.value.verifyingEmailOtp) return
-        _state.update { it.copy(emailVerifySheetOpen = false, emailOtpCode = "") }
+        _state.update { it.copy(emailVerifySheetOpen = false, emailOtpCode = "", emailOtpError = null) }
     }
 
     fun submitEmailOtp() {
         val snap = _state.value
+        if (snap.sendingEmailOtp || snap.verifyingEmailOtp) return
         val email = snap.email ?: return
         if (snap.emailOtpCode.length != 6) {
             viewModelScope.launch {
@@ -474,28 +517,43 @@ class KycViewModel @Inject constructor(
             }
             return
         }
-        _state.update { it.copy(verifyingEmailOtp = true) }
+        _state.update { it.copy(verifyingEmailOtp = true, emailOtpError = null) }
         viewModelScope.launch {
-            authRepository.verifyEmailOtp(email, snap.emailOtpCode)
-                .onSuccess {
+            try {
+                val result = authRepository.verifyEmailOtp(email, snap.emailOtpCode)
+                currentCoroutineContext().ensureActive()
+                result.onSuccess {
                     // Auth trigger flips profile.email_verified server-side;
                     // reload the profile so UiState.emailVerified flips too.
                     val uid = userId
-                    val refreshed = uid?.let { profileRepository.fetchById(it).getOrNull() }
+                    val refreshed = uid?.let {
+                        val profileResult = profileRepository.fetchById(it)
+                        currentCoroutineContext().ensureActive()
+                        val failure = profileResult.exceptionOrNull()
+                        if (failure is CancellationException) throw failure
+                        profileResult.getOrNull()
+                    }
                     _state.update {
                         it.copy(
                             verifyingEmailOtp = false,
                             emailVerifySheetOpen = false,
                             emailOtpCode = "",
+                            emailOtpError = null,
                             emailVerified = refreshed?.emailVerified == true,
                         )
                     }
                     _effects.emit(Effect.ShowMessage("Email verified"))
+                }.onFailure { err ->
+                    val message = err.toUserMessage()
+                    _state.update { it.copy(verifyingEmailOtp = false, emailOtpError = message) }
+                    _effects.emit(Effect.ShowMessage(message))
                 }
-                .onFailure { err ->
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
                     _state.update { it.copy(verifyingEmailOtp = false) }
-                    _effects.emit(Effect.ShowMessage(err.toUserMessage()))
                 }
+                throw cancelled
+            }
         }
     }
 
@@ -999,6 +1057,16 @@ class KycViewModel @Inject constructor(
                     add(EngineerCertificate(EngineerCertificate.TYPE_CERT, it, now))
                 }
             }
+            // Claim the uploaded paths as persisted BEFORE the write goes out.
+            // onCleared() deletes every live path that is not in this set, and
+            // the set was only refreshed AFTER upsert returned — so leaving
+            // the screen mid-submit deleted the very documents the (already
+            // sent) upsert was storing paths to, leaving the review queue
+            // looking at an engineer row pointing at missing files. A failed
+            // upsert deliberately keeps the claim: a timeout does not tell us
+            // whether the row was written, and leaking a few bytes in the
+            // bucket is cheaper than deleting a file the server now cites.
+            persistedDocPaths = persistedDocPaths + certificates.map { it.path }
             engineerRepository.upsert(
                 userId = uid,
                 aadhaarNumber = aadhaarDigits.takeIf { it.isNotEmpty() },

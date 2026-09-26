@@ -36,6 +36,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.designsystem.components.EmptyStateView
+import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
 import com.equipseva.app.designsystem.theme.BorderDefault
@@ -123,6 +124,9 @@ fun FounderIntegrityScreen(
                 ),
                 onBack = onBack,
             )
+            // Non-destructive refresh failure: the rows stay, the banner says
+            // the reload did not land. See founderListRefreshBanner.
+            ErrorBanner(message = founderListRefreshBanner(state.error, state.rows.size))
             // Round 381 — pull-to-refresh. Matches r378-r380 pattern.
             androidx.compose.material3.pulltorefresh.PullToRefreshBox(
                 isRefreshing = state.refreshing,
@@ -133,7 +137,7 @@ fun FounderIntegrityScreen(
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                    state.error != null -> EmptyStateView(
+                    founderListShowsErrorState(state.error, state.rows.size) -> EmptyStateView(
                         icon = Icons.Outlined.ErrorOutline,
                         title = "Couldn't load",
                         subtitle = state.error,

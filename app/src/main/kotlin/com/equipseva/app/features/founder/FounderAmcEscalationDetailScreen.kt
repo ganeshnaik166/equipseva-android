@@ -241,7 +241,11 @@ private fun EscalationDetailBody(
                 detail.contractStatus?.let { LabelRow("Status", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.visitFrequency?.let { LabelRow("Cadence", it.replaceFirstChar { c -> c.uppercase() }) }
                 detail.monthlyFeeRupees?.let { LabelRow("Monthly fee", formatRupees(it)) }
-                detail.nextVisitAt?.let { LabelRow("Next visit", it.take(16).replace('T', ' ')) }
+                // prettyDateTime, not a 16-char slice: the slice dropped the
+                // UTC zone suffix and rendered the instant as wall-clock time,
+                // 5.5h off and disagreeing with the neighbouring rows on the
+                // very same card.
+                detail.nextVisitAt?.let { LabelRow("Next visit", prettyDateTime(it)) }
                 detail.contractEndDate?.let { LabelRow("End date", prettyDate(it)) }
             }
         }

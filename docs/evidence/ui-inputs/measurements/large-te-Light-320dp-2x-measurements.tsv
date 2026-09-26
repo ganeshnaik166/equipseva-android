@@ -1,0 +1,10 @@
+Native Robolectric API34; synthetic input specimens; no popup/device acceptance
+large-field-layout	component=Rect.fromLTRB(16.0, 16.0, 304.0, 379.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+label	lines=2	bounds=Rect.fromLTRB(20.0, 16.0, 304.0, 95.0)	ink=1605	background=ffffffff	foreground=ff972d32	contrast=7.671865768332889
+multiline	lines=3	bounds=Rect.fromLTRB(16.0, 101.0, 304.0, 379.0)	ink=1686	background=ffffffff	foreground=ff11150f	contrast=18.45345624745603
+error	lines=3	bounds=Rect.fromLTRB(32.0, 263.0, 288.0, 379.0)	ink=1488	background=ffffffff	foreground=ff972d32	contrast=7.671865768332889
+large-picker-layout	component=Rect.fromLTRB(16.0, 403.0, 304.0, 726.0)	viewport=Rect.fromLTRB(0.0, 0.0, 320.0, 744.0)
+large-picker-label	accessibleName=ఇంజినీర్ సేవా జిల్లాను ఎంచుకోండి	region=Rect.fromLTRB(16.0, 403.0, 304.0, 488.0)	ink=1631
+selection	lines=3	bounds=Rect.fromLTRB(30.0, 502.0, 258.0, 630.0)	ink=1546	background=ffffffff	foreground=ff11150f	contrast=18.45345624745603
+hint	lines=2	bounds=Rect.fromLTRB(20.0, 648.0, 304.0, 726.0)	ink=1323	background=ffffffff	foreground=ff555d50	contrast=6.845214442427019
+large-picker-arrow	trigger=Rect.fromLTRB(16.0, 488.0, 304.0, 644.0)	text=Rect.fromLTRB(30.0, 502.0, 258.0, 630.0)	arrow=Rect.fromLTRB(274.0, 564.0, 282.0, 568.0)	ink=20

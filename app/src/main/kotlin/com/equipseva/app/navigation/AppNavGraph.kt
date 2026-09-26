@@ -1,13 +1,22 @@
 package com.equipseva.app.navigation
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,303 +26,143 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.equipseva.app.features.auth.SessionState
+import com.equipseva.app.R
+import com.equipseva.app.features.auth.RoleSelectScreen
 import com.equipseva.app.features.auth.SessionViewModel
+import com.equipseva.app.features.auth.UserRole
 import kotlinx.coroutines.launch
 
-/**
- * Root composable. Always lands on the Global Service Hub when not in the
- * initial Loading splash; the Hub itself dispatches to Auth or Main based
- * on the user's selection. RoleSelectScreen is no longer a forced gate —
- * service picking lives on the Hub.
- */
+/** One root session authority; child completion callbacks request a server refresh only. */
 @Composable
-fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
-    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
+internal fun AppNavGraph(
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+    slots: RootSessionSlots? = null,
+) {
+    val presentation by sessionViewModel.presentation.collectAsStateWithLifecycle()
+    val tourSeen by sessionViewModel.tourSeen.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-
-    val showSnackbar: (String) -> Unit = { msg ->
-        scope.launch { snackbarHost.showSnackbar(msg) }
-    }
-
-    val tourSeen by sessionViewModel.tourSeen.collectAsStateWithLifecycle()
-
+    val showSnackbar: (String) -> Unit = { message -> scope.launch { snackbarHost.showSnackbar(message) } }
     LaunchedEffect(sessionViewModel) {
-        sessionViewModel.messages.collect { msg -> showSnackbar(msg) }
+        sessionViewModel.messages.collect { showSnackbar(it) }
     }
 
-    // Re-fetch the profile on each foreground except the very first.
-    // SessionViewModel.init already calls bootstrapProfile on the
-    // sessionState collector; firing again on first ON_RESUME would
-    // double-load on cold start (same pattern PR #556 closed for
-    // HospitalActiveJobsScreen). Subsequent resumes catch server-side
-    // changes (role demotion, hard-delete, ban) that happened while
-    // the app was backgrounded.
-    var sessionFirstResume by remember { mutableStateOf(true) }
-    androidx.lifecycle.compose.LifecycleEventEffect(
-        androidx.lifecycle.Lifecycle.Event.ON_RESUME,
-    ) {
-        if (sessionFirstResume) {
-            sessionFirstResume = false
-        } else {
-            sessionViewModel.refreshNow()
-        }
+    var firstResume by remember { mutableStateOf(true) }
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        if (firstResume) firstResume = false else sessionViewModel.refreshNow()
     }
 
-    // RootHost stays mounted across Loading↔SignedIn transitions. Earlier
-    // we swapped to SplashScreen on Loading, which DESTROYED the entire
-    // navigation back stack every time Supabase briefly re-emitted
-    // Initializing on app resume — the user's KYC entry (and any other
-    // mid-flow state) was wiped. The splash now overlays only on the very
-    // first Loading event, while the host stays alive underneath.
-    val rootMountedOnce = remember { mutableStateOf(false) }
-    LaunchedEffect(sessionState) {
-        if (sessionState !is SessionState.Loading) {
-            rootMountedOnce.value = true
-        }
-    }
-    // Snackbar sits at the top of the screen (overlay) instead of the
-    // Scaffold's default bottom slot. Top-aligned alerts read as system-style
-    // banners rather than competing with bottom-nav and primary CTAs that
-    // hug the bottom edge across hospital/engineer/founder surfaces.
-    Box(modifier = Modifier.fillMaxSize()) {
+    val content = slots ?: RootSessionSlots(
+        auth = { onProfileSaved -> AuthHostInline(showSnackbar, onProfileSaved) },
+        role = { onRoleSaved, onSignOut ->
+            RoleSelectScreen(onShowMessage = showSnackbar, onRoleSaved = onRoleSaved, onSignOut = onSignOut)
+        },
+        onboarding = { role, baseDone, onSaved ->
+            OnboardingHostInline(role, baseDone, showSnackbar, onSaved)
+        },
+        main = { role, onProfileSaved ->
+            MainNavGraph(showTour = !tourSeen, validatedRole = role, onProfileSaved = onProfileSaved)
+        },
+        pending = { retry, signOut ->
+            SessionRecoveryScreen(
+                loading = presentation.profileLoading,
+                signingOut = presentation.signingOut,
+                canSignOut = presentation.owner != null,
+                onRetry = retry,
+                onSignOut = signOut,
+            )
+        },
+        resolving = { SessionResolvingScreen() },
+    )
+    Box(Modifier.fillMaxSize()) {
         Scaffold { padding ->
-            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                if (rootMountedOnce.value) {
-                    RootHost(
-                        showSnackbar = showSnackbar,
-                        showTour = !tourSeen,
-                    )
-                } else {
-                    SplashScreen()
-                }
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                RootSessionHost(
+                    presentation = presentation,
+                    onRefresh = sessionViewModel::refreshAfterProfileSave,
+                    onSignOut = sessionViewModel::signOutFromGate,
+                    slots = content,
+                )
             }
         }
-        SnackbarHost(
-            hostState = snackbarHost,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding(),
-        )
+        SnackbarHost(snackbarHost, Modifier.align(Alignment.TopCenter).statusBarsPadding())
     }
 }
 
-@Composable
-private fun RootHost(
-    showSnackbar: (String) -> Unit,
-    showTour: Boolean,
-    sessionViewModel: SessionViewModel = hiltViewModel(),
-) {
-    val navController = rememberNavController()
-    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
-
-    // Cold-start gate: signed-out users land on Welcome, signed-in users
-    // land on Home (or the v0.2.0 onboarding gate when phone+state+district
-    // aren't on the profile yet). Captured once at first composition so the
-    // NavHost's startDestination is stable.
-    val coldStartRoute = remember {
-        when (sessionState) {
-            is SessionState.SignedOut -> Routes.AUTH_GRAPH
-            is SessionState.NeedsOnboarding -> ONBOARDING_HOST_ROUTE
-            else -> MAIN_HOST_ROUTE
-        }
-    }
-
-    val navigateToMain: () -> Unit = {
-        navController.navigate(MAIN_HOST_ROUTE) {
-            // popUpTo(graph.id) — same bug fix as navigateToOnboarding
-            // below. The legacy popUpTo(0) form silently no-ops since
-            // Compose Navigation 2.9.
-            popUpTo(navController.graph.id) { inclusive = true }
-            launchSingleTop = true
-        }
-    }
-
-    val navigateToOnboarding: () -> Unit = {
-        // popUpTo(0) silently no-ops on Compose Navigation 2.9+ (id 0
-        // doesn't match the root graph any more), so a delayed gate
-        // detection during a fresh sign-up would call navigate() but
-        // the prior MAIN_HOST_ROUTE entry stayed on the back stack and
-        // its composable kept rendering. Engineers landed on Home
-        // despite NeedsOnboarding firing. popUpTo(graph.id) clears
-        // the whole stack the way the symbolic id intends.
-        navController.navigate(ONBOARDING_HOST_ROUTE) {
-            popUpTo(navController.graph.id) { inclusive = true }
-            launchSingleTop = true
-        }
-    }
-
-    // Sign-out redirect: when the session transitions authenticated →
-    // SignedOut while we're past Welcome, route back to AUTH_GRAPH. Also
-    // promote/demote between the onboarding host and the main host as
-    // [SessionState.NeedsOnboarding] ↔ [SessionState.Ready] transitions
-    // happen — covers the post-onboarding refresh as well as a profile
-    // server-side reset spotted on resume.
-    val sawAuthenticated = remember { mutableStateOf(false) }
-    LaunchedEffect(sessionState) {
-        when (val s = sessionState) {
-            is SessionState.NeedsRole, is SessionState.Ready, is SessionState.NeedsOnboarding -> {
-                sawAuthenticated.value = true
-                if (s is SessionState.NeedsOnboarding) {
-                    val cur = navController.currentDestination?.route
-                    if (cur != ONBOARDING_HOST_ROUTE) navigateToOnboarding()
-                } else if (s is SessionState.Ready) {
-                    val cur = navController.currentDestination?.route
-                    if (cur == ONBOARDING_HOST_ROUTE) navigateToMain()
-                }
-            }
-            is SessionState.SignedOut -> if (sawAuthenticated.value) {
-                sawAuthenticated.value = false
-                navController.navigate(Routes.AUTH_GRAPH) {
-                    // graph.id, not 0 — see comment on navigateToOnboarding.
-                    popUpTo(navController.graph.id) { inclusive = true }
-                    launchSingleTop = true
-                }
-            }
-            else -> Unit
-        }
-    }
-
-    NavHost(
-        navController = navController,
-        startDestination = coldStartRoute,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        composable(Routes.AUTH_GRAPH) {
-            AuthHostInline(
-                showSnackbar = showSnackbar,
-                onAuthSuccess = { navigateToMain() },
-            )
-        }
-        composable(ONBOARDING_HOST_ROUTE) {
-            OnboardingHostInline(
-                showSnackbar = showSnackbar,
-                onDone = { navigateToMain() },
-            )
-        }
-        composable(MAIN_HOST_ROUTE) {
-            MainNavGraph(
-                showTour = showTour,
-                onSignIn = {
-                    navController.navigate(Routes.AUTH_GRAPH) { launchSingleTop = true }
-                },
-            )
-        }
-    }
-}
-
-private const val MAIN_HOST_ROUTE = "main_host"
-private const val ONBOARDING_HOST_ROUTE = "onboarding_host"
-
-/**
- * v0.2.0 mandatory onboarding host. Mounted at the AppNavGraph level
- * (not inside MainNavGraph) so Home never flashes for users who land
- * here from [SessionState.NeedsOnboarding]. Dispatches to the right
- * onboarding screen based on the active role; on a successful save the
- * SessionViewModel re-resolves the profile and flips state to Ready,
- * which AppNavGraph promotes to [MAIN_HOST_ROUTE].
- */
 @Composable
 private fun OnboardingHostInline(
+    role: UserRole,
+    baseDone: Boolean,
     showSnackbar: (String) -> Unit,
-    onDone: () -> Unit,
-    sessionViewModel: SessionViewModel = hiltViewModel(),
+    onSaved: () -> Unit,
 ) {
-    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
-    val role = (sessionState as? SessionState.NeedsOnboarding)?.role
-        ?: (sessionState as? SessionState.Ready)?.role
-    val handleDone: () -> Unit = {
-        // Refresh first; once the profile re-fetch resolves with
-        // hasCompletedV2Onboarding=true the session state flips to
-        // Ready and the AppNavGraph LaunchedEffect handles the
-        // navigation. The explicit onDone() is a belt-and-braces
-        // fallback for the rare case where the screen emits Done
-        // before the refresh propagates (e.g. test fakes).
-        sessionViewModel.refreshNow()
-        onDone()
-    }
-    val baseV2Done by sessionViewModel.profileBaseV2Done.collectAsStateWithLifecycle()
     when (role) {
-        com.equipseva.app.features.auth.UserRole.ENGINEER.storageKey ->
-            if (baseV2Done) {
-                // Step 2 — engineer cleared phone/state/district but
-                // still lacks UPI + bank payout methods (round 425).
-                com.equipseva.app.features.onboarding.EngineerPayoutOnboardingScreen(
-                    onDone = handleDone,
-                    onShowMessage = showSnackbar,
-                )
-            } else {
-                com.equipseva.app.features.onboarding.EngineerOnboardingScreen(
-                    onDone = handleDone,
-                    onShowMessage = showSnackbar,
-                )
-            }
-        // Hospital path (default). Other roles (founder / buyer) shouldn't
-        // hit this surface today because the v2 fields aren't required
-        // for them, but if they do we fall back to the hospital screen
-        // rather than mounting a blank surface.
-        else ->
-            com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
-                onDone = handleDone,
-                onShowMessage = showSnackbar,
+        UserRole.ENGINEER -> if (baseDone) {
+            com.equipseva.app.features.onboarding.EngineerPayoutOnboardingScreen(
+                onDone = onSaved, onShowMessage = showSnackbar,
             )
+        } else {
+            com.equipseva.app.features.onboarding.EngineerOnboardingScreen(
+                onDone = onSaved, onShowMessage = showSnackbar,
+            )
+        }
+        UserRole.HOSPITAL -> com.equipseva.app.features.onboarding.HospitalOnboardingScreen(
+            onDone = onSaved, onShowMessage = showSnackbar,
+        )
+        else -> Unit // Root admission excludes deferred/unknown roles.
     }
 }
 
 @Composable
-private fun AuthHostInline(
-    showSnackbar: (String) -> Unit,
-    onAuthSuccess: () -> Unit,
-    sessionViewModel: SessionViewModel = hiltViewModel(),
-) {
+private fun AuthHostInline(showSnackbar: (String) -> Unit, onProfileSaved: () -> Unit) {
     val navController = rememberNavController()
-    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
-
-    // Only hand off to the main graph after the session *transitions* away
-    // from SignedOut (i.e. a fresh sign-in completes). Without this guard a
-    // user who is already authenticated server-side but lands here from
-    // ProfileScreen's "Sign in" button would be bounced straight back to
-    // Home before the Welcome screen ever rendered.
-    val sawSignedOut = remember { mutableStateOf(false) }
-    val currentRoute by navController.currentBackStackEntryAsState()
-    LaunchedEffect(sessionState, currentRoute) {
-        if (sessionState is SessionState.SignedOut) {
-            sawSignedOut.value = true
-            return@LaunchedEffect
-        }
-        val authenticated = sessionState is SessionState.NeedsRole ||
-            sessionState is SessionState.Ready ||
-            sessionState is SessionState.NeedsOnboarding
-        // v0.3.4 — block the swap to main while a hospital admin is on
-        // the post-signup phone collection screen. Without this, the
-        // session-state observer races SignUp → effect → navigate and
-        // swaps the host graph before the user can input their phone.
-        val onPhoneOnboarding = currentRoute?.destination?.route ==
-            Routes.HOSPITAL_PHONE_ONBOARDING
-        if (authenticated && sawSignedOut.value && !onPhoneOnboarding) {
-            onAuthSuccess()
-        }
-    }
-
-    NavHost(
-        navController = navController,
-        startDestination = Routes.AUTH_GRAPH,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        authNavGraph(navController, showSnackbar)
+    NavHost(navController = navController, startDestination = Routes.AUTH_GRAPH) {
+        authNavGraph(navController, showSnackbar, onProfileSaved)
     }
 }
 
 @Composable
-private fun SplashScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+internal fun SessionRecoveryScreen(
+    loading: Boolean,
+    signingOut: Boolean,
+    canSignOut: Boolean,
+    onRetry: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            if (loading || signingOut) CircularProgressIndicator()
+            Text(stringResource(when {
+                signingOut -> R.string.root_session_signing_out
+                loading -> R.string.root_session_preparing
+                else -> R.string.root_session_retry_message
+            }))
+            Button(onClick = onRetry, enabled = !loading && !signingOut) { Text(stringResource(R.string.root_session_retry)) }
+            if (canSignOut) TextButton(onClick = onSignOut, enabled = !signingOut) { Text(stringResource(R.string.root_session_sign_out)) }
+        }
+    }
+}
+
+@Composable
+private fun SessionResolvingScreen() {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            CircularProgressIndicator()
+            Text(stringResource(R.string.root_session_checking))
+        }
     }
 }

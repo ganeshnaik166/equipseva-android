@@ -30,6 +30,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -80,6 +81,11 @@ internal fun CheckinSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var picked by rememberSaveable(stateSaver = UriListSaver) { mutableStateOf(emptyList<Uri>()) }
+    // Reading up to four multi-megabyte photos off the content resolver
+    // takes long enough for a second tap to land, and the viewmodel's
+    // in-flight flag cannot help yet — it hasn't been called. Without this
+    // the before-photo set was stashed and uploaded twice.
+    var reading by remember { mutableStateOf(false) }
     val maxPhotos = 4
 
     val launcher = rememberLauncherForActivityResult(
@@ -205,30 +211,35 @@ internal fun CheckinSheet(
                     // Round 340 — read uris on IO. Compose onClick runs on
                     // Main; up to 4 multi-MB picked photos blocking Main
                     // would trip ANR.
+                    reading = true
                     scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val resolver = context.contentResolver
-                        val photos = picked.mapNotNull { uri ->
-                            val mime = resolver.getType(uri) ?: MIME_JPEG
-                            val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
-                            val bytes = runCatching {
-                                resolver.openInputStream(uri)?.use { it.readBytes() }
-                            }.getOrNull() ?: return@mapNotNull null
-                            RepairJobDetailViewModel.CompletionProofPhoto(
-                                fileName = name,
-                                mimeType = mime,
-                                bytes = bytes,
-                            )
+                        try {
+                            val resolver = context.contentResolver
+                            val photos = picked.mapNotNull { uri ->
+                                val mime = resolver.getType(uri) ?: MIME_JPEG
+                                val name = uri.lastPathSegment ?: "before-${System.currentTimeMillis()}.jpg"
+                                val bytes = runCatching {
+                                    resolver.openInputStream(uri)?.use { it.readBytes() }
+                                }.getOrNull() ?: return@mapNotNull null
+                                RepairJobDetailViewModel.CompletionProofPhoto(
+                                    fileName = name,
+                                    mimeType = mime,
+                                    bytes = bytes,
+                                )
+                            }
+                            onConfirm(photos)
+                        } finally {
+                            reading = false
                         }
-                        onConfirm(photos)
                     }
                 },
                 kind = EsBtnKind.Primary,
                 full = true,
                 size = EsBtnSize.Lg,
-                disabled = picked.isEmpty() || updating,
+                disabled = picked.isEmpty() || updating || reading,
             )
             EsBtn(
-                text = "Cancel",
+                text = stringResource(R.string.common_cancel),
                 onClick = onDismiss,
                 kind = EsBtnKind.Ghost,
                 full = true,

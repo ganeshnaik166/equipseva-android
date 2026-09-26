@@ -28,6 +28,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.theme.BorderDefault
+import com.equipseva.app.designsystem.theme.LightEsColors
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -333,6 +334,8 @@ internal fun InvoiceDownloadCard(
             onClick = onDownload,
             kind = EsBtnKind.Ghost,
             disabled = loading,
+            // This section inherits the fixed PaperDefault page surface.
+            contentColor = LightEsColors.text,
         )
     }
 }

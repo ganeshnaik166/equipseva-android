@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,7 @@ import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.Pill
 import com.equipseva.app.designsystem.components.PillKind
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaGreen700
@@ -226,8 +229,13 @@ private fun PaymentRow(
                 // Integrity queue pre-filtered to this buyer.
                 Box(
                     modifier = Modifier
+                        // A bare pill is ~26 dp tall and announced as a generic
+                        // clickable; it routes to the pre-filtered integrity
+                        // queue, so it needs both a role and a real hit area.
+                        .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
                         .clip(RoundedCornerShape(999.dp))
-                        .clickable { onOpenIntegrity() },
+                        .clickable(role = Role.Button) { onOpenIntegrity() },
+                    contentAlignment = Alignment.Center,
                 ) {
                     Pill(
                         text = "⚠ ${row.buyerFailedIntegrityCount} integrity",

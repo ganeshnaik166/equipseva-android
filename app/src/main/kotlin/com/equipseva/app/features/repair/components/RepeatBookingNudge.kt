@@ -105,10 +105,17 @@ fun RepeatBookingNudge(
                 )
             }
             Box(
+                // 48dp touch floor; the visible cross stays 14dp. A 24dp
+                // dismiss on a banner the user wants gone is a fat-finger
+                // trap that instead opens whatever sits behind it.
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
-                    .clickable(onClick = onDismiss),
+                    .clickable(
+                        onClickLabel = "Dismiss",
+                        role = androidx.compose.ui.semantics.Role.Button,
+                        onClick = onDismiss,
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

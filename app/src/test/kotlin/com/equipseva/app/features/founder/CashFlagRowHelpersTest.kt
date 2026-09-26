@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import com.equipseva.app.core.util.prettyDateTime
 import com.equipseva.app.designsystem.components.PillKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -101,38 +102,42 @@ class CashFlagRowHelpersTest {
 
     // ---- cashFlagRespondedAtLabel ------------------------------------
 
-    @Test fun `full iso timestamp is truncated to YYYY-MM-DD HH-MM`() {
-        // Critical pin — take(16) + T→space.
+    @Test fun `a UTC timestamp is shown in IST not sliced as wall-clock time`() {
+        // Critical regression target: the label used to slice the first 16
+        // characters and swap the 'T', so this instant displayed as
+        // "2026-05-23 14:30" — 5.5 hours behind the time the founder's own
+        // clock showed, with no zone marker, and disagreeing with the
+        // prettyDateTime-formatted fields on the same card.
         assertEquals(
-            "2026-05-23 14:30",
+            "23 May 2026, 20:00",
             cashFlagRespondedAtLabel("2026-05-23T14:30:45Z"),
         )
     }
 
-    @Test fun `timestamp with offset is also truncated at 16 chars`() {
+    @Test fun `an explicit IST offset is not shifted twice`() {
         assertEquals(
-            "2026-05-23 14:30",
+            "23 May 2026, 14:30",
             cashFlagRespondedAtLabel("2026-05-23T14:30:45+05:30"),
         )
     }
 
-    @Test fun `T separator is swapped to a single space`() {
+    @Test fun `the same instant renders identically wherever it appears`() {
+        // The whole point of the change: one formatter across the card.
+        val iso = "2026-05-23T14:30:45Z"
+        assertEquals(prettyDateTime(iso), cashFlagRespondedAtLabel(iso))
+    }
+
+    @Test fun `T separator never reaches the UI`() {
         val out = cashFlagRespondedAtLabel("2026-05-23T14:30:45Z")
         assertEquals(false, out.contains('T'))
         assertTrue(out.contains(' '))
     }
 
-    @Test fun `short input is left intact under take 16`() {
-        // take(16) on shorter input returns the original; T→space
-        // still applies.
+    @Test fun `an unparseable payload degrades instead of throwing`() {
+        // prettyDateTime's own fallback is the old sliced shape, so a bare
+        // date or a malformed string still renders something.
         assertEquals("2026-05-23", cashFlagRespondedAtLabel("2026-05-23"))
         assertEquals("foo bar", cashFlagRespondedAtLabel("fooTbar"))
-    }
-
-    @Test fun `exactly 16-char input passes through with T swapped`() {
-        assertEquals(
-            "2026-05-23 14:30",
-            cashFlagRespondedAtLabel("2026-05-23T14:30"),
-        )
+        assertEquals("2026-05-23 14:30", cashFlagRespondedAtLabel("2026-05-23T14:30"))
     }
 }

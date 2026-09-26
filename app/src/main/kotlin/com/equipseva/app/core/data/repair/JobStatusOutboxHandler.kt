@@ -39,6 +39,7 @@ class JobStatusOutboxHandler @Inject constructor(
         val currentUid = client.auth.currentUserOrNull()?.id
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring status update"),
+                countsAgainstBudget = false,
             )
         val dropReason = jobStatusActorGateReason(payload.actorUserId, currentUid)
         if (dropReason != null) {

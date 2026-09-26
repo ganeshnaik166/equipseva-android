@@ -50,6 +50,7 @@ web/.vercel/
 web/out/
 web/next-env.d.ts
 scratchpad/
+scripts/__pycache__/
 
 # Roborazzi writes these next to the goldens on a failed compare/verify; only the goldens themselves are tracked.
 app/src/test/snapshots/roborazzi/**/*_compare.png

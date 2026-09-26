@@ -86,7 +86,7 @@ internal fun RateSheet(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 (1..5).forEach { n ->
@@ -99,7 +99,7 @@ internal fun RateSheet(
                         // the filled / outline visual; the click semantics
                         // describe the action.
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .clickable(
                                 enabled = existing == null && !submitting,

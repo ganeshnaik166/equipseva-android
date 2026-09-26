@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.auth.InvalidCurrentPasswordException
+import com.equipseva.app.core.auth.ProviderReauthRequiredException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
 import com.equipseva.app.core.data.account.SupabaseAccountDeletionRepository
@@ -511,6 +512,13 @@ class ProfileViewModel @Inject constructor(
         if (_state.value.deletingAccount) return
         val reason = _state.value.deleteReason
         val password = _state.value.deletePassword
+        // A Google-only account still cannot get past this: it has no
+        // password to type, and re-auth refuses before it reads the field.
+        // Relaxing the guard here does not help, because the sheet's Confirm
+        // stays disabled while the field is blank — the way out is a provider
+        // re-auth on the sheet, which is a product decision, not a rewording.
+        // Until then the copy below at least names the provider instead of
+        // claiming the password was wrong.
         if (password.isBlank()) {
             _state.update { it.copy(deletePasswordError = "Enter your password to confirm.") }
             return
@@ -525,6 +533,17 @@ class ProfileViewModel @Inject constructor(
             val reauth = authRepository.verifyCurrentPassword(password)
             if (reauth.isFailure) {
                 val cause = reauth.exceptionOrNull()
+                if (cause is ProviderReauthRequiredException) {
+                    // Google-only account: there is no password to be wrong,
+                    // so "Incorrect password." was both untrue and a dead end.
+                    _state.update {
+                        it.copy(
+                            deletingAccount = false,
+                            deletePasswordError = profileProviderReauthMessage(cause.provider),
+                        )
+                    }
+                    return@launch
+                }
                 val msg = if (cause is InvalidCurrentPasswordException) {
                     "Incorrect password."
                 } else {
@@ -720,4 +739,24 @@ class ProfileViewModel @Inject constructor(
         const val AVATAR_MAX_DIM_PX = 1024
         const val AVATAR_JPEG_QUALITY = 85
     }
+}
+
+/**
+ * Copy for a delete-account confirmation on an account with no password.
+ *
+ * A Google-only sign-up has no password identity, so the re-auth gate can
+ * never pass by password — and reporting that as "Incorrect password." left
+ * those users with no way to delete their account and no explanation.
+ *
+ * Kept identical to the security screens' own copy (pinned by test): the same
+ * account state must not be described two different ways in one app. Locale.US
+ * on the provider label so the device locale cannot decide how "google" is
+ * capitalised.
+ */
+internal fun profileProviderReauthMessage(provider: String): String {
+    val label = provider.trim().takeIf { it.isNotBlank() }
+        ?.let { it.substring(0, 1).uppercase(java.util.Locale.US) + it.substring(1) }
+        ?: "Google"
+    return "This account signs in with $label, so there is no password to confirm. " +
+        "Use Continue with $label to confirm it is you."
 }

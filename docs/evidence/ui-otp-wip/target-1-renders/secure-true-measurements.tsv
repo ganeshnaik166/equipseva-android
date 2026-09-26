@@ -1,0 +1,3 @@
+API34 native Canvas; synthetic values; no device/provider acceptance
+native-root	compose=androidx.compose.ui.platform.AndroidComposeView	window=com.android.internal.policy.DecorView	width=320	height=800
+secure	host=true	actualModal=true

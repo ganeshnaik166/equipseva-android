@@ -154,6 +154,14 @@ serve(async (req) => {
     body: JSON.stringify({
       amount: amountPaise,
       currency: "INR",
+      // Ask for auto-capture explicitly instead of inheriting whatever
+      // the Razorpay dashboard is set to. Our verify + webhook paths
+      // treat an `authorized` payment as paid on the assumption that
+      // capture follows; if the account is ever switched to manual
+      // capture, an uncaptured authorization auto-reverses after ~5 days
+      // while the escrow row stays held and the hospital believes the
+      // job is funded.
+      payment_capture: 1,
       receipt: escrow.id,
       notes: {
         kind: "repair_job_escrow",

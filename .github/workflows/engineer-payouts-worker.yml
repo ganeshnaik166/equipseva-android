@@ -70,14 +70,27 @@ jobs:
             exit 1
           fi
           URL="https://eyswaywvtartpvtoxtdr.supabase.co/functions/v1/process-engineer-payouts?limit=25"
-          curl --fail-with-body \
-               --silent --show-error \
+          umask 077
+          RESPONSE_BODY="$(mktemp "${RUNNER_TEMP}/payouts-worker-response.XXXXXX")"
+          trap 'rm -f -- "${RESPONSE_BODY}"' EXIT
+          CURL_EXIT=0
+          # Run logs on this repository are world-readable and the worker body
+          # carries payout ids, provider reference ids and raw provider /
+          # PostgREST error text, so the only captured stdout is the numeric
+          # HTTP status. Diagnose a failure from engineer_payouts rows, not
+          # from this log.
+          HTTP_STATUS="$(curl --fail-with-body \
+               --silent \
                --max-time 120 \
+               --output "${RESPONSE_BODY}" \
+               --write-out '%{http_code}' \
                -X POST "$URL" \
                -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
                -H "X-Cron-Secret: ${CRON_TICK_SECRET}" \
                -H "Content-Type: application/json" \
-               -d '{}'
+               -d '{}' 2>/dev/null)" || CURL_EXIT=$?
+          echo "process-engineer-payouts HTTP ${HTTP_STATUS}"
+          exit "${CURL_EXIT}"
 
       # Round 466 — open / update a single sticky GitHub Issue when the
       # payout worker fails. Memory: gateway 401 silently killed cron

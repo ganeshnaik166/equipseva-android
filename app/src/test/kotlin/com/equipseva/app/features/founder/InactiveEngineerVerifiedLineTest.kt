@@ -39,4 +39,13 @@ class InactiveEngineerVerifiedLineTest {
             inactiveEngineerVerifiedLine("2026-05-23", "3d"),
         )
     }
+
+    @Test fun `a sub-minute label reads just now, not now ago`() {
+        // "now" is the whole sub-minute label, so appending the suffix by
+        // hand read "Verified 18 Sep 2026 · now ago".
+        assertEquals(
+            "Verified 18 Sep 2026 · just now",
+            inactiveEngineerVerifiedLine("18 Sep 2026", "now"),
+        )
+    }
 }

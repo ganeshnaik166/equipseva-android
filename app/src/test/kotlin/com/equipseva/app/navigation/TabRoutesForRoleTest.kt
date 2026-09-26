@@ -9,8 +9,8 @@ import org.junit.Test
  * Pins the per-role bottom-nav tab arrangement:
  *
  *   * Hospital → 4 tabs: Home / Bookings / Messages / Profile
- *   * Engineer (and every other / null role) → 4 tabs: Home / Jobs /
- *     Earnings / Profile
+ *   * Engineer → 4 tabs: Home / Jobs / Earnings / Profile
+ *   * Null or deferred role → no tabs; root requires a supported role.
  *
  * Two regressions worth defending:
  *   1) The Hospital tab list MUST be 4 entries (Home / Bookings /
@@ -58,31 +58,16 @@ class TabRoutesForRoleTest {
         )
     }
 
-    @Test fun `null role falls back to engineer tabs (anonymous default)`() {
-        // Loading state — the bottom nav must still render something
-        // so the user has affordances; default to engineer's 4-tab
-        // layout per the file comment.
-        assertEquals(
-            listOf(
-                Routes.HOME,
-                Routes.ENGINEER_JOBS_HUB,
-                Routes.EARNINGS,
-                Routes.PROFILE,
-            ),
-            tabRoutesForRole(null),
-        )
+    @Test fun `null role has no privileged tab fallback`() {
+        assertEquals(emptyList<String>(), tabRoutesForRole(null))
     }
 
-    @Test fun `non-hospital non-engineer roles all use the engineer 4-tab layout`() {
-        // Supplier / Manufacturer / Logistics — they all see the same
-        // engineer tabs in v1 (their dedicated surfaces ship in v2).
-        // Pin so a future addition without a role-specific tab list
-        // surfaces.
+    @Test fun `deferred roles have no engineer tab fallback`() {
         listOf(UserRole.SUPPLIER, UserRole.MANUFACTURER, UserRole.LOGISTICS).forEach { role ->
             assertEquals(
-                "expected engineer tabs for $role",
-                4,
-                tabRoutesForRole(role).size,
+                "expected no supported tab surface for $role",
+                emptyList<String>(),
+                tabRoutesForRole(role),
             )
         }
     }
@@ -91,8 +76,8 @@ class TabRoutesForRoleTest {
         assertEquals(4, tabRoutesForRole(UserRole.HOSPITAL).size)
     }
 
-    @Test fun `every role's tab list starts at HOME`() {
-        UserRole.entries.forEach { role ->
+    @Test fun `every supported role's tab list starts at HOME`() {
+        listOf(UserRole.HOSPITAL, UserRole.ENGINEER).forEach { role ->
             assertEquals(
                 "expected first tab to be HOME for $role",
                 Routes.HOME,
@@ -101,8 +86,8 @@ class TabRoutesForRoleTest {
         }
     }
 
-    @Test fun `every role's tab list ends at PROFILE`() {
-        UserRole.entries.forEach { role ->
+    @Test fun `every supported role's tab list ends at PROFILE`() {
+        listOf(UserRole.HOSPITAL, UserRole.ENGINEER).forEach { role ->
             assertEquals(
                 "expected last tab to be PROFILE for $role",
                 Routes.PROFILE,

@@ -59,6 +59,14 @@ type DispatchResult = {
   outcome: "processing" | "failed" | "no_method";
   reason?: string;
   cashfree_reference_id?: string;
+  duplicate_transfer?: boolean;
+  /**
+   * Set when the payout row could not be stamped with the dispatch
+   * outcome. Kept separate from `reason` (which describes the provider
+   * call) because a failed state write means the row no longer reflects
+   * what happened to the money, so it needs a human, not a retry.
+   */
+  dispatch_record_error?: string;
 };
 
 const json = (status: number, body: unknown) =>
@@ -83,6 +91,51 @@ function sanitiseId(uuid: string): string {
 function paiseToRupeeString(paise: number): string {
   const r = Math.floor(paise) / 100;
   return r.toFixed(2);
+}
+
+/**
+ * Stable code for a failed `record_engineer_payout_dispatch` call.
+ *
+ * 22023 is the RPC refusing the status we asked for, i.e. a contract
+ * mismatch between this worker and the database. It must not be reported
+ * as a provider problem: no amount of retrying changes the answer, and
+ * the payout row is left exactly as pickup set it.
+ */
+function dispatchRecordErrorCode(pgCode: string | null | undefined): string {
+  return pgCode === "22023" ? "dispatch_record_rejected_status" : "dispatch_record_failed";
+}
+
+/**
+ * Stamps the dispatch outcome on the payout row and returns a stable
+ * error code if that write failed.
+ *
+ * Dropping the error here is worse than a failed transfer: the row keeps
+ * the 'processing' status pickup gave it, with no failure_reason and
+ * possibly no provider reference id, so only the 30-minute reaper
+ * rescues it — and every such cycle spends one of the five attempts that
+ * dead-letter the payout as permanently failed. Meanwhile the transfer
+ * may have been accepted, so the reference id is the only thing that
+ * lets the completion webhook find the row again.
+ */
+async function recordDispatch(
+  admin: SupabaseClient,
+  payoutId: string,
+  args: Record<string, unknown>,
+): Promise<string | null> {
+  const { error } = await admin.rpc("record_engineer_payout_dispatch", {
+    p_payout_id: payoutId,
+    ...args,
+  });
+  if (!error) return null;
+  const code = dispatchRecordErrorCode(error.code);
+  console.error(
+    "process-engineer-payouts: dispatch record failed",
+    payoutId,
+    code,
+    error.code ?? "",
+    error.message,
+  );
+  return code;
 }
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
@@ -163,6 +216,34 @@ serve(async (req) => {
   }
   console.log(`process-engineer-payouts: using ${isTestCreds ? "SANDBOX" : "PROD"} baseUrl=${baseUrl}`);
 
+  // Reclaim the rows a provider 5xx parked, before picking. They are left
+  // at 'processing' so a late completion webhook can still find them by
+  // reference id, and this worker owns bringing them back: it runs every 5
+  // minutes, while `requeue_stuck_engineer_payouts` sits in the cron-tick
+  // 'hourly' group, which the ledger measures firing roughly every 3 hours.
+  // Waiting for it meant a transient Cashfree outage held a payout for most
+  // of a day and, because each of its passes bumps attempts_count and it
+  // dead-letters on the fifth, four passes flipped the payout to 'failed'
+  // with the raw provider text on the engineer's Earnings row.
+  //
+  // razorpay_payout_id is deliberately untouched, exactly as the reaper
+  // does it, and nothing here bumps attempts_count — pickup bumps the
+  // separate `attempts` column, which nothing dead-letters on.
+  const { error: reclaimErr } = await admin
+    .from("engineer_payouts")
+    .update({ status: "queued", razorpayx_status: null })
+    .eq("status", "processing")
+    .eq("razorpayx_status", "PROVIDER_5XX_RETRY");
+  if (reclaimErr) {
+    // Not fatal: the hourly reaper is still behind this, so log and carry on
+    // rather than failing a tick that may have other work to do.
+    console.error(
+      "process-engineer-payouts: 5xx reclaim failed",
+      reclaimErr.code ?? "",
+      reclaimErr.message,
+    );
+  }
+
   // Round 448: pick the queue FIRST. If nothing to do, return cleanly
   // without hitting Cashfree — saves an auth round-trip every 5 min and
   // keeps the cron green when the queue's idle (the typical state) even
@@ -189,20 +270,41 @@ serve(async (req) => {
     // retry without waiting on the round-445 reaper's 30min window.
     // The reaper still owns the 'permanently stuck' case (worker crash
     // mid-batch where this requeue itself doesn't run).
+    //
+    // Mirror the reaper and KEEP razorpay_payout_id: a row can reach this
+    // branch after an earlier tick already dispatched it (reference id
+    // stored, completion webhook still in flight). Clearing the reference
+    // orphans that webhook — it matches on razorpay_payout_id — so the
+    // money moves while the row cycles back through the queue and is
+    // eventually dead-lettered as failed.
     const ids = picked.map((r) => r.payout_id);
-    await admin
+    // Report whether the requeue happened rather than asserting it. The
+    // same PostgREST that just failed auth can fail this too, and the rows
+    // then sit at 'processing' with no reason while the response tells the
+    // operator they are back in the queue — so the one diagnostic they have
+    // points away from the reaper that will actually rescue them.
+    const { error: requeueErr } = await admin
       .from("engineer_payouts")
       .update({
         status: "queued",
-        razorpay_payout_id: null,
         razorpayx_status: null,
       })
       .in("id", ids);
+    if (requeueErr) {
+      console.error(
+        "process-engineer-payouts: auth-failure requeue failed",
+        requeueErr.code ?? "",
+        requeueErr.message,
+      );
+    }
     return json(503, {
       ok: false,
       code: "cashfree_unavailable",
-      message: "auth failed — picked rows requeued",
-      requeued: picked.length,
+      message: requeueErr
+        ? "auth failed — requeue also failed; rows left at processing for the reaper"
+        : "auth failed — picked rows requeued",
+      requeue_failed: requeueErr != null,
+      requeued: requeueErr ? 0 : picked.length,
     });
   }
 
@@ -232,12 +334,16 @@ serve(async (req) => {
       results.push(await processOne(admin, row, baseUrl, token));
     } catch (err) {
       console.error("payout error", row.payout_id, err);
-      await admin.rpc("record_engineer_payout_dispatch", {
-        p_payout_id: row.payout_id,
+      const recordErr = await recordDispatch(admin, row.payout_id, {
         p_status: "failed",
         p_failure_reason: String((err as Error)?.message ?? err).slice(0, 240),
       });
-      results.push({ payout_id: row.payout_id, outcome: "failed", reason: String(err) });
+      results.push({
+        payout_id: row.payout_id,
+        outcome: "failed",
+        reason: String(err),
+        dispatch_record_error: recordErr ?? undefined,
+      });
     }
   }
 
@@ -246,6 +352,21 @@ serve(async (req) => {
     failed: results.filter((r) => r.outcome === "failed").length,
     no_method: results.filter((r) => r.outcome === "no_method").length,
   };
+  // A batch where a payout row could not be stamped is not a clean run:
+  // the transfer may already be in flight while the row still claims
+  // 'processing' with no reference id and no reason. Answer non-2xx so
+  // the scheduled caller's failure alarm fires instead of recording a
+  // green tick that hides a money-state divergence.
+  if (results.some((r) => r.dispatch_record_error != null)) {
+    return json(500, {
+      ok: false,
+      code: "dispatch_record_failed",
+      configured: true,
+      processed: picked.length,
+      counts,
+      results,
+    });
+  }
   return json(200, { ok: true, configured: true, processed: picked.length, counts, results });
 });
 
@@ -256,11 +377,14 @@ async function processOne(
   token: string,
 ): Promise<DispatchResult> {
   if (!row.method_id || !row.method_kind) {
-    await admin.rpc("record_engineer_payout_dispatch", {
-      p_payout_id: row.payout_id,
+    const recordErr = await recordDispatch(admin, row.payout_id, {
       p_status: "no_method",
     });
-    return { payout_id: row.payout_id, outcome: "no_method" };
+    return {
+      payout_id: row.payout_id,
+      outcome: "no_method",
+      dispatch_record_error: recordErr ?? undefined,
+    };
   }
 
   // Ensure beneId. Cached on engineer_payout_methods.razorpay_contact_id
@@ -364,8 +488,7 @@ async function processOne(
         errMsg,
         `refId=${recoveredRefId ?? "null"}`,
       );
-      await admin.rpc("record_engineer_payout_dispatch", {
-        p_payout_id: row.payout_id,
+      const recordErr = await recordDispatch(admin, row.payout_id, {
         p_status: "processing",
         p_razorpay_payout_id: recoveredRefId,
         p_razorpayx_status: "DUPLICATE_REQUEUE",
@@ -376,39 +499,61 @@ async function processOne(
         outcome: "processing",
         cashfree_reference_id: recoveredRefId ?? undefined,
         duplicate_transfer: true,
+        dispatch_record_error: recordErr ?? undefined,
       };
     }
     // Round 466: distinguish Cashfree 5xx (their infra outage) from
     // Cashfree 4xx-style ERROR (engineer's VPA/bank rejected). 5xx
-    // is retryable — flip back to queued + bump attempts so the next
-    // tick re-dispatches. 4xx stays terminal (engineer must fix
-    // their payout method). Before this fix, a 30-second Cashfree
-    // blip permanently killed every in-flight payout.
+    // is retryable, 4xx stays terminal (engineer must fix their
+    // payout method). Before this fix, a 30-second Cashfree blip
+    // permanently killed every in-flight payout.
+    //
+    // The retryable case is stamped as 'processing' with a marker
+    // status and the failure reason, not as 'queued': the dispatch RPC
+    // only accepts processing / failed / no_method, so asking it for
+    // 'queued' raised 22023 and wrote nothing at all — the row kept the
+    // status pickup gave it with no reason and no reference id. Left at
+    // 'processing' with the reason recorded, the reclaim at the top of
+    // this worker requeues it on the next 5-minute tick, and the founder
+    // dead-letter summary can still categorise it (it matches
+    // failure_reason on "5xx").
     const is5xx = resp.status >= 500 && resp.status < 600;
     if (is5xx) {
       console.warn(
-        "process-engineer-payouts: Cashfree 5xx — requeuing for retry",
+        "process-engineer-payouts: Cashfree 5xx — awaiting requeue for retry",
         row.payout_id,
         resp.status,
       );
-      await admin.rpc("record_engineer_payout_dispatch", {
-        p_payout_id: row.payout_id,
-        p_status: "queued",
+      const recordErr = await recordDispatch(admin, row.payout_id, {
+        p_status: "processing",
+        // Any reference id the error body carried is the only handle a
+        // late completion webhook has on this row.
+        p_razorpay_payout_id: refId,
+        p_razorpayx_status: "PROVIDER_5XX_RETRY",
         p_failure_reason: `Cashfree 5xx ${resp.status}: ${errMsg}`.slice(0, 240),
         p_razorpay_contact_id: beneId,
       });
-      return { payout_id: row.payout_id, outcome: "failed", reason: `5xx_retry: ${errMsg}` };
+      return {
+        payout_id: row.payout_id,
+        outcome: "processing",
+        reason: `provider_5xx_${resp.status}`,
+        cashfree_reference_id: refId ?? undefined,
+        dispatch_record_error: recordErr ?? undefined,
+      };
     }
-    await admin.rpc("record_engineer_payout_dispatch", {
-      p_payout_id: row.payout_id,
+    const terminalRecordErr = await recordDispatch(admin, row.payout_id, {
       p_status: "failed",
       p_failure_reason: errMsg.slice(0, 240),
       p_razorpay_contact_id: beneId,
     });
-    return { payout_id: row.payout_id, outcome: "failed", reason: errMsg };
+    return {
+      payout_id: row.payout_id,
+      outcome: "failed",
+      reason: errMsg,
+      dispatch_record_error: terminalRecordErr ?? undefined,
+    };
   }
-  await admin.rpc("record_engineer_payout_dispatch", {
-    p_payout_id: row.payout_id,
+  const recordErr = await recordDispatch(admin, row.payout_id, {
     p_status: "processing",
     p_razorpay_payout_id: refId,           // repurposed: Cashfree referenceId
     p_razorpayx_status: cfStatus ?? "PENDING",
@@ -418,6 +563,7 @@ async function processOne(
     payout_id: row.payout_id,
     outcome: "processing",
     cashfree_reference_id: refId ?? undefined,
+    dispatch_record_error: recordErr ?? undefined,
   };
 }
 

@@ -158,4 +158,20 @@ class DatesTest {
             .plusDays(10).toString()
         assertEquals(10L, daysUntil(plus10))
     }
+
+    // PostgREST renders timestamptz with a numeric offset (+00:00), never "Z",
+    // and the libcore on Android 8-13 rejects offsets in Instant.parse
+    // (JDK-8166138). Parsing must accept both forms or every server timestamp
+    // is null on those devices — which is why notifications never looked read.
+    @Test fun `parseInstantOrNull accepts the numeric offsets PostgREST emits`() {
+        assertEquals(
+            java.time.Instant.parse("2026-05-11T07:42:00.123456Z"),
+            "2026-05-11T07:42:00.123456+00:00".parseInstantOrNull(),
+        )
+        assertEquals(
+            java.time.Instant.parse("2026-05-11T07:42:00Z"),
+            "2026-05-11T13:12:00+05:30".parseInstantOrNull(),
+        )
+        assertEquals("11 May 2026, 13:12", prettyDateTime("2026-05-11T07:42:00+00:00"))
+    }
 }

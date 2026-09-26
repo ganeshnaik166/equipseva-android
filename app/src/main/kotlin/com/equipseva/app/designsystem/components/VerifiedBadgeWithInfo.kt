@@ -3,9 +3,11 @@ package com.equipseva.app.designsystem.components
 import com.equipseva.app.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,10 +26,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equipseva.app.designsystem.theme.Spacing
+
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
@@ -49,6 +56,7 @@ fun VerifiedBadgeWithInfo(
     small: Boolean = false,
 ) {
     var showInfoSheet by remember { mutableStateOf(false) }
+    val infoLabel = stringResource(R.string.verified_badge_info_title)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -56,7 +64,9 @@ fun VerifiedBadgeWithInfo(
     ) {
         Icon(
             Icons.Filled.Verified,
-            contentDescription = "Verified",
+            // The "Verified" label sits immediately to the right, so naming the
+            // glyph too made TalkBack say it twice.
+            contentDescription = null,
             tint = SevaGreen700,
             modifier = Modifier.size(if (small) 11.dp else 13.dp),
         )
@@ -66,14 +76,23 @@ fun VerifiedBadgeWithInfo(
             fontSize = if (small) 10.sp else 11.sp,
             fontWeight = FontWeight.SemiBold,
         )
-        Icon(
-            Icons.Outlined.Info,
-            contentDescription = "How we verify engineers",
-            tint = SevaInk500,
+        Box(
             modifier = Modifier
-                .size(if (small) 12.dp else 14.dp)
-                .clickable { showInfoSheet = true },
-        )
+                .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
+                .semantics { contentDescription = infoLabel }
+                .clickable(role = Role.Button) { showInfoSheet = true }
+                .padding(Spacing.sm),
+            contentAlignment = Alignment.Center,
+        ) {
+            // A separate child keeps the glyph compact while the whole 48 dp
+            // button remains reachable and has one accessible name.
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = null,
+                tint = SevaInk500,
+                modifier = Modifier.size(if (small) 12.dp else 14.dp),
+            )
+        }
     }
 
     if (showInfoSheet) {
@@ -91,7 +110,7 @@ private fun VerificationInfoSheet(
 ) {
     EsBottomSheet(
         onClose = onClose,
-        title = "How we verify engineers",
+        title = stringResource(R.string.verified_badge_info_title),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

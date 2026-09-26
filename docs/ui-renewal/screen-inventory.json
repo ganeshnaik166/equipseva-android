@@ -1,0 +1,2876 @@
+{
+  "base_sha": "1dc9188e212ab217393e055b4c238b18c72521ae",
+  "method": "Static screen function and composable-registration inventory. Not a Kotlin parser, action review, runtime reachability proof or audit.",
+  "screen_declarations": 98,
+  "registered_navigation_entries": 92,
+  "pages": [
+    {
+      "name": "DevModeBlockingScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/core/security/DevModeBlockingScreen.kt",
+      "line": 54,
+      "sha256": "73dd816409c2d8e0b1150fcdae12cd7ee8fe55fae3df8a823b561abc46d0bc9c",
+      "registrations": [],
+      "reachability": "root/activity entry",
+      "root_binding": "MainActivity.kt:83",
+      "page_plan": "../UI_THEME_PAGE_PLAN_2026-09-12.md",
+      "batch": "UI-02",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "AboutScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/about/AboutScreen.kt",
+      "line": 52,
+      "sha256": "df3e4ca2f81bbdf4b00017db30af161d3d9f62b109d9bf776642931a16e13604",
+      "registrations": [
+        {
+          "route": "ABOUT",
+          "graph": "MainNavGraph.kt",
+          "line": 713
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ActiveWorkScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/activework/ActiveWorkScreen.kt",
+      "line": 44,
+      "sha256": "9c3e129d8f1f3e240ca914d7c04c6dcdcbfdd90dc5345c66b222ee7a91f98799",
+      "registrations": [
+        {
+          "route": "ACTIVE_WORK",
+          "graph": "MainNavGraph.kt",
+          "line": 823
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "AmcDetailScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/AmcDetailScreen.kt",
+      "line": 335,
+      "sha256": "61b2138b229cb13fd2cea46f7edf042324442b4b30d50409ad75e3ef996e9ae7",
+      "registrations": [
+        {
+          "route": "AMC_CONTRACT_DETAIL",
+          "graph": "MainNavGraph.kt",
+          "line": 577
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "CreateAmcWizardScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/CreateAmcWizardScreen.kt",
+      "line": 605,
+      "sha256": "a067912e2fa539f4857179a1e84360cf10ca102fa75a5cd496f1d3bb20a540b7",
+      "registrations": [
+        {
+          "route": "CREATE_AMC",
+          "graph": "MainNavGraph.kt",
+          "line": 596
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalAmcTierPerksScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/HospitalAmcTierPerksScreen.kt",
+      "line": 90,
+      "sha256": "b107650c7db4ace7f7f3352cffc880f709a4f771d7826f3b889617919e4c04e2",
+      "registrations": [
+        {
+          "route": "AMC_TIER_PERKS",
+          "graph": "MainNavGraph.kt",
+          "line": 515
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalAssetHistoryScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/HospitalAssetHistoryScreen.kt",
+      "line": 125,
+      "sha256": "21640141bb43f153d50c2727d377d0f6665094e53a6f5b91b35901af8a4a1308",
+      "registrations": [
+        {
+          "route": "HOSPITAL_ASSET_HISTORY",
+          "graph": "MainNavGraph.kt",
+          "line": 563
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalFleetHealthScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/HospitalFleetHealthScreen.kt",
+      "line": 114,
+      "sha256": "96e168ce14ef784192bb1449b6f497166ce7b713da6994802787958266d527ef",
+      "registrations": [
+        {
+          "route": "HOSPITAL_FLEET_HEALTH",
+          "graph": "MainNavGraph.kt",
+          "line": 555
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalPmCalendarScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/HospitalPmCalendarScreen.kt",
+      "line": 132,
+      "sha256": "e2f11a6cd591fb0d1339c40328a84e9ab5a1527d2cb589a45762e8c6d2bc25a5",
+      "registrations": [
+        {
+          "route": "HOSPITAL_PM_CALENDAR",
+          "graph": "MainNavGraph.kt",
+          "line": 520
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalPortalScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/HospitalPortalScreen.kt",
+      "line": 169,
+      "sha256": "e7bfb0e87b65a3df0f7df7bf2e97d1d924d9b319bef93f2b813ab245184678a0",
+      "registrations": [
+        {
+          "route": "HOSPITAL_PORTAL",
+          "graph": "MainNavGraph.kt",
+          "line": 545
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "MaintenanceContractsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/amc/MaintenanceContractsScreen.kt",
+      "line": 204,
+      "sha256": "ce3cb62f62a147044ef17ef1233a57d9487416f03d70c49579cc55508cfb0660",
+      "registrations": [
+        {
+          "route": "AMC_CONTRACTS_LIST",
+          "graph": "MainNavGraph.kt",
+          "line": 495
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ForgotPasswordScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/auth/ForgotPasswordScreen.kt",
+      "line": 53,
+      "sha256": "23e98a2bc814039c63655ffd197bd62f804181faac4af343f27973cfc191745d",
+      "registrations": [
+        {
+          "route": "AUTH_FORGOT_PASSWORD",
+          "graph": "AuthNavGraph.kt",
+          "line": 57
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "RoleSelectScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/auth/RoleSelectScreen.kt",
+      "line": 79,
+      "sha256": "a4e0ebcf0b57b643528cd821d72fd4d8baa3f4c52021728c1502cc8180d7d2ed",
+      "registrations": [],
+      "reachability": "root/activity entry",
+      "root_binding": "AppNavGraph.kt:64",
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "SignInScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/auth/SignInScreen.kt",
+      "line": 55,
+      "sha256": "47775d1f30cf2d50e18872a90fd476bb275949d71ed01476e3b88a7bf6021212",
+      "registrations": [
+        {
+          "route": "AUTH_SIGN_IN",
+          "graph": "AuthNavGraph.kt",
+          "line": 34
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "SignUpScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/auth/SignUpScreen.kt",
+      "line": 61,
+      "sha256": "b8090af95b1283ed60d50613c14c4dc43469ab06f5dc50667335ee0a67438a26",
+      "registrations": [
+        {
+          "route": "AUTH_SIGN_UP",
+          "graph": "AuthNavGraph.kt",
+          "line": 42
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "WelcomeScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/auth/WelcomeScreen.kt",
+      "line": 54,
+      "sha256": "8d84f63ce2fea9db21e07db0910c91df3357aa2286bd4b11cdf716741ddcfca0",
+      "registrations": [
+        {
+          "route": "AUTH_WELCOME",
+          "graph": "AuthNavGraph.kt",
+          "line": 28
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ChatScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/chat/ChatScreen.kt",
+      "line": 101,
+      "sha256": "eb53b91cea9912cf2f7d08e29be7ec7cda83e3bbf8236fe48b940c9047e12dc3",
+      "registrations": [
+        {
+          "route": "CHAT_DETAIL",
+          "graph": "MainNavGraph.kt",
+          "line": 743
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ConversationsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/chat/ConversationsScreen.kt",
+      "line": 60,
+      "sha256": "aca2b79ef40ba5849dc91e2be20160c6fe06fb43a597d0e2669ce25012b061ef",
+      "registrations": [
+        {
+          "route": "CONVERSATIONS",
+          "graph": "MainNavGraph.kt",
+          "line": 736
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EarningsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/earnings/EarningsScreen.kt",
+      "line": 67,
+      "sha256": "867e403ef4b53a4642f01456ce243c446eaa5a1e0d1305fa833809c9044ac1d0",
+      "registrations": [
+        {
+          "route": "EARNINGS",
+          "graph": "MainNavGraph.kt",
+          "line": 802
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-07",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerActiveEscrowsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/earnings/EngineerActiveEscrowsScreen.kt",
+      "line": 100,
+      "sha256": "bb3f65a190feb4f0994c02e8f74ff310700a8808c036732ef5b8121f8c0be583",
+      "registrations": [
+        {
+          "route": "ENGINEER_ACTIVE_ESCROWS",
+          "graph": "MainNavGraph.kt",
+          "line": 817
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-07",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerAmcVisitsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerAmcVisitsScreen.kt",
+      "line": 103,
+      "sha256": "1fbe79cecfdb9ec541987dfa49ab239e784bd26e10cad7aff955c54977364bbf",
+      "registrations": [
+        {
+          "route": "ENGINEER_AMC_VISITS",
+          "graph": "MainNavGraph.kt",
+          "line": 436
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-09",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerDemandSignalsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerDemandSignalsScreen.kt",
+      "line": 141,
+      "sha256": "c2b3ee1af8e460382639f6c1bcaf79d3f389ddd62dc0fe081eb6e91b25540c63",
+      "registrations": [
+        {
+          "route": "ENGINEER_DEMAND_SIGNALS",
+          "graph": "MainNavGraph.kt",
+          "line": 426
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerEarningsProjectionScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerEarningsProjectionScreen.kt",
+      "line": 91,
+      "sha256": "0bb96a513c12dbcb9230157bc1e23aeac5a087cd6cc41944d7291f78793d6a7d",
+      "registrations": [
+        {
+          "route": "ENGINEER_EARNINGS_PROJECTION",
+          "graph": "MainNavGraph.kt",
+          "line": 431
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerGraduationScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerGraduationScreen.kt",
+      "line": 108,
+      "sha256": "ebad98026b2382fc0af1468af902348df01961832ebdbf6e66322b74f19ca7fd",
+      "registrations": [
+        {
+          "route": "ENGINEER_GRADUATION",
+          "graph": "MainNavGraph.kt",
+          "line": 416
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerJobsHubScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerJobsHubScreen.kt",
+      "line": 143,
+      "sha256": "d846968fa3a7736ae348074ab05668ab7502c22bdf718bef4806200a399ac0a5",
+      "registrations": [
+        {
+          "route": "ENGINEER_JOBS_HUB",
+          "graph": "MainNavGraph.kt",
+          "line": 397
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerLocationScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerLocationScreen.kt",
+      "line": 39,
+      "sha256": "603ae9af242db0ff225a87676be23a40dd892fc4e03aa6d02e3c1de7a357be4f",
+      "registrations": [
+        {
+          "route": "ENGINEER_LOCATION",
+          "graph": "MainNavGraph.kt",
+          "line": 460
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerMyDisputesScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerMyDisputesScreen.kt",
+      "line": 104,
+      "sha256": "e275c21ce9efd3ce5495251b7efa3622e31016c156e4ba3ff3a778cfed187406",
+      "registrations": [
+        {
+          "route": "ENGINEER_MY_DISPUTES",
+          "graph": "MainNavGraph.kt",
+          "line": 452
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerSupervisionScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineer/EngineerSupervisionScreen.kt",
+      "line": 232,
+      "sha256": "a388f9b8b836f9d46276d000e774948ac671ca6e26ad76e7834c5c42881f0d3c",
+      "registrations": [
+        {
+          "route": "ENGINEER_SUPERVISION",
+          "graph": "MainNavGraph.kt",
+          "line": 421
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerProfileScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/engineerprofile/EngineerProfileScreen.kt",
+      "line": 75,
+      "sha256": "2ee1ce6104b7d4f45171ca2af947ff3c1746217fcc1ab5f52fa3a8357dd8719f",
+      "registrations": [
+        {
+          "route": "ENGINEER_PROFILE",
+          "graph": "MainNavGraph.kt",
+          "line": 920
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderAmcEscalationDetailScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderAmcEscalationDetailScreen.kt",
+      "line": 145,
+      "sha256": "2d17ba419dc3b8fb91b6686d63737f4aa92969e4e5ee9537df8d73479177094a",
+      "registrations": [
+        {
+          "route": "FOUNDER_AMC_ESCALATION_DETAIL",
+          "graph": "MainNavGraph.kt",
+          "line": 1004
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderAmcExpiringScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderAmcExpiringScreen.kt",
+      "line": 93,
+      "sha256": "dfbf7051acd4434466708f5d887d34ef3a220da727ec58e48d1a705a6268015d",
+      "registrations": [
+        {
+          "route": "FOUNDER_AMC_EXPIRING",
+          "graph": "MainNavGraph.kt",
+          "line": 1114
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderBuyerKycQueueScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderBuyerKycQueueScreen.kt",
+      "line": 170,
+      "sha256": "a285fcd00ed589fa6ab88d1729a9d9c62dec0fd2219202e6e55fa88f24f8f1ee",
+      "registrations": [
+        {
+          "route": "FOUNDER_BUYER_KYC",
+          "graph": "MainNavGraph.kt",
+          "line": 1108
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderCashFlagHistoryScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderCashFlagHistoryScreen.kt",
+      "line": 104,
+      "sha256": "20df3f90239607a9db8005e8b4e92d8894c99ccc01bafdbfffd1f9d6154b9b61",
+      "registrations": [
+        {
+          "route": "FOUNDER_CASH_FLAG_HISTORY",
+          "graph": "MainNavGraph.kt",
+          "line": 1024
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderCategoriesScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderCategoriesScreen.kt",
+      "line": 230,
+      "sha256": "369c4a5aa923ebae2bafa0edbbef554e8f92317160ef2c58081dc0d413f36a8d",
+      "registrations": [
+        {
+          "route": "FOUNDER_CATEGORIES",
+          "graph": "MainNavGraph.kt",
+          "line": 1103
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderDashboardScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderDashboardScreen.kt",
+      "line": 168,
+      "sha256": "2411b78e11d0ebebd6243202f63bf272832059a5fc25ec79e6384b7c0db12716",
+      "registrations": [
+        {
+          "route": "FOUNDER_DASHBOARD",
+          "graph": "MainNavGraph.kt",
+          "line": 931
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderEngineerMapScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderEngineerMapScreen.kt",
+      "line": 103,
+      "sha256": "349a0fe5a104920f4636664e5863db175149506232f474fa7bb32ed3406ababb",
+      "registrations": [
+        {
+          "route": "FOUNDER_ENGINEER_MAP",
+          "graph": "MainNavGraph.kt",
+          "line": 1041
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderEngineerPayoutsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderEngineerPayoutsScreen.kt",
+      "line": 361,
+      "sha256": "c7c5a41e706cd465b06b66a379eb5de617a440e2bfcf4dd30262c6c35091551f",
+      "registrations": [
+        {
+          "route": "FOUNDER_ENGINEER_PAYOUTS",
+          "graph": "MainNavGraph.kt",
+          "line": 965
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderEscrowDisputeDetailScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderEscrowDisputeDetailScreen.kt",
+      "line": 114,
+      "sha256": "84e3c58af870cc702fc7f3e2309e14340dc0f5082b7ddb7578d588809c586f34",
+      "registrations": [
+        {
+          "route": "FOUNDER_ESCROW_DISPUTE_DETAIL",
+          "graph": "MainNavGraph.kt",
+          "line": 984
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderInactiveEngineersScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderInactiveEngineersScreen.kt",
+      "line": 91,
+      "sha256": "3f6069188afdb203861049dda2d7f87dff5d43550ce091d11304b1b027866bbb",
+      "registrations": [
+        {
+          "route": "FOUNDER_INACTIVE_ENGINEERS",
+          "graph": "MainNavGraph.kt",
+          "line": 1123
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderIntegrityScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderIntegrityScreen.kt",
+      "line": 109,
+      "sha256": "1ccdccdeec60ec1844cdca0de3428255152e1e589b5cbe2a4d6605161bc65875",
+      "registrations": [
+        {
+          "route": "FOUNDER_INTEGRITY",
+          "graph": "MainNavGraph.kt",
+          "line": 1084
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderKycQueueScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderKycQueueScreen.kt",
+      "line": 163,
+      "sha256": "dd6d5d9ea800ba04c72165c6a1296d7f1d37cb22a64b446816f39357e84daa43",
+      "registrations": [
+        {
+          "route": "FOUNDER_KYC_QUEUE",
+          "graph": "MainNavGraph.kt",
+          "line": 1046
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderKycReviewScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderKycReviewScreen.kt",
+      "line": 169,
+      "sha256": "76fb4b157067d15a76bffa1993f75c201e1eb66ce7226d6a7c27bfc72a1edcce",
+      "registrations": [
+        {
+          "route": "FOUNDER_KYC_REVIEW",
+          "graph": "MainNavGraph.kt",
+          "line": 1054
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderEscrowDisputesScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderOpsQueueScreens.kt",
+      "line": 143,
+      "sha256": "82e1860d3212e3209aac936ebda6f5ee93d1108ecd1ebd5810167966f3b29430",
+      "registrations": [
+        {
+          "route": "FOUNDER_ESCROW_DISPUTES",
+          "graph": "MainNavGraph.kt",
+          "line": 957
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderAmcEscalationsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderOpsQueueScreens.kt",
+      "line": 315,
+      "sha256": "82e1860d3212e3209aac936ebda6f5ee93d1108ecd1ebd5810167966f3b29430",
+      "registrations": [
+        {
+          "route": "FOUNDER_AMC_ESCALATIONS",
+          "graph": "MainNavGraph.kt",
+          "line": 996
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderCashSuspendedScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderOpsQueueScreens.kt",
+      "line": 478,
+      "sha256": "82e1860d3212e3209aac936ebda6f5ee93d1108ecd1ebd5810167966f3b29430",
+      "registrations": [
+        {
+          "route": "FOUNDER_CASH_SUSPENDED",
+          "graph": "MainNavGraph.kt",
+          "line": 1016
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderPartsOutliersScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderOpsQueueScreens.kt",
+      "line": 615,
+      "sha256": "82e1860d3212e3209aac936ebda6f5ee93d1108ecd1ebd5810167966f3b29430",
+      "registrations": [
+        {
+          "route": "FOUNDER_PARTS_OUTLIERS",
+          "graph": "MainNavGraph.kt",
+          "line": 1036
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderPausedAmcScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderPausedAmcScreen.kt",
+      "line": 94,
+      "sha256": "ee5abfb88eef5a3fba58188ab087d4a3ce43e9dec92717500ab3c7d755fd8134",
+      "registrations": [
+        {
+          "route": "FOUNDER_AMC_PAUSED",
+          "graph": "MainNavGraph.kt",
+          "line": 1132
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderPaymentsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderPaymentsScreen.kt",
+      "line": 110,
+      "sha256": "2e0f35fbf9d1af9470f62fdf0b52d50548e128ad5362e7e053d028c267458dbd",
+      "registrations": [
+        {
+          "route": "FOUNDER_PAYMENTS",
+          "graph": "MainNavGraph.kt",
+          "line": 1076
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderReportsQueueScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderReportsQueueScreen.kt",
+      "line": 129,
+      "sha256": "367d57a7ddbf03333185b73559ff4021a884a7bcf8b354da9a2d73de9bd1bce0",
+      "registrations": [
+        {
+          "route": "FOUNDER_REPORTS_QUEUE",
+          "graph": "MainNavGraph.kt",
+          "line": 1066
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderResolvedDisputesScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderResolvedDisputesScreen.kt",
+      "line": 101,
+      "sha256": "1ce2e23bf0820f5dc0bb807266cda6cbb305ad7159682530952c2c11944816f7",
+      "registrations": [
+        {
+          "route": "FOUNDER_RESOLVED_DISPUTES",
+          "graph": "MainNavGraph.kt",
+          "line": 971
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderSpotAuditsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderSpotAuditsScreen.kt",
+      "line": 98,
+      "sha256": "64fe730998bff262a01fcaf654119760b935fe3868f0cc7d6c80e68ddc2523e2",
+      "registrations": [
+        {
+          "route": "FOUNDER_SPOT_AUDITS",
+          "graph": "MainNavGraph.kt",
+          "line": 979
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "FounderUsersScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/founder/FounderUsersScreen.kt",
+      "line": 187,
+      "sha256": "f169dd28fc33119e96f8769c9db7f9da0d6d1081dd63f8aafa83760b780521a3",
+      "registrations": [
+        {
+          "route": "FOUNDER_USERS",
+          "graph": "MainNavGraph.kt",
+          "line": 1071
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "founder-pages.md",
+      "batch": "UI-10",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HomeHubScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/home/HomeHubScreen.kt",
+      "line": 101,
+      "sha256": "58a16b25b0b58fe572db0d84a53de2f1a468c80b10f2f0516bc73e9453dce9b1",
+      "registrations": [
+        {
+          "route": "HOME",
+          "graph": "MainNavGraph.kt",
+          "line": 316
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalActiveJobsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/hospital/HospitalActiveJobsScreen.kt",
+      "line": 68,
+      "sha256": "a6dd8ffb075ea985e09e2c816fac6fafc69842daa73a03396ef121afcc36f002",
+      "registrations": [
+        {
+          "route": "REPAIR",
+          "graph": "MainNavGraph.kt",
+          "line": 347
+        },
+        {
+          "route": "HOSPITAL_ACTIVE_JOBS",
+          "graph": "MainNavGraph.kt",
+          "line": 913
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalMyDisputesScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/hospital/HospitalMyDisputesScreen.kt",
+      "line": 104,
+      "sha256": "f1b8dfa04b0fdf794fc6bc895ee48dcb59fbd62f978b6dab79164b4376fa3baa",
+      "registrations": [
+        {
+          "route": "HOSPITAL_MY_DISPUTES",
+          "graph": "MainNavGraph.kt",
+          "line": 444
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "RequestSentScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/hospital/RequestSentScreen.kt",
+      "line": 60,
+      "sha256": "781024acbefb865e1d0f06fac12602753591e05862912882c446619969397e54",
+      "registrations": [
+        {
+          "route": "REQUEST_SENT",
+          "graph": "MainNavGraph.kt",
+          "line": 880
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "RequestServiceScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/hospital/RequestServiceScreen.kt",
+      "line": 96,
+      "sha256": "263d87a73f34774032a19129c3ea3cee2be0f29b6f6b74f5a5f8e29f9d2f01f4",
+      "registrations": [
+        {
+          "route": "REQUEST_SERVICE",
+          "graph": "MainNavGraph.kt",
+          "line": 838
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "KycScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/kyc/KycScreen.kt",
+      "line": 107,
+      "sha256": "37b51a9d35824010d8444cb3e3705b76191e965cd38e75eb27f93a52cab5720f",
+      "registrations": [
+        {
+          "route": "KYC",
+          "graph": "MainNavGraph.kt",
+          "line": 696
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "KycSubmittedScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/kyc/KycSubmittedScreen.kt",
+      "line": 49,
+      "sha256": "564bac660d44e9f2ecf12c11568bc501811ce7c7b2d3b5cced70ec774c7fb041",
+      "registrations": [
+        {
+          "route": "KYC_SUBMITTED",
+          "graph": "MainNavGraph.kt",
+          "line": 708
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalTierPreviewScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/mybids/HospitalTierPreviewScreen.kt",
+      "line": 97,
+      "sha256": "4a79491e5e83a9013f38019921b413709f25b6c11804227b773c2b3ca7af3bf9",
+      "registrations": [
+        {
+          "route": "HOSPITAL_TIER_PREVIEW",
+          "graph": "MainNavGraph.kt",
+          "line": 777
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-07",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "JobProfitabilityScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/mybids/JobProfitabilityScreen.kt",
+      "line": 123,
+      "sha256": "479791c324a87b9e4cee361313436ec77dab2143dc5e5977dfdf24181d0f0537",
+      "registrations": [
+        {
+          "route": "JOB_PROFITABILITY",
+          "graph": "MainNavGraph.kt",
+          "line": 767
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-07",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "MyBidsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/mybids/MyBidsScreen.kt",
+      "line": 62,
+      "sha256": "8ed9a9ade84ac365062131b0ae7c11b23120265955c89a6fab8e0af94b5fd18b",
+      "registrations": [
+        {
+          "route": "MY_BIDS",
+          "graph": "MainNavGraph.kt",
+          "line": 754
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "NotificationSettingsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/notifications/NotificationSettingsScreen.kt",
+      "line": 69,
+      "sha256": "0b0b32ce91661e3ee1ae2ea646e82a37a501be0dbfbba50f11cdb35ff0a15a0a",
+      "registrations": [
+        {
+          "route": "NOTIFICATION_SETTINGS",
+          "graph": "MainNavGraph.kt",
+          "line": 691
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "NotificationsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/notifications/NotificationsScreen.kt",
+      "line": 79,
+      "sha256": "20425e0b194c8e2be3aced198c307ece6d7af84db12559929b50a95efb9b1568",
+      "registrations": [
+        {
+          "route": "NOTIFICATIONS",
+          "graph": "MainNavGraph.kt",
+          "line": 673
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerOnboardingScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/onboarding/EngineerOnboardingScreen.kt",
+      "line": 158,
+      "sha256": "6c0be61ed9642438f4023947b877f07dfecd2fb8d7513abde582665b1fd87881",
+      "registrations": [
+        {
+          "route": "ENGINEER_ONBOARDING",
+          "graph": "MainNavGraph.kt",
+          "line": 870
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerPayoutOnboardingScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/onboarding/EngineerPayoutOnboardingScreen.kt",
+      "line": 384,
+      "sha256": "865e5db464dcb1d5c3e4ce169205ad54642c20af785d897aedb1dcaa8a9b5d7e",
+      "registrations": [],
+      "reachability": "root/activity entry",
+      "root_binding": "AppNavGraph.kt:107",
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalOnboardingScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/onboarding/HospitalOnboardingScreen.kt",
+      "line": 154,
+      "sha256": "1f24cd8b73fd557ab49448d06b61db40c5fbfa573d380f881a6c52926ba4e0d3",
+      "registrations": [
+        {
+          "route": "HOSPITAL_ONBOARDING",
+          "graph": "MainNavGraph.kt",
+          "line": 858
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalPhoneOnboardingScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/onboarding/HospitalPhoneOnboardingScreen.kt",
+      "line": 56,
+      "sha256": "bb437157cc39daab073f3e3fc572982259cf7b3491b025b0c61bea955fb4f60b",
+      "registrations": [],
+      "reachability": "legacy/unmounted",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "TourScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/onboarding/TourScreen.kt",
+      "line": 96,
+      "sha256": "631d594de25dde4f3e8d5012735ceb92f6afc024454468205ddfbd285f5b40bf",
+      "registrations": [
+        {
+          "route": "TOUR",
+          "graph": "MainNavGraph.kt",
+          "line": 302
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerPayoutMethodScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/payouts/EngineerPayoutMethodScreen.kt",
+      "line": 61,
+      "sha256": "726c6d4e5a86eeb194cb592be0129588dd9f59df6a76009c815b98986f447e24",
+      "registrations": [
+        {
+          "route": "ENGINEER_PAYOUT_METHOD",
+          "graph": "MainNavGraph.kt",
+          "line": 1150
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-07",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "AddPhoneScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/AddPhoneScreen.kt",
+      "line": 118,
+      "sha256": "3cd645a52c48e7a379bb16b2457bde14917076064050dbc187c879af23433668",
+      "registrations": [
+        {
+          "route": "ADD_PHONE",
+          "graph": "MainNavGraph.kt",
+          "line": 718
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "CommissionTierScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/CommissionTierScreen.kt",
+      "line": 84,
+      "sha256": "5ee4f5c2e7353c3893fb0f9fda2438c934a5a5ca35d46e2a49e37c7a06ebee67",
+      "registrations": [
+        {
+          "route": "COMMISSION_TIER",
+          "graph": "MainNavGraph.kt",
+          "line": 525
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "DpdpGrievanceScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/DpdpGrievanceScreen.kt",
+      "line": 126,
+      "sha256": "a19a08c73d4c7b45b21ce698499c045e7f3ae292843fcd0545695ce44e5536c1",
+      "registrations": [
+        {
+          "route": "DPDP_GRIEVANCE",
+          "graph": "MainNavGraph.kt",
+          "line": 535
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerReferralScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/EngineerReferralScreen.kt",
+      "line": 159,
+      "sha256": "a646a493498f4611a629979eb06c916905fe047e41c0fec8fd1023e4b7419bc2",
+      "registrations": [
+        {
+          "route": "ENGINEER_REFERRALS",
+          "graph": "MainNavGraph.kt",
+          "line": 540
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "AddressBookScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/AddressBookScreen.kt",
+      "line": 128,
+      "sha256": "1a4b8eda8143110663917b00400e9e6ddbcd048375d85018c121ddfb4f48b7f5",
+      "registrations": [
+        {
+          "route": "PROFILE_ADDRESSES",
+          "graph": "MainNavGraph.kt",
+          "line": 1156
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "AddressFormScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/AddressFormScreen.kt",
+      "line": 227,
+      "sha256": "1190e2af6ee5ba40da8664a1061a904517fc59f0cbb53c7236608ef417b612a6",
+      "registrations": [
+        {
+          "route": "PROFILE_ADDRESS_FORM",
+          "graph": "MainNavGraph.kt",
+          "line": 1163
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "BankDetailsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 306,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_BANK_DETAILS",
+          "graph": "MainNavGraph.kt",
+          "line": 1144
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [
+        "UI-07: reconcile Earnings payout callback before accepting flow; UI-08 retains generic form visual ownership"
+      ],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalAddressesScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 331,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [],
+      "reachability": "legacy/unmounted",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "HospitalSettingsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 360,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_HOSPITAL_SETTINGS",
+          "graph": "MainNavGraph.kt",
+          "line": 1177
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "StorefrontSettingsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 383,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_STOREFRONT",
+          "graph": "MainNavGraph.kt",
+          "line": 1183
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "GstSettingsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 400,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_GST",
+          "graph": "MainNavGraph.kt",
+          "line": 1189
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "BrandPortfolioScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 416,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_BRAND_PORTFOLIO",
+          "graph": "MainNavGraph.kt",
+          "line": 1195
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "TaxDetailsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 432,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_TAX_DETAILS",
+          "graph": "MainNavGraph.kt",
+          "line": 1201
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "VehicleDetailsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 448,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_VEHICLE_DETAILS",
+          "graph": "MainNavGraph.kt",
+          "line": 1207
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "LicenceScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 465,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_LICENCE",
+          "graph": "MainNavGraph.kt",
+          "line": 1213
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ServiceAreasScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/forms/ProfileForms.kt",
+      "line": 481,
+      "sha256": "d03822c816d1a47a8e1e03c9033bf8e802d9d50a126922f2fc809803415b603a",
+      "registrations": [
+        {
+          "route": "PROFILE_SERVICE_AREAS",
+          "graph": "MainNavGraph.kt",
+          "line": 1219
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "KycRenewalScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/KycRenewalScreen.kt",
+      "line": 107,
+      "sha256": "1ad31a2bed7899a0587c0f35963e8526ed463c2da483de952082280d56e909c9",
+      "registrations": [
+        {
+          "route": "KYC_RENEWAL",
+          "graph": "MainNavGraph.kt",
+          "line": 550
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ProfileCompletenessScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/ProfileCompletenessScreen.kt",
+      "line": 88,
+      "sha256": "2f45d7d7e11ce12fdd8b02edd87b793bb3b134fc6be479533b08544daf1fe705",
+      "registrations": [
+        {
+          "route": "PROFILE_COMPLETENESS",
+          "graph": "MainNavGraph.kt",
+          "line": 530
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ProfileScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/profile/ProfileScreen.kt",
+      "line": 112,
+      "sha256": "ccca4fbbacab31287b4f2c36836ff17605e379580ab1ca2b644bf7a63e52962a",
+      "registrations": [
+        {
+          "route": "PROFILE",
+          "graph": "MainNavGraph.kt",
+          "line": 621
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerDirectoryScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/repair/directory/EngineerDirectoryScreen.kt",
+      "line": 277,
+      "sha256": "7e027edeae7cfe4afae2ffdbcdf98b356afe5475630a9ce33e6aae81fd833730",
+      "registrations": [
+        {
+          "route": "ENGINEER_DIRECTORY",
+          "graph": "MainNavGraph.kt",
+          "line": 466
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "EngineerPublicProfileScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/repair/directory/EngineerPublicProfileScreen.kt",
+      "line": 547,
+      "sha256": "0097b549ac9f79d5ce8b52a1e9c136a7f8b135c9e7f4483271d689c1c0db0c1f",
+      "registrations": [
+        {
+          "route": "ENGINEER_PUBLIC_PROFILE",
+          "graph": "MainNavGraph.kt",
+          "line": 474
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "hospital-pages.md",
+      "batch": "UI-04",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "DsrScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/repair/DsrScreen.kt",
+      "line": 170,
+      "sha256": "c2104fb06cf433c502197689550624c59b5b1d11dfbe8dee70fdc4164701935d",
+      "registrations": [
+        {
+          "route": "DSR_REPORT",
+          "graph": "MainNavGraph.kt",
+          "line": 789
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-05",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "RepairJobDetailScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/repair/RepairJobDetailScreen.kt",
+      "line": 142,
+      "sha256": "e7650129510e0f35bfdbd8529379d355926b18a05a6243ed2ddf97173ee18738",
+      "registrations": [
+        {
+          "route": "REPAIR_DETAIL",
+          "graph": "MainNavGraph.kt",
+          "line": 372
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-05",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "RepairJobsScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/repair/RepairJobsScreen.kt",
+      "line": 100,
+      "sha256": "4eaba46ee7cc848f598a1c3632818702f1af3ff2a79846d5a67550300c0590d5",
+      "registrations": [
+        {
+          "route": "REPAIR",
+          "graph": "MainNavGraph.kt",
+          "line": 347
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "engineer-pages.md",
+      "batch": "UI-06",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ChangeEmailScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/security/ChangeEmailScreen.kt",
+      "line": 46,
+      "sha256": "fa857fdb04567f866f62a1e430aa717f82a56f6200748b6dab2057589e3c766d",
+      "registrations": [
+        {
+          "route": "CHANGE_EMAIL",
+          "graph": "MainNavGraph.kt",
+          "line": 730
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "ChangePasswordScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/features/security/ChangePasswordScreen.kt",
+      "line": 55,
+      "sha256": "cab35a56746d1b63ba88fa1753edb8dcfd7f861e32b46d0ea5ebaac1807ac821",
+      "registrations": [
+        {
+          "route": "CHANGE_PASSWORD",
+          "graph": "MainNavGraph.kt",
+          "line": 724
+        }
+      ],
+      "reachability": "registered destination association",
+      "root_binding": null,
+      "page_plan": "account-pages.md",
+      "batch": "UI-08",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "SessionRecoveryScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/navigation/AppNavGraph.kt",
+      "line": 131,
+      "sha256": "1a587bd7a6a55e8bad3fd11f4852f164fdfd837e573a22b287ac937807e7114e",
+      "registrations": [],
+      "reachability": "root/activity entry",
+      "root_binding": "AppNavGraph.kt:73",
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    },
+    {
+      "name": "SessionResolvingScreen",
+      "path": "app/src/main/kotlin/com/equipseva/app/navigation/AppNavGraph.kt",
+      "line": 157,
+      "sha256": "1a587bd7a6a55e8bad3fd11f4852f164fdfd837e573a22b287ac937807e7114e",
+      "registrations": [],
+      "reachability": "root/activity entry",
+      "root_binding": "AppNavGraph.kt:81",
+      "page_plan": "account-pages.md",
+      "batch": "UI-03",
+      "dependencies": [],
+      "implementation": "not started for selected theme",
+      "review": "not run for selected-theme implementation",
+      "integration": "not integrated",
+      "native_verification": "not run for selected theme"
+    }
+  ],
+  "routes": [
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 302,
+      "route": "TOUR",
+      "screens": [
+        "TourScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 316,
+      "route": "HOME",
+      "screens": [
+        "HomeHubScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 347,
+      "route": "REPAIR",
+      "screens": [
+        "HospitalActiveJobsScreen",
+        "RepairJobsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 372,
+      "route": "REPAIR_DETAIL",
+      "screens": [
+        "RepairJobDetailScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 397,
+      "route": "ENGINEER_JOBS_HUB",
+      "screens": [
+        "EngineerJobsHubScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 416,
+      "route": "ENGINEER_GRADUATION",
+      "screens": [
+        "EngineerGraduationScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 421,
+      "route": "ENGINEER_SUPERVISION",
+      "screens": [
+        "EngineerSupervisionScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 426,
+      "route": "ENGINEER_DEMAND_SIGNALS",
+      "screens": [
+        "EngineerDemandSignalsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 431,
+      "route": "ENGINEER_EARNINGS_PROJECTION",
+      "screens": [
+        "EngineerEarningsProjectionScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 436,
+      "route": "ENGINEER_AMC_VISITS",
+      "screens": [
+        "EngineerAmcVisitsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 444,
+      "route": "HOSPITAL_MY_DISPUTES",
+      "screens": [
+        "HospitalMyDisputesScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 452,
+      "route": "ENGINEER_MY_DISPUTES",
+      "screens": [
+        "EngineerMyDisputesScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 460,
+      "route": "ENGINEER_LOCATION",
+      "screens": [
+        "EngineerLocationScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 466,
+      "route": "ENGINEER_DIRECTORY",
+      "screens": [
+        "EngineerDirectoryScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 474,
+      "route": "ENGINEER_PUBLIC_PROFILE",
+      "screens": [
+        "EngineerPublicProfileScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 495,
+      "route": "AMC_CONTRACTS_LIST",
+      "screens": [
+        "MaintenanceContractsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 515,
+      "route": "AMC_TIER_PERKS",
+      "screens": [
+        "HospitalAmcTierPerksScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 520,
+      "route": "HOSPITAL_PM_CALENDAR",
+      "screens": [
+        "HospitalPmCalendarScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 525,
+      "route": "COMMISSION_TIER",
+      "screens": [
+        "CommissionTierScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 530,
+      "route": "PROFILE_COMPLETENESS",
+      "screens": [
+        "ProfileCompletenessScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 535,
+      "route": "DPDP_GRIEVANCE",
+      "screens": [
+        "DpdpGrievanceScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 540,
+      "route": "ENGINEER_REFERRALS",
+      "screens": [
+        "EngineerReferralScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 545,
+      "route": "HOSPITAL_PORTAL",
+      "screens": [
+        "HospitalPortalScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 550,
+      "route": "KYC_RENEWAL",
+      "screens": [
+        "KycRenewalScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 555,
+      "route": "HOSPITAL_FLEET_HEALTH",
+      "screens": [
+        "HospitalFleetHealthScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 563,
+      "route": "HOSPITAL_ASSET_HISTORY",
+      "screens": [
+        "HospitalAssetHistoryScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 577,
+      "route": "AMC_CONTRACT_DETAIL",
+      "screens": [
+        "AmcDetailScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 596,
+      "route": "CREATE_AMC",
+      "screens": [
+        "CreateAmcWizardScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 621,
+      "route": "PROFILE",
+      "screens": [
+        "ProfileScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 673,
+      "route": "NOTIFICATIONS",
+      "screens": [
+        "NotificationsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 691,
+      "route": "NOTIFICATION_SETTINGS",
+      "screens": [
+        "NotificationSettingsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 696,
+      "route": "KYC",
+      "screens": [
+        "KycScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 708,
+      "route": "KYC_SUBMITTED",
+      "screens": [
+        "KycSubmittedScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 713,
+      "route": "ABOUT",
+      "screens": [
+        "AboutScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 718,
+      "route": "ADD_PHONE",
+      "screens": [
+        "AddPhoneScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 724,
+      "route": "CHANGE_PASSWORD",
+      "screens": [
+        "ChangePasswordScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 730,
+      "route": "CHANGE_EMAIL",
+      "screens": [
+        "ChangeEmailScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 736,
+      "route": "CONVERSATIONS",
+      "screens": [
+        "ConversationsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 743,
+      "route": "CHAT_DETAIL",
+      "screens": [
+        "ChatScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 754,
+      "route": "MY_BIDS",
+      "screens": [
+        "MyBidsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 767,
+      "route": "JOB_PROFITABILITY",
+      "screens": [
+        "JobProfitabilityScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 777,
+      "route": "HOSPITAL_TIER_PREVIEW",
+      "screens": [
+        "HospitalTierPreviewScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 789,
+      "route": "DSR_REPORT",
+      "screens": [
+        "DsrScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 802,
+      "route": "EARNINGS",
+      "screens": [
+        "EarningsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 817,
+      "route": "ENGINEER_ACTIVE_ESCROWS",
+      "screens": [
+        "EngineerActiveEscrowsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 823,
+      "route": "ACTIVE_WORK",
+      "screens": [
+        "ActiveWorkScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 838,
+      "route": "REQUEST_SERVICE",
+      "screens": [
+        "RequestServiceScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 858,
+      "route": "HOSPITAL_ONBOARDING",
+      "screens": [
+        "HospitalOnboardingScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 870,
+      "route": "ENGINEER_ONBOARDING",
+      "screens": [
+        "EngineerOnboardingScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 880,
+      "route": "REQUEST_SENT",
+      "screens": [
+        "RequestSentScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 913,
+      "route": "HOSPITAL_ACTIVE_JOBS",
+      "screens": [
+        "HospitalActiveJobsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 920,
+      "route": "ENGINEER_PROFILE",
+      "screens": [
+        "EngineerProfileScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 931,
+      "route": "FOUNDER_DASHBOARD",
+      "screens": [
+        "FounderDashboardScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 957,
+      "route": "FOUNDER_ESCROW_DISPUTES",
+      "screens": [
+        "FounderEscrowDisputesScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 965,
+      "route": "FOUNDER_ENGINEER_PAYOUTS",
+      "screens": [
+        "FounderEngineerPayoutsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 971,
+      "route": "FOUNDER_RESOLVED_DISPUTES",
+      "screens": [
+        "FounderResolvedDisputesScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 979,
+      "route": "FOUNDER_SPOT_AUDITS",
+      "screens": [
+        "FounderSpotAuditsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 984,
+      "route": "FOUNDER_ESCROW_DISPUTE_DETAIL",
+      "screens": [
+        "FounderEscrowDisputeDetailScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 996,
+      "route": "FOUNDER_AMC_ESCALATIONS",
+      "screens": [
+        "FounderAmcEscalationsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1004,
+      "route": "FOUNDER_AMC_ESCALATION_DETAIL",
+      "screens": [
+        "FounderAmcEscalationDetailScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1016,
+      "route": "FOUNDER_CASH_SUSPENDED",
+      "screens": [
+        "FounderCashSuspendedScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1024,
+      "route": "FOUNDER_CASH_FLAG_HISTORY",
+      "screens": [
+        "FounderCashFlagHistoryScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1036,
+      "route": "FOUNDER_PARTS_OUTLIERS",
+      "screens": [
+        "FounderPartsOutliersScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1041,
+      "route": "FOUNDER_ENGINEER_MAP",
+      "screens": [
+        "FounderEngineerMapScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1046,
+      "route": "FOUNDER_KYC_QUEUE",
+      "screens": [
+        "FounderKycQueueScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1054,
+      "route": "FOUNDER_KYC_REVIEW",
+      "screens": [
+        "FounderKycReviewScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1066,
+      "route": "FOUNDER_REPORTS_QUEUE",
+      "screens": [
+        "FounderReportsQueueScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1071,
+      "route": "FOUNDER_USERS",
+      "screens": [
+        "FounderUsersScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1076,
+      "route": "FOUNDER_PAYMENTS",
+      "screens": [
+        "FounderPaymentsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1084,
+      "route": "FOUNDER_INTEGRITY",
+      "screens": [
+        "FounderIntegrityScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1103,
+      "route": "FOUNDER_CATEGORIES",
+      "screens": [
+        "FounderCategoriesScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1108,
+      "route": "FOUNDER_BUYER_KYC",
+      "screens": [
+        "FounderBuyerKycQueueScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1114,
+      "route": "FOUNDER_AMC_EXPIRING",
+      "screens": [
+        "FounderAmcExpiringScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1123,
+      "route": "FOUNDER_INACTIVE_ENGINEERS",
+      "screens": [
+        "FounderInactiveEngineersScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1132,
+      "route": "FOUNDER_AMC_PAUSED",
+      "screens": [
+        "FounderPausedAmcScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1144,
+      "route": "PROFILE_BANK_DETAILS",
+      "screens": [
+        "BankDetailsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1150,
+      "route": "ENGINEER_PAYOUT_METHOD",
+      "screens": [
+        "EngineerPayoutMethodScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1156,
+      "route": "PROFILE_ADDRESSES",
+      "screens": [
+        "AddressBookScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1163,
+      "route": "PROFILE_ADDRESS_FORM",
+      "screens": [
+        "AddressFormScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1177,
+      "route": "PROFILE_HOSPITAL_SETTINGS",
+      "screens": [
+        "HospitalSettingsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1183,
+      "route": "PROFILE_STOREFRONT",
+      "screens": [
+        "StorefrontSettingsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1189,
+      "route": "PROFILE_GST",
+      "screens": [
+        "GstSettingsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1195,
+      "route": "PROFILE_BRAND_PORTFOLIO",
+      "screens": [
+        "BrandPortfolioScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1201,
+      "route": "PROFILE_TAX_DETAILS",
+      "screens": [
+        "TaxDetailsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1207,
+      "route": "PROFILE_VEHICLE_DETAILS",
+      "screens": [
+        "VehicleDetailsScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1213,
+      "route": "PROFILE_LICENCE",
+      "screens": [
+        "LicenceScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt",
+      "line": 1219,
+      "route": "PROFILE_SERVICE_AREAS",
+      "screens": [
+        "ServiceAreasScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt",
+      "line": 28,
+      "route": "AUTH_WELCOME",
+      "screens": [
+        "WelcomeScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt",
+      "line": 34,
+      "route": "AUTH_SIGN_IN",
+      "screens": [
+        "SignInScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt",
+      "line": 42,
+      "route": "AUTH_SIGN_UP",
+      "screens": [
+        "SignUpScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt",
+      "line": 57,
+      "route": "AUTH_FORGOT_PASSWORD",
+      "screens": [
+        "ForgotPasswordScreen"
+      ]
+    },
+    {
+      "graph": "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt",
+      "line": 66,
+      "route": "HOSPITAL_PHONE_ONBOARDING",
+      "screens": []
+    }
+  ],
+  "excluded": [
+    {
+      "name": "SecureScreen",
+      "reason": "FLAG_SECURE effect, not a page; preserve all usages"
+    }
+  ],
+  "additional_planned_surfaces": [
+    "Language preference controls (not currently implemented)",
+    "Theme preference controls (no current UI caller)"
+  ]
+}

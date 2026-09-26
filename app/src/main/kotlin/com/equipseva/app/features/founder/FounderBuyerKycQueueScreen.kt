@@ -1,5 +1,6 @@
 package com.equipseva.app.features.founder
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +21,8 @@ import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +30,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +49,7 @@ import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.core.util.prettyDate
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.EsBtn
+import com.equipseva.app.designsystem.components.sheetDismissAllowed
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.Pill
@@ -233,8 +239,26 @@ fun FounderBuyerKycQueueScreen(
     }
 
     if (state.sheetRequestId != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(sheetState = sheetState, onDismissRequest = { viewModel.closeSheet() }) {
+        // Keep the saved SheetState predicate stable and read current busy
+        // state through a state holder. Refusing only the dismiss callback
+        // can leave a hidden modal window swallowing
+        // every tap, with the approve/reject error rendered behind it.
+        val busy by rememberUpdatedState(state.acting)
+        val confirmTransition = remember {
+            { next: SheetValue -> sheetDismissAllowed(next, busy) }
+        }
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = confirmTransition,
+        )
+        val dismiss = { if (!busy) viewModel.closeSheet() }
+        ModalBottomSheet(
+            sheetState = sheetState,
+            onDismissRequest = dismiss,
+            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
+        ) {
+            // Native Back bypasses confirmValueChange in Material3 1.3.1.
+            BackHandler(onBack = dismiss)
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

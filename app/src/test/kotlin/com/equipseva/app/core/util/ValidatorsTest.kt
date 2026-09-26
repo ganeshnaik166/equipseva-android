@@ -103,6 +103,29 @@ class ValidatorsTest {
         assertEquals("Enter 10 digits", Validators.indiaMobileError("98765432101"))
     }
 
+    @Test fun `india mobile accepts a bare 10-digit number that begins with 91`() {
+        // "91" is a live mobile prefix as well as the country code. Stripping
+        // it unconditionally left 8 digits and the form told the user to
+        // "Enter 10 digits" for a perfectly valid number.
+        assertNull(Validators.indiaMobileError("9123456789"))
+        assertNull(Validators.indiaMobileError("9199999999"))
+    }
+
+    @Test fun `national digits strip the country code only when one is present`() {
+        assertEquals("9123456789", indiaMobileNationalDigits("+919123456789"))
+        assertEquals("9123456789", indiaMobileNationalDigits("+91 91234 56789"))
+        assertEquals("9123456789", indiaMobileNationalDigits("919123456789"))
+        assertEquals("9123456789", indiaMobileNationalDigits("9123456789"))
+    }
+
+    @Test fun `national digits leave a too-short 91 fragment alone for the length check to reject`() {
+        // The caller distinguishes "Enter 10 digits" from the prefix-range
+        // message, so a fragment must survive rather than be silently
+        // shortened into a different error.
+        assertEquals("91", indiaMobileNationalDigits("91"))
+        assertEquals("91", indiaMobileNationalDigits("+91"))
+    }
+
     // Round 441 — pincodeError validator
     @Test fun `pincode empty is treated as not-required`() {
         assertNull(Validators.pincodeError(""))

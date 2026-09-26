@@ -1,0 +1,8 @@
+<resources>
+    <string name="root_session_preparing">आपका कार्यक्षेत्र तैयार हो रहा है…</string>
+    <string name="root_session_retry_message">आपका कार्यक्षेत्र अभी तैयार नहीं है। कनेक्शन जाँचें और फिर कोशिश करें।</string>
+    <string name="root_session_retry">फिर कोशिश करें</string>
+    <string name="root_session_sign_out">साइन आउट करें</string>
+    <string name="root_session_checking">आपका सत्र जाँचा जा रहा है…</string>
+    <string name="root_session_signing_out">साइन आउट हो रहा है…</string>
+</resources>

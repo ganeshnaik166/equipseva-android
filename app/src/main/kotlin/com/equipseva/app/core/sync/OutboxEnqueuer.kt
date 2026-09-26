@@ -35,7 +35,7 @@ class OutboxEnqueuer @Inject constructor(
         // Network-required + exponential backoff: without these, queueing
         // five messages while offline immediately ran the worker five times,
         // each attempt failed instantly, and the per-entry attempts counter
-        // hit MAX_ATTEMPTS in seconds — entries got poison-dropped before
+        // was exhausted in seconds — entries got poison-dropped before
         // the user even reconnected. With CONNECTED + EXPONENTIAL, WorkManager
         // defers the run until the device is online and spaces out failed
         // retries so transient 5xx errors don't burn the attempts budget.
@@ -51,9 +51,20 @@ class OutboxEnqueuer @Inject constructor(
                 TimeUnit.SECONDS,
             )
             .build()
+        // Never REPLACE: that cancels a one-shot that is already draining, at
+        // its next suspension point — which can be after the HTTP request for
+        // the entry in hand was already committed server-side. The entry then
+        // survives with its attempts untouched and is sent a second time on
+        // the next run (a duplicate chat message, a repeated status flip), and
+        // the rest of the batch is abandoned. PhotoUploadOutboxHandler makes
+        // this fire on its own success path, because it queues the evidence
+        // registration from inside the drain it would be cancelling.
+        // APPEND_OR_REPLACE lets the running drain finish and queues this one
+        // behind it, and still replaces the chain outright once it has failed
+        // or been cancelled.
         workManager.enqueueUniqueWork(
             OutboxWorker.UNIQUE_NAME + "-oneshot",
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
             request,
         )
     }

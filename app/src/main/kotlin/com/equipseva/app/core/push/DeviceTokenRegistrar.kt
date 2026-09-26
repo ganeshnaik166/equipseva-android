@@ -27,11 +27,21 @@ class DeviceTokenRegistrar @Inject constructor(
     )
 
     /**
+     * The (user, token) pair a sign-out must revoke — captured at the moment the
+     * sign-out STARTS, while the departing user is still the signed-in one
+     * (A4-02). Passing this into [revoke] instead of re-reading live auth means a
+     * revoke that stalls on the network until the NEXT user has signed in and
+     * registered the same FCM token can only ever delete the departing user's
+     * row, never the new user's.
+     */
+    data class Revocation(val userId: String, val token: String)
+
+    /**
      * Re-register the current FCM token under the signed-in user's id.
      * Called on every sign-in transition because [onNewToken] only fires on
      * actual FCM token rotation — a returning user signing in on the same
-     * device would otherwise have no device_tokens row (revoke() on the
-     * previous sign-out cleared it) and therefore receive no pushes. Best-
+     * device would otherwise have no server device_tokens row (revoke() on the
+     * previous sign-out removed it) and therefore receive no pushes. Best-
      * effort: if the token fetch or upsert fails we just log and move on,
      * the next [onNewToken] callback will recover.
      */
@@ -79,27 +89,44 @@ class DeviceTokenRegistrar @Inject constructor(
     }
 
     /**
-     * Sign-out cleanup. Drops the server-side device_tokens row so the
-     * outgoing user stops receiving FCM messages on this device, and
-     * wipes the local cached token so the next sign-in re-registers
-     * cleanly. Must be called BEFORE [SupabaseAuthRepository.signOut]
-     * so the DELETE still has a valid auth session; runCatching on the
-     * network call so a flaky connection doesn't block sign-out.
+     * Snapshot of what [revoke] must delete for the CURRENT user, taken before
+     * any network I/O. Returns null when nobody is signed in or no token is
+     * cached (then there is nothing server-side to revoke).
      */
-    suspend fun revoke() {
-        val userId = supabase.auth.currentUserOrNull()?.id
+    suspend fun captureRevocation(): Revocation? {
+        val userId = supabase.auth.currentUserOrNull()?.id ?: return null
         val cachedToken = runCatching { dao.current()?.token }.getOrNull()
-        if (userId != null && !cachedToken.isNullOrBlank()) {
+        if (cachedToken.isNullOrBlank()) return null
+        return Revocation(userId, cachedToken)
+    }
+
+    /**
+     * Sign-out cleanup. Drops the server-side device_tokens row for the CAPTURED
+     * user + token so the outgoing user stops receiving FCM messages on this
+     * device. Retains the installation-scoped local token: it contains no user
+     * identity, Firebase still owns that same token, and every sign-in refresh
+     * re-registers it independently of cache presence. Clearing it after a slow
+     * DELETE would erase the next login's cache and prevent its later revoke.
+     * Never reads live auth: by the time a slow DELETE runs, the next
+     * user may already be signed in and own this same token. Must be called
+     * BEFORE [SupabaseAuthRepository.signOut] so the DELETE still has a valid
+     * auth session; runCatching on the network call so a flaky connection
+     * doesn't block sign-out.
+     */
+    suspend fun revoke(capture: Revocation?) {
+        if (capture != null) {
             runCatching {
                 supabase.from("device_tokens")
                     .delete {
                         filter {
-                            eq("user_id", userId)
-                            eq("token", cachedToken)
+                            eq("user_id", capture.userId)
+                            eq("token", capture.token)
                         }
                     }
             }
         }
-        runCatching { dao.clear() }
     }
+
+    /** Convenience for callers that capture and revoke in one step (no other work in between). */
+    suspend fun revoke() = revoke(captureRevocation())
 }

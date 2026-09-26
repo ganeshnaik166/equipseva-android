@@ -1,0 +1,8 @@
+<resources>
+    <string name="root_session_preparing">మీ కార్యస్థలాన్ని సిద్ధం చేస్తున్నాము…</string>
+    <string name="root_session_retry_message">మీ కార్యస్థలం ఇంకా సిద్ధంగా లేదు. కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.</string>
+    <string name="root_session_retry">మళ్లీ ప్రయత్నించండి</string>
+    <string name="root_session_sign_out">సైన్ అవుట్ చేయండి</string>
+    <string name="root_session_checking">మీ సెషన్‌ను తనిఖీ చేస్తున్నాము…</string>
+    <string name="root_session_signing_out">సైన్ అవుట్ అవుతోంది…</string>
+</resources>

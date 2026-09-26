@@ -1,0 +1,2 @@
+# Captured measurements are byte-hashed in render-manifest.json.
+measurements/* -text

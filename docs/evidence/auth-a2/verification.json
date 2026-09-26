@@ -1,0 +1,154 @@
+{
+  "recorded_at": "2026-09-11",
+  "status": "WIP save requested by owner; A2 unaccepted",
+  "starting_commit": "64107db7a0731dd4c4851f66ced3cf3542b3a496",
+  "branch": "codex/security-foundation-20260907",
+  "remote_main_commit": "fe4637568059e49f27fb46f8627fe56bccc45e27",
+  "scope": "A2 root routing, role confirmation and recovery UI implementation checkpoint",
+  "full_debug_unit": {
+    "suites": 351,
+    "tests": 3030,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "focused_run04": {
+    "tests": 138,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "final_full_command": ":app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --console=plain --max-workers=2 --no-configuration-cache",
+  "full_command_result": "BUILD SUCCESSFUL in 7m 51s; 134 tasks",
+  "lintDebug": "passed; 0 errors, 80 warnings, 2 hints",
+  "assembleDebug": "passed",
+  "assembleRelease": "passed with PRECHECK_LOOSE=1; unsigned/production configuration unverified",
+  "known_blocker": "Role picker fixed green button inherits dark theme onPrimary: 2.378:1 contrast. Explicit white proposed at 6.255:1; fix and actual dark UI regression NOT implemented at save.",
+  "acceptance": "Not accepted. Critic/QA reports conditional; no full app/auth/device score.",
+  "github_ci": "pending push/checkpoint verification",
+  "failure_history": [
+    "run01: test import compilation failure, corrected",
+    "run02: 137 tests,1 provider isolation rejection",
+    "run03: 138 tests,32 test-package parser optional-null failures",
+    "run04: 138 tests,0 failures; full run adds pending-Back assertions"
+  ],
+  "local_evidence_directory": "C:\\Users\\lokes\\Documents\\Codex\\2026-09-07\\im\\work\\verification",
+  "source_hashes": {
+    "app/src/main/kotlin/com/equipseva/app/core/data/profile/ProfileInvalidations.kt": {
+      "sha256": "8cae4a18d14c497c4a3c56302fd0e2f7ce8cf9bb1e8f89972189f3c5f8fd5907",
+      "lines": 20
+    },
+    "app/src/main/kotlin/com/equipseva/app/core/data/profile/SupabaseProfileRepository.kt": {
+      "sha256": "2593bbad876519ee202825e26d67e9589a3f1882a3fe2223c2686db1b0792ade",
+      "lines": 236
+    },
+    "app/src/main/kotlin/com/equipseva/app/features/auth/RoleSelectScreen.kt": {
+      "sha256": "ba7102f4d2e769394be92b83a93070c1473004b2a169e23c94bf23106d9e6fe8",
+      "lines": 299
+    },
+    "app/src/main/kotlin/com/equipseva/app/features/auth/RoleSelectViewModel.kt": {
+      "sha256": "31257757cb21708d1941b8faa29c6eb096b64cffe85203a3c3220693f234737b",
+      "lines": 221
+    },
+    "app/src/main/kotlin/com/equipseva/app/features/auth/SessionPresentation.kt": {
+      "sha256": "9e6961681d0a2abda0ffe2c745b9238de25425fb4caf242b7c0ec65725a808d7",
+      "lines": 16
+    },
+    "app/src/main/kotlin/com/equipseva/app/features/auth/SessionViewModel.kt": {
+      "sha256": "7a55b0849525c10caf514dd751e6a69031520469d61a4047d5aaadd4734c4a74",
+      "lines": 462
+    },
+    "app/src/main/kotlin/com/equipseva/app/features/auth/SignUpScreen.kt": {
+      "sha256": "28c44ec69f424979aa3f9cad4e738c4cc48c3719221e43f07fe620f4625cedcc",
+      "lines": 271
+    },
+    "app/src/main/kotlin/com/equipseva/app/features/home/HomeHubScreen.kt": {
+      "sha256": "1ad6f1b67172931b2ce0b5e4d217841c07f8386103c6c882f67cbbf7237c1884",
+      "lines": 1546
+    },
+    "app/src/main/kotlin/com/equipseva/app/navigation/AppNavGraph.kt": {
+      "sha256": "7e673d91374ee98b0909023a07b8cb3162585cc80f4164af95df5316b58e9a1c",
+      "lines": 168
+    },
+    "app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt": {
+      "sha256": "422c1e51a0f473f200bbd64a0a9eb626d232fbb80e82775368a0492a75728459",
+      "lines": 74
+    },
+    "app/src/main/kotlin/com/equipseva/app/navigation/MainNavGraph.kt": {
+      "sha256": "fa47e99d8344d04d7f7cffcfd29c6c0945aa28b990c0ee14645d4897ad8fa49c",
+      "lines": 1302
+    },
+    "app/src/main/kotlin/com/equipseva/app/navigation/RootSessionHost.kt": {
+      "sha256": "47788fa587becdd8886028037c2f143da6479ab5ad903fd31f771990877f68c6",
+      "lines": 194
+    },
+    "app/src/main/res/values-hi/role_select.xml": {
+      "sha256": "fd3c42f3dc24dae02f11868b3d46244578bbc10bee1e883fb82f69d33f8dfece",
+      "lines": 19
+    },
+    "app/src/main/res/values-hi/root_session.xml": {
+      "sha256": "ef083e41e7fe295185cb4eba9211ee98cbc8df7af5ae9838f8ac43760ba80123",
+      "lines": 8
+    },
+    "app/src/main/res/values-te/role_select.xml": {
+      "sha256": "8e9a8b47dea63234146a54e6847fc3e31385f8a2dcf6e5ca73dab6af75bd6a9c",
+      "lines": 19
+    },
+    "app/src/main/res/values-te/root_session.xml": {
+      "sha256": "0a6c83696033ebb8917a2818358f5135d470fafd0bc726ad80ee91e7cc437d94",
+      "lines": 8
+    },
+    "app/src/main/res/values/role_select.xml": {
+      "sha256": "ca2b85e754d5a126f529f9afe9e1244b44b2ab4962a2e332beaf6c077988e6f0",
+      "lines": 19
+    },
+    "app/src/main/res/values/root_session.xml": {
+      "sha256": "386165ceeb60be04a521d0061ff06173be5af9304d15e008837ae4b6f348a25f",
+      "lines": 8
+    },
+    "app/src/test/kotlin/com/equipseva/app/core/data/profile/ProfileInvalidationsTest.kt": {
+      "sha256": "0c678d28b36a11b8b868bb154f9765d5c7ffb1a75d9c13489f1b68b2ca80402e",
+      "lines": 61
+    },
+    "app/src/test/kotlin/com/equipseva/app/features/auth/RoleSelectScreenUiTest.kt": {
+      "sha256": "72c3555b197b2cde5738aa235932c3a99311f6e20b207ca82c4f686d42589435",
+      "lines": 342
+    },
+    "app/src/test/kotlin/com/equipseva/app/features/auth/RoleSelectStateTest.kt": {
+      "sha256": "b7196ae494fa7ed6f95559f920cfc6d77f1b3dbb8f664761a31344d181e30cb1",
+      "lines": 39
+    },
+    "app/src/test/kotlin/com/equipseva/app/features/auth/RoleSelectViewModelTest.kt": {
+      "sha256": "415c531f5e8d7e318aa01731056f6f8d32f4ef3a6d0216ebd9d0585e126a59a2",
+      "lines": 433
+    },
+    "app/src/test/kotlin/com/equipseva/app/features/auth/SessionViewModelIdentityTest.kt": {
+      "sha256": "5adb2cbae76fc8d6a9f9b7a7a46e7ab0d82b3f38fb80a2bcdb68720b56f4ba54",
+      "lines": 1096
+    },
+    "app/src/test/kotlin/com/equipseva/app/navigation/RootDestinationTest.kt": {
+      "sha256": "1ecf0bf2f14c5cb8d0784670cccfc6a04344db7f82d55c89dfc0b140f326853a",
+      "lines": 78
+    },
+    "app/src/test/kotlin/com/equipseva/app/navigation/RootSessionHostTest.kt": {
+      "sha256": "be2de81df7d9e4625af0ab30106a8cf4af9b5687a4a1bc1388aa77748cff186c",
+      "lines": 757
+    },
+    "app/src/test/kotlin/com/equipseva/app/navigation/SessionRecoveryScreenUiTest.kt": {
+      "sha256": "7d725178a04bb48a6eb354c0f82d153e9e5486bd1f4810e1b4bd0598206b4624",
+      "lines": 102
+    },
+    "app/src/test/kotlin/com/equipseva/app/navigation/TabRoutesForRoleTest.kt": {
+      "sha256": "2df5f09e030a84846cb443c1c48d7f194fb9b0e0c51c96d4e9f26af4127cfccf",
+      "lines": 98
+    },
+    "app/src/test/kotlin/com/equipseva/app/testing/IsolatedUiPackageParser.kt": {
+      "sha256": "550177810c9ccbe25eceb48ace7cff5f4e10be025c3c59d66df40b18958659f9",
+      "lines": 106
+    },
+    "app/src/test/resources/isolated_ui_manifest.xml": {
+      "sha256": "2fb6cee063197b55426e2f04ea784a8dcc49b8e4fe6463970368661732409e41",
+      "lines": 5
+    }
+  }
+}

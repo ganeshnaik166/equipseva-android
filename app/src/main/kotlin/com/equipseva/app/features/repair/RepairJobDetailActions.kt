@@ -35,6 +35,8 @@ internal interface RepairJobDetailActions {
     fun openChatWithHospital()
     fun openChatWithEngineer()
     fun withdrawBid()
+    fun openCheckinSheet()
+    fun closeCheckinSheet()
     fun submitCheckinWithProof(photos: List<RepairJobDetailViewModel.CompletionProofPhoto>)
     fun openProofSheet()
     fun closeProofSheet()
@@ -80,6 +82,8 @@ internal fun RepairJobDetailViewModel.asActions(): RepairJobDetailActions {
         override fun openChatWithHospital() { viewModel.openChatWithHospital() }
         override fun openChatWithEngineer() { viewModel.openChatWithEngineer() }
         override fun withdrawBid() { viewModel.withdrawBid() }
+        override fun openCheckinSheet() { viewModel.openCheckinSheet() }
+        override fun closeCheckinSheet() { viewModel.closeCheckinSheet() }
         override fun submitCheckinWithProof(photos: List<RepairJobDetailViewModel.CompletionProofPhoto>) { viewModel.submitCheckinWithProof(photos) }
         override fun openProofSheet() { viewModel.openProofSheet() }
         override fun closeProofSheet() { viewModel.closeProofSheet() }
@@ -122,6 +126,8 @@ internal object NoOpRepairJobDetailActions : RepairJobDetailActions {
     override fun openChatWithHospital() = Unit
     override fun openChatWithEngineer() = Unit
     override fun withdrawBid() = Unit
+    override fun openCheckinSheet() = Unit
+    override fun closeCheckinSheet() = Unit
     override fun submitCheckinWithProof(photos: List<RepairJobDetailViewModel.CompletionProofPhoto>) = Unit
     override fun openProofSheet() = Unit
     override fun closeProofSheet() = Unit

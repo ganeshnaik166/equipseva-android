@@ -33,8 +33,11 @@ import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.features.repair.PrimaryCta
 import com.equipseva.app.features.repair.RepairJobDetailViewModel
+import com.equipseva.app.features.repair.canCancelJob
 import com.equipseva.app.features.repair.isViewerAssignedEngineer
+import com.equipseva.app.features.repair.primaryCtaFor
 
 // Sticky bottom action bar for the repair job detail screen plus the
 // queued-outbox pill that reports offline work waiting to sync. Split out of
@@ -70,10 +73,6 @@ internal fun StickyBottomBar(
         RepairJobDetailViewModel.ViewerRole.Engineer -> job.engineerRating != null
         RepairJobDetailViewModel.ViewerRole.Other -> true
     }
-    // Hospital can cancel their own job (Requested or Assigned).
-    // Engineer can cancel only if they're the assigned engineer (Assigned status).
-    // Random engineer browsing a Requested job: no Cancel — they haven't
-    // committed to anything yet; the negative action would be a no-op.
     // round3817 — "assigned" is decided by isViewerAssignedEngineer(): the
     // viewer's own engineers.id matches job.engineerId (covers AMC visit
     // jobs pre-assigned without any bid) OR their bid on this job was
@@ -82,29 +81,18 @@ internal fun StickyBottomBar(
     // "Check in on-site" and got a 42501 for their trouble.
     val isAssignedEngineer = isEngineer &&
         isViewerAssignedEngineer(job = job, selfEngineerRowId = selfEngineerRowId, ownBid = ownBid)
-    val canCancel = when {
-        isHospital -> job.status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
-        isAssignedEngineer -> job.status == RepairJobStatus.Assigned
-        else -> false
-    }
+    val canCancel = canCancelJob(viewerRole = viewerRole, status = job.status)
 
     // Resolve which primary CTA to show. Null = no primary (e.g. Other role,
     // or terminal states without a CTA + without cancel).
-    val primaryKind: PrimaryCta? = when {
-        isEngineer && job.status == RepairJobStatus.Requested ->
-            PrimaryCta.PlaceBid(editing = ownBid?.status == RepairBidStatus.Pending)
-        isAssignedEngineer && job.status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
-        isAssignedEngineer && (job.status == RepairJobStatus.EnRoute || job.status == RepairJobStatus.InProgress) ->
-            PrimaryCta.MarkDone
-        isHospital && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
-        isHospital && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
-        // Engineer side mirrors hospital: once the job lands in Completed,
-        // give the engineer the same Rate / RatedDone CTA against
-        // engineer_rating (server enforces side-identity).
-        isEngineer && job.status == RepairJobStatus.Completed && !rated -> PrimaryCta.Rate
-        isEngineer && job.status == RepairJobStatus.Completed && rated -> PrimaryCta.RatedDone
-        else -> null
-    }
+    val primaryKind: PrimaryCta? = primaryCtaFor(
+        viewerRole = viewerRole,
+        isAssignedEngineer = isAssignedEngineer,
+        status = job.status,
+        hasEngineerAssigned = job.engineerId != null,
+        ownBidPending = ownBid?.status == RepairBidStatus.Pending,
+        rated = rated,
+    )
 
     // v0.3.5 fix #9 — hospital-side "Book this engineer again" CTA.
     // Surfaces only on Completed jobs where:
@@ -241,14 +229,6 @@ internal fun StickyBottomBar(
             )
         }
     }
-}
-
-private sealed interface PrimaryCta {
-    data class PlaceBid(val editing: Boolean) : PrimaryCta
-    data object CheckIn : PrimaryCta
-    data object MarkDone : PrimaryCta
-    data object Rate : PrimaryCta
-    data object RatedDone : PrimaryCta
 }
 
 @Composable

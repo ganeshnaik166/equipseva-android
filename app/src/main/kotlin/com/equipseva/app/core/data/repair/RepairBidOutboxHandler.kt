@@ -33,6 +33,7 @@ class RepairBidOutboxHandler @Inject constructor(
         val currentUid = client.auth.currentUserOrNull()?.id
             ?: return OutboxKindHandler.Outcome.Retry(
                 IllegalStateException("No auth session — deferring bid"),
+                countsAgainstBudget = false,
             )
         // engineerUserId may be null on rows enqueued before this field
         // was added — fall through to placeBid which still gates via

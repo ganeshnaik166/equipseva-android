@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 3,
+  "generatedAt": "2026-09-12T14:08:38.369614+00:00",
+  "agentsObservedAt": "2026-09-12T14:08:38.369614+00:00",
+  "source": {
+    "branch": "codex/auth-integration-20260911",
+    "head": "c7da5ee333d3913bf98052c9c20f81b3b56f6d38",
+    "base": "1e770076358e74f6f40a99a4907f831da59e791c",
+    "commits": 25
+  },
+  "focus": {
+    "title": "Lime and ink foundation plus shared actions verified",
+    "detail": "Selected theme and bundled fonts implemented; shared actions grow with text and preserve loading/focus states. Local QA and critic passed. Remaining pages and security/release gates stay open."
+  },
+  "milestones": [
+    {
+      "id": "A1",
+      "name": "Session bootstrap ownership",
+      "status": "implemented",
+      "owner": "Coordinator",
+      "notes": "Implementation and regression tests are saved. This is one security slice; whole-app release acceptance remains open.",
+      "implementationComplete": true
+    },
+    {
+      "id": "A2",
+      "name": "Login, role selection & recovery",
+      "status": "implemented",
+      "owner": "Coordinator + independent reviewers",
+      "notes": "Local root/role regressions and light/dark contrast checks passed. Device, provider and signed-release acceptance remain open.",
+      "implementationComplete": true
+    },
+    {
+      "id": "A10",
+      "name": "Engineer verification state",
+      "status": "implemented",
+      "owner": "Coordinator + independent reviewers",
+      "notes": "Current-account admission, late-response rejection and returned-row ownership passed 35 focused cases. Repository identity and end-to-end authorization remain separate.",
+      "implementationComplete": true
+    },
+    {
+      "id": "A3",
+      "name": "Notification navigation",
+      "status": "in_progress",
+      "owner": "Coordinator",
+      "notes": "Routing policy and regression coverage are under integration. Acceptance and end-to-end security checks remain open.",
+      "implementationComplete": false
+    },
+    {
+      "id": "A4/A12",
+      "name": "Account mutation isolation",
+      "status": "planned",
+      "owner": "Coordinator + Claude review",
+      "notes": "Review and test plan are saved. Implementation and verification remain future work.",
+      "implementationComplete": false
+    },
+    {
+      "id": "Dashboard",
+      "name": "3D headquarters dashboard",
+      "status": "verification",
+      "owner": "Coordinator + independent QA",
+      "notes": "Blender campus and milestone controls implemented. 26 checks passed; local QA 9.6 and critic 9.55. Public deployment and live headers are not verified.",
+      "implementationComplete": true
+    },
+    {
+      "id": "UI-WELCOME",
+      "name": "Welcome screen and accessibility",
+      "status": "implemented",
+      "owner": "Welcome helper + coordinator",
+      "notes": "Clear Sign in action, both-role guidance and separate legal buttons. Eleven local UI checks passed in English, Hindi and Telugu; real-device and native-language review remain open.",
+      "implementationComplete": true
+    },
+    {
+      "id": "UI-01",
+      "name": "Lime/ink theme and bundled typography",
+      "status": "implemented",
+      "owner": "Coordinator + font helper + independent reviewers",
+      "notes": "Semantic light/dark theme, Space Grotesk/Inter and Hindi/Telugu resources locally accepted. Canonical roles do not imply that all 98 pages are redesigned.",
+      "implementationComplete": true
+    },
+    {
+      "id": "UI-02",
+      "name": "Shared interface components",
+      "status": "in_progress",
+      "owner": "Coordinator + independent reviewers",
+      "notes": "Shared action slice accepted: readable states, growing labels, keyboard focus and wrapping compact actions. Fields, cards, navigation, dialogs and feedback remain.",
+      "implementationComplete": false
+    }
+  ],
+  "agents": [
+    {
+      "name": "Coordinator",
+      "status": "active",
+      "focus": "Saving the reviewed UI foundation/action milestone and its exact-source evidence."
+    },
+    {
+      "name": "Font assets helper",
+      "status": "complete",
+      "focus": "Ten bundled resources, pinned notices and Windows Git byte-preservation checks integrated."
+    },
+    {
+      "name": "Independent UI critic",
+      "status": "complete",
+      "focus": "Accepted local UI-01/shared-action scope at 9.595/10 after source, render and final build checks."
+    },
+    {
+      "name": "Independent UI QA",
+      "status": "complete",
+      "focus": "Accepted local UI-01/shared-action scope at 9.58/10; 3155 tests and APK font packaging independently checked."
+    }
+  ],
+  "usage": {
+    "observedAt": "2026-09-12T13:53:47Z",
+    "windows": [
+      {
+        "name": "GPT-5.3-Codex-Spark",
+        "minutes": 300,
+        "usedPercent": 0,
+        "resetsAt": "2026-09-12T18:53:21.000Z"
+      },
+      {
+        "name": "GPT-5.3-Codex-Spark",
+        "minutes": 10080,
+        "usedPercent": 28,
+        "resetsAt": "2026-09-19T08:33:38.000Z"
+      },
+      {
+        "name": "Codex",
+        "minutes": 10080,
+        "usedPercent": 65,
+        "resetsAt": "2026-09-19T08:33:29.000Z"
+      }
+    ]
+  },
+  "verification": [
+    {
+      "title": "Lime/ink foundation and shared actions · local verification",
+      "revision": "c7da5ee333d3913bf98052c9c20f81b3b56f6d38",
+      "tests": 3155,
+      "failures": 0,
+      "command": ".\\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --max-workers=2 --no-configuration-cache --no-daemon (PRECHECK_LOOSE=1; unsigned assembly)",
+      "evidence": "docs/evidence/ui-foundation/verification.json and independent critic/QA receipts, 12 Sep 2026.",
+      "note": "Critic 9.595/10; QA 9.58/10. Lint 0 errors, 82 warnings. 791 source hashes match; fonts/notices verified in both APKs. Remaining components, pages, devices and security/signing gates are separate."
+    },
+    {
+      "title": "Earlier role, status and Welcome components · historical local verification",
+      "revision": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
+      "tests": 3110,
+      "failures": 0,
+      "command": ":app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease (documented unsigned CI mode)",
+      "evidence": "docs/evidence/auth-integration/verification.json and independent reviewer reports, 12 Sep 2026.",
+      "note": "A2/A10: critic 9.62, QA 9.5; Welcome: critic 9.59, QA 9.5. Lint: 0 errors, 82 warnings. Signed release, device and whole-app security acceptance remain open."
+    },
+    {
+      "title": "Blender headquarters · bounded local acceptance",
+      "revision": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
+      "tests": 26,
+      "failures": 0,
+      "command": "node --test scripts/tests/progress-dashboard.test.cjs scripts/tests/progress-dashboard-delivery.test.cjs",
+      "evidence": "Independent QA rerun and Chrome checks; independent critic review on 12 Sep 2026.",
+      "note": "QA 9.6/10; critic 9.55/10. Mobile, keyboard, reduced motion, GLB fallback and public package checked locally. Not public deployment or Android release acceptance."
+    },
+    {
+      "title": "Android helper baseline · historical",
+      "revision": "a9b35f3c",
+      "tests": 3075,
+      "failures": 0,
+      "command": ":app:testDebugUnitTest :app:assembleDebug",
+      "evidence": "docs/HANDOFF_CLAUDEDEV_QUALITY_20260912.md, lines 5–7",
+      "note": "Recorded by Claude on 12 Sep 2026, before the new routing-policy checkpoint. Not a test of the current development tree or a signed release."
+    },
+    {
+      "title": "Earlier dashboard design · historical",
+      "revision": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
+      "tests": 15,
+      "failures": 0,
+      "command": "node --test scripts/tests/progress-dashboard.test.cjs",
+      "evidence": "scripts/tests/progress-dashboard.test.cjs; independent QA rerun on 12 Sep 2026",
+      "note": "Historical 15-test baseline and scoped review. This does not accept the new 3D campus."
+    }
+  ],
+  "changes": [
+    {
+      "sha": "c7da5ee333d3913bf98052c9c20f81b3b56f6d38",
+      "time": "2026-09-12T19:27:11+05:30",
+      "summary": "feat(ui): make shared actions readable and grow with text"
+    },
+    {
+      "sha": "be8f42a1322fc8ca906fe951af45d57feb13f773",
+      "time": "2026-09-12T18:36:18+05:30",
+      "summary": "feat(ui): add lime and ink theme with bundled locale fonts"
+    },
+    {
+      "sha": "7f3c5eaa8c8ae218433f3217b86ea34e9a08691b",
+      "time": "2026-09-12T16:15:45+05:30",
+      "summary": "Android implementation · Android regression tests · Project handoff and review updated; outcome review pending"
+    },
+    {
+      "sha": "e22c7c5b60b0a9e82f53efb733f427758f82d4b0",
+      "time": "2026-09-12T16:15:22+05:30",
+      "summary": "Android implementation · Android regression tests · Project handoff and review updated; outcome review pending"
+    },
+    {
+      "sha": "e58c48c2774a77aa0e725f1945da4e48a0fd5873",
+      "time": "2026-09-12T15:26:15+05:30",
+      "summary": "Android implementation · Android regression tests updated; outcome review pending"
+    },
+    {
+      "sha": "c8b563a9b13e51245b0b0dd495fe1385eca0c6f4",
+      "time": "2026-09-12T15:18:20+05:30",
+      "summary": "Website and dashboard · Project handoff and review · Verification and delivery tooling updated; outcome review pending"
+    },
+    {
+      "sha": "176b5e1ba404468658a11da7fb644d2fa6e24cac",
+      "time": "2026-09-12T15:15:30+05:30",
+      "summary": "Build the Blender headquarters, robot work loops and guarded milestone dashboard"
+    },
+    {
+      "sha": "cc896587fc4b456a624ef2dc0036fafe0de4a65b",
+      "time": "2026-09-12T14:45:27+05:30",
+      "summary": "Project handoff and review updated; outcome review pending"
+    },
+    {
+      "sha": "3b2c29f8b7b9f25ea67646bdf10c6ce58088dbca",
+      "time": "2026-09-12T14:43:53+05:30",
+      "summary": "Website and dashboard · Verification and delivery tooling updated; outcome review pending"
+    },
+    {
+      "sha": "14cd1f7175e3547a8920a3b0abbf7b1bdafd44ce",
+      "time": "2026-09-12T14:41:55+05:30",
+      "summary": "Record dashboard test results and independent QA evidence"
+    },
+    {
+      "sha": "f7f433f9a8093b650ceda75fdf3a7ed4df17a3a1",
+      "time": "2026-09-12T14:40:36+05:30",
+      "summary": "Add reliable refresh, quota reset times and mobile dashboard layout"
+    },
+    {
+      "sha": "3fb2e8a65c98f4c5359cbf35421437b29e57b2ec",
+      "time": "2026-09-12T14:19:06+05:30",
+      "summary": "Save the first development-progress snapshot"
+    },
+    {
+      "sha": "0a5f8aeb521bc7a85badaa69bd328c7b2a5e9d93",
+      "time": "2026-09-12T14:18:27+05:30",
+      "summary": "Add the progress dashboard and links from the website"
+    },
+    {
+      "sha": "567625e6066d9730b56a4733a8dc1b059ec3dc84",
+      "time": "2026-09-12T14:05:29+05:30",
+      "summary": "Save the draft notification-navigation policy for integration"
+    }
+  ],
+  "majorMilestone": {
+    "id": "APP-02",
+    "title": "Selected Android theme and shared actions locally accepted",
+    "sequence": 4,
+    "major": true,
+    "recordedAt": "2026-09-12T14:08:38.369614+00:00"
+  },
+  "headquarters": [
+    {
+      "id": "center",
+      "name": "EquipSeva headquarters",
+      "status": "UI foundation locally verified",
+      "description": "The shared home for product, engineering and verification.",
+      "work": "Selected lime/ink theme, bundled locale fonts and shared buttons are tested and reviewed.",
+      "next": "Finish shared components, then migrate pages with their state and security gates.",
+      "evidence": "3155 tests passed; critic 9.595 and QA 9.58, local foundation/action scope only."
+    },
+    {
+      "id": "hospital",
+      "name": "Hospital headquarters",
+      "status": "UI improvements saved",
+      "description": "Request service, compare bids, track the visit and review the outcome.",
+      "work": "Hospital home prioritizes Request Service, with bookings and engineer discovery. English, Hindi and Telugu labels are saved.",
+      "next": "Apply the approved page plan after shared components; verify request, bid and completion states.",
+      "evidence": "Existing home regressions passed with the new foundation; full hospital redesign remains planned."
+    },
+    {
+      "id": "engineer",
+      "name": "Engineer headquarters",
+      "status": "Local status isolation verified",
+      "description": "Find work, prepare a visit, submit evidence and understand payment status.",
+      "work": "35 tests cover login replacement, stale results, manual refresh and returned-row ownership.",
+      "next": "Migrate shared controls and planned engineer pages while preserving account/KYC ownership checks.",
+      "evidence": "Final source-bound A10 evidence in the auth-integration verification ledger."
+    },
+    {
+      "id": "admin",
+      "name": "Admin headquarters",
+      "status": "Renewal audit pending",
+      "description": "Administration, operations and supporting web workflows.",
+      "work": "Compact payout actions now wrap at large text sizes. Callback and payment state logic retained.",
+      "next": "Complete shared components, then audit privileged admin pages and payment authorization before their full redesign.",
+      "evidence": "Source-like action-layout regression cases passed; no payment-provider or full admin acceptance."
+    },
+    {
+      "id": "login",
+      "name": "Login-flow headquarters",
+      "status": "Existing auth UI regressions retained",
+      "description": "Sign in, recover an account and enter the correct role workspace.",
+      "work": "Welcome and role tests pass with bundled typography. A full auth-page restyle has not yet landed.",
+      "next": "Finish shared fields/states, then implement the approved Welcome, Sign in, Sign up and recovery designs.",
+      "evidence": "Welcome 11 UI cases; RoleSelect 13 UI cases; carried root/session regressions passed."
+    },
+    {
+      "id": "security",
+      "name": "Security headquarters",
+      "status": "Broader security gates open",
+      "description": "Identity boundaries, access control and safe ownership of data.",
+      "work": "Visual changes preserve callbacks, permission configuration and existing account boundaries. Broader navigation/mutation gates remain open.",
+      "next": "Finish account-owned notification admission and cleanup/token ownership before release integration.",
+      "evidence": "Scoped UI review does not close A3/A4/A12 or the recorded dependency triage gate."
+    },
+    {
+      "id": "qa",
+      "name": "Quality-assurance lab",
+      "status": "UI foundation/action scope accepted",
+      "description": "Regression tests, accessibility checks and independent critique.",
+      "work": "3155 tests passed; critic 9.595/10 and QA 9.58/10 for this local UI slice.",
+      "next": "Review each remaining component/page batch; physical-device, TalkBack, IME and signed-release checks remain open.",
+      "evidence": "791 source hashes match. Lint 0 errors/82 warnings. Fonts and notices verified in debug and unsigned release APKs."
+    },
+    {
+      "id": "plan",
+      "name": "Next-plan headquarters",
+      "status": "Approved theme; staged page migration",
+      "description": "The queue of milestones after the current campus delivery.",
+      "work": "All98 screen declarations have a planning disposition. UI-01 is implemented; only the shared-action part of UI-02 is accepted.",
+      "next": "Remaining UI-02 components → UI-03 auth entry → both-role pages, with A3/A4/A12 gates before dependent integration.",
+      "evidence": "12 September theme/page plan and UI foundation/action evidence. Planning coverage is not implementation completion."
+    },
+    {
+      "id": "main",
+      "name": "GitHub main release gate",
+      "status": "New candidate not integrated",
+      "description": "The output lane is a status view. It cannot merge or publish code.",
+      "work": "Development checkpoints are saved on the coordinator branch. They do not prove a main integration or shipped release.",
+      "next": "Require matching security, QA and critic evidence, then observe the authorized main integration.",
+      "evidence": "Main inclusion and signed-release evidence are separate from website publication."
+    }
+  ],
+  "release": {
+    "scope": "android-renewal",
+    "candidate": null,
+    "security": null,
+    "qa": null,
+    "critic": null,
+    "mainObservation": null
+  }
+}

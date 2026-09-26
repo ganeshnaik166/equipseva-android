@@ -184,6 +184,13 @@ serve(async (req) => {
     body: JSON.stringify({
       amount: amountPaise,
       currency: "INR",
+      // Ask for auto-capture explicitly instead of inheriting whatever
+      // the Razorpay dashboard is set to. Our verify + webhook paths
+      // treat an `authorized` payment as paid on the assumption that
+      // capture follows; under manual capture the authorization
+      // auto-reverses after ~5 days while the AMC top-up row stays
+      // paid, so the pool is credited with money that came back.
+      payment_capture: 1,
       receipt: paymentOrderId,
       notes: {
         kind: "amc_pool_topup",

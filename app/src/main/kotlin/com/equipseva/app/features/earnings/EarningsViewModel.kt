@@ -78,7 +78,16 @@ class EarningsViewModel @Inject constructor(
             authRepository.sessionState
                 .filterIsInstance<AuthSession.SignedIn>()
                 .distinctUntilChangedBy { it.userId }
-                .collect { load(initial = true) }
+                .collect {
+                    // Every slice below is "quiet on failure" so the screen
+                    // keeps what it already had. On a user CHANGE that is the
+                    // wrong default: a failed fetch for the new account would
+                    // leave the previous engineer's escrow totals, rank, AMC
+                    // payouts and bank transfers on screen as if they were
+                    // theirs.
+                    _state.value = UiState()
+                    load(initial = true)
+                }
         }
     }
 

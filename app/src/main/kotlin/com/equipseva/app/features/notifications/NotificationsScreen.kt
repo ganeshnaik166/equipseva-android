@@ -1,5 +1,7 @@
 package com.equipseva.app.features.notifications
 
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,6 +35,7 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.ripple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -47,23 +51,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.equipseva.app.R
 import com.equipseva.app.core.data.notifications.Notification
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
 import com.equipseva.app.designsystem.components.ErrorBanner
 import com.equipseva.app.designsystem.components.EsTopBar
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.designsystem.theme.BorderDefault
 import com.equipseva.app.designsystem.theme.PaperDefault
 import com.equipseva.app.designsystem.theme.SevaDanger500
 import com.equipseva.app.designsystem.theme.SevaGreen50
 import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInfo500
-import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk700
 import com.equipseva.app.designsystem.theme.SevaInk900
@@ -99,31 +108,27 @@ fun NotificationsScreen(
                 right = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (state.hasUnread) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .clickable(onClick = viewModel::markAllRead),
-                                contentAlignment = Alignment.Center,
+                            InboxIconAction(
+                                onClick = viewModel::markAllRead,
+                                contentDescription = stringResource(
+                                    R.string.notifications_mark_all_read_cd,
+                                ),
                             ) {
                                 Icon(
                                     Icons.Filled.DoneAll,
-                                    contentDescription = "Mark all read",
+                                    contentDescription = null,
                                     tint = SevaGreen700,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .clickable(onClick = onOpenSettings),
-                            contentAlignment = Alignment.Center,
+                        InboxIconAction(
+                            onClick = onOpenSettings,
+                            contentDescription = stringResource(R.string.notifications_settings_cd),
                         ) {
                             Icon(
                                 Icons.Outlined.Settings,
-                                contentDescription = "Notification settings",
+                                contentDescription = null,
                                 tint = SevaInk700,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -216,7 +221,7 @@ private fun NotificationRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable(role = Role.Button, onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -247,7 +252,9 @@ private fun NotificationRow(
                         // Sibling chat row uses bare relativeLabel for the same data; match.
                         text = relativeLabel(it),
                         fontSize = 11.sp,
-                        color = SevaInk400,
+                        // SevaInk400 is 3.95:1 on white, under the 4.5:1 AA
+                        // floor for 11 sp body text.
+                        color = SevaInk500,
                     )
                 }
             }
@@ -483,3 +490,44 @@ internal fun notificationRowTitleText(title: String, body: String): String =
  */
 internal fun notificationRowShouldShowBody(title: String, body: String): Boolean =
     title.isNotBlank() && body.isNotBlank()
+
+/**
+ * A top-bar icon action: 36 dp state layer, 48 dp tap target.
+ *
+ * The two sizes have to come from two nodes. The circular state layer is the
+ * designed 36 dp, but the node that receives the tap is the outer box measured
+ * to the interactive minimum, with the ripple handed back through a shared
+ * interaction source so it still paints as the 36 dp circle. A size modifier
+ * on one node cannot be both: coercing the box to 48 dp doubles the circle,
+ * and a plain reservation above a nested clickable leaves the tap on the icon.
+ */
+@Composable
+private fun InboxIconAction(
+    onClick: () -> Unit,
+    contentDescription: String,
+    icon: @Composable () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .sizeIn(minWidth = Spacing.MinTouchTarget, minHeight = Spacing.MinTouchTarget)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .indication(interaction, ripple()),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+    }
+}

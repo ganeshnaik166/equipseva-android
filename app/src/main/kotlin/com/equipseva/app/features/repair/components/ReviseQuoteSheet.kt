@@ -1,5 +1,7 @@
 package com.equipseva.app.features.repair.components
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -113,6 +115,7 @@ fun ReviseQuoteSheet(
                 color = SevaInk900,
             )
             EsField(
+                palette = LightEsColors,
                 value = amountText,
                 onChange = { amountText = it.filter { c -> c in '0'..'9' || c == '.' }.take(10) },
                 label = "Revised amount (₹)",
@@ -127,6 +130,7 @@ fun ReviseQuoteSheet(
                 )
             }
             EsField(
+                palette = LightEsColors,
                 value = reason,
                 onChange = { reason = it.take(REASON_MAX + 5) },
                 label = "Reason (50-500 chars)",

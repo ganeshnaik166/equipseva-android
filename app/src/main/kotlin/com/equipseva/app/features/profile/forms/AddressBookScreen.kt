@@ -1,5 +1,7 @@
 package com.equipseva.app.features.profile.forms
 
+// Fixed light parent compatibility; remove with this page's complete theme migration.
+import com.equipseva.app.designsystem.theme.LightEsColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -297,13 +299,14 @@ private fun AddressRowCard(
                 }
             }
             TextButton(onClick = onEdit, enabled = !actingThis) {
-                Text(stringResource(R.string.address_book_edit_action), fontSize = 12.sp)
+                Text(stringResource(R.string.address_book_edit_action), fontSize = 12.sp,
+                    color = if (actingThis) LightEsColors.disabled.content else LightEsColors.text)
             }
             TextButton(onClick = onDelete, enabled = !actingThis) {
                 Text(
                     stringResource(R.string.address_book_delete_action),
                     fontSize = 12.sp,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                    color = LightEsColors.error.content,
                 )
             }
         }

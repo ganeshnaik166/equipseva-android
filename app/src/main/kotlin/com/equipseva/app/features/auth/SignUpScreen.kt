@@ -1,5 +1,7 @@
 package com.equipseva.app.features.auth
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import com.equipseva.app.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,12 +64,10 @@ fun SignUpScreen(
     onShowMessage: (String) -> Unit,
     onBack: () -> Unit = {},
     onSignIn: () -> Unit = {},
-    // v0.3.4 — invoked when a hospital admin completes signup; routes
-    // into HOSPITAL_PHONE_ONBOARDING before the session-state observer
-    // can swap to the main graph. Engineers don't trigger this callback
-    // (their AuthEffect.NavigateToHome lets AuthHostInline route to Home).
+    // Legacy effect name; the root host re-fetches the authoritative profile.
     onNavigateToPhoneOnboarding: () -> Unit = {},
     viewModel: SignUpViewModel = hiltViewModel(),
+    onProfileSaved: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -75,7 +75,7 @@ fun SignUpScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
-                AuthEffect.NavigateToHome -> Unit
+                AuthEffect.NavigateToHome -> onProfileSaved()
                 AuthEffect.NavigateToHospitalPhoneOnboarding ->
                     onNavigateToPhoneOnboarding()
             }
@@ -119,6 +119,7 @@ fun SignUpScreen(
                 ErrorBanner(message = state.form.errorMessage)
 
                 EsField(
+                    palette = LightEsColors,
                     value = state.fullName,
                     onChange = viewModel::onFullNameChange,
                     label = "Full name",
@@ -128,6 +129,7 @@ fun SignUpScreen(
                 )
                 Spacer(Modifier.height(14.dp))
                 EsField(
+                    palette = LightEsColors,
                     value = state.email,
                     onChange = viewModel::onEmailChange,
                     label = "Email",
@@ -138,6 +140,7 @@ fun SignUpScreen(
                 )
                 Spacer(Modifier.height(14.dp))
                 EsField(
+                    palette = LightEsColors,
                     value = state.password,
                     onChange = viewModel::onPasswordChange,
                     label = "Password",

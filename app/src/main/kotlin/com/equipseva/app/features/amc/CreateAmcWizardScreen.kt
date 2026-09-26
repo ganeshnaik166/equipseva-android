@@ -1,5 +1,7 @@
 package com.equipseva.app.features.amc
 
+import com.equipseva.app.designsystem.theme.LightEsColors
+
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +54,7 @@ import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.payments.PendingAmcContractsStore
 import com.equipseva.app.core.payments.PendingAmcPaymentsStore
 import com.equipseva.app.core.payments.RazorpayCheckoutLauncher
+import com.equipseva.app.core.payments.isScopeCancellation
 import com.equipseva.app.core.util.sanitizeServerName
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -77,6 +79,7 @@ import com.equipseva.app.designsystem.theme.SevaInk900
 import com.equipseva.app.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -99,6 +102,7 @@ class CreateAmcWizardViewModel @Inject constructor(
     private val pendingPaymentsStore: PendingAmcPaymentsStore,
     private val pendingContractsStore: PendingAmcContractsStore,
     private val analytics: com.equipseva.app.core.data.analytics.AnalyticsClient,
+    private val crashReporter: com.equipseva.app.core.observability.CrashReporter,
 ) : ViewModel() {
 
     init {
@@ -263,7 +267,7 @@ class CreateAmcWizardViewModel @Inject constructor(
                     val scope = prior.scopeText.orEmpty().take(4000)
                     val freq = prior.visitFrequency
                     val visits = prior.visitsPerYear
-                    val fee = prior.monthlyFeeRupees.toLong().toString()
+                    val fee = amcFeeFieldValue(prior.monthlyFeeRupees)
                     savedStateHandle[SavedKeys.CATEGORIES] = cats.toTypedArray()
                     savedStateHandle[SavedKeys.SCOPE_TEXT] = scope
                     savedStateHandle[SavedKeys.VISIT_FREQUENCY] = freq
@@ -351,12 +355,21 @@ class CreateAmcWizardViewModel @Inject constructor(
 
     fun openPicker() = _state.update { it.copy(pickerOpen = true, pickerQuery = "") }
     fun closePicker() = _state.update { it.copy(pickerOpen = false) }
+    // One search in flight at a time: a keystroke-per-request picker lets a
+    // slower earlier query complete last and repopulate the list with
+    // results for a prefix the user has already typed past.
+    private var pickerSearchJob: kotlinx.coroutines.Job? = null
+
     fun setPickerQuery(q: String) {
+        pickerSearchJob?.cancel()
         _state.update { it.copy(pickerQuery = q, pickerLoading = true) }
-        viewModelScope.launch {
+        pickerSearchJob = viewModelScope.launch {
             engineerRepo.search(query = q.takeIf { it.isNotBlank() }, sortMode = DirectorySortMode.Rating)
                 .onSuccess { rows ->
                     _state.update { st ->
+                        // Belt and braces with the cancel above: the results
+                        // must match what is in the field right now.
+                        if (st.pickerQuery != q) return@update st
                         st.copy(
                             pickerLoading = false,
                             pickerResults = rows
@@ -375,13 +388,21 @@ class CreateAmcWizardViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
+                    // A superseded search is not a failure the user should
+                    // read about — and toUserMessage() re-throws
+                    // CancellationException from inside the update lambda,
+                    // which would leave pickerLoading stuck on.
+                    if (e is kotlinx.coroutines.CancellationException) return@onFailure
                     // Round 424 — was silently swallowing the picker
                     // search failure; the user saw the loader disappear
                     // with no results and no signal that the directory
                     // RPC actually failed. Surface via the existing
                     // error channel so the WizardError banner renders
                     // a recoverable message + Try Again loop.
-                    _state.update { st -> st.copy(pickerLoading = false, error = e.toUserMessage()) }
+                    val msg = e.toUserMessage()
+                    _state.update { st ->
+                        if (st.pickerQuery != q) st else st.copy(pickerLoading = false, error = msg)
+                    }
                 }
         }
     }
@@ -400,7 +421,7 @@ class CreateAmcWizardViewModel @Inject constructor(
 
     /**
      * Persist the contract via [AmcRepository.createContract] then run
-     * the Razorpay first-month upfront via [AmcPaymentViewModel.runCheckout].
+     * the Razorpay first-month upfront via [AmcPaymentViewModel.startCheckout].
      * On verified success, calls [onSuccess] with the contract id so the
      * caller can navigate into [AmcDetailScreen].
      */
@@ -416,8 +437,18 @@ class CreateAmcWizardViewModel @Inject constructor(
             _state.update { it.copy(error = "Monthly fee must be a positive number") }
             return
         }
-        val emergency = s.responseTimeEmergencyHours.toIntOrNull()?.coerceAtLeast(1) ?: 4
-        val standard = s.responseTimeStandardHours.toIntOrNull()?.coerceAtLeast(1) ?: 24
+        // Revalidate the captured draft at the write boundary: restored state
+        // can bypass the SLA page, and submission must preserve its chosen hours.
+        val responseHours = parseAmcResponseHours(
+            s.responseTimeStandardHours,
+            s.responseTimeEmergencyHours,
+        )
+        if (responseHours == null) {
+            _state.update {
+                it.copy(error = "Enter positive whole hours for both standard and emergency response times")
+            }
+            return
+        }
 
         // Default term = 1 year. start = today (IST), end = +365d.
         // Anchored to Asia/Kolkata so a device on UTC doesn't shift the
@@ -438,8 +469,8 @@ class CreateAmcWizardViewModel @Inject constructor(
                 endDate = end,
                 equipmentCategories = s.equipmentCategories,
                 scopeText = s.scopeText.takeIf { it.isNotBlank() },
-                responseTimeEmergencyHours = emergency,
-                responseTimeStandardHours = standard,
+                responseTimeEmergencyHours = responseHours.emergency,
+                responseTimeStandardHours = responseHours.standard,
                 // Auto-renew is opt-in via the Step 4 toggle. We pass the
                 // hospital's explicit choice through to the schema rather
                 // than letting the column default (true) silently auto-
@@ -460,23 +491,40 @@ class CreateAmcWizardViewModel @Inject constructor(
                     // (contract is `active` server-side) — every other path
                     // leaves it so the user (or the 24h server reaper) can
                     // decide the contract's fate.
-                    runCatching { pendingContractsStore.add(newId) }
-                    val ok = runCheckout(
+                    // Cancellation must NOT be swallowed here: if the marker
+                    // write is interrupted and we carry on, the contract sits
+                    // in `pending_payment` with nothing on the device to
+                    // surface the Home banner that would let the hospital
+                    // finish paying before the reaper cancels it.
+                    try {
+                        pendingContractsStore.add(newId)
+                    } catch (ce: kotlinx.coroutines.CancellationException) {
+                        throw ce
+                    } catch (_: Throwable) {
+                        // Best-effort marker; the server row is the truth.
+                    }
+                    val outcome = runCheckout(
                         activity = activity,
                         amcContractId = newId,
                         months = 1,
                         engineerName = s.primaryEngineerName,
                     )
                     _state.update { it.copy(submitting = false) }
-                    if (ok) {
-                        runCatching { pendingContractsStore.remove(newId) }
-                        onShowMessage("AMC contract activated.")
-                    } else {
-                        onShowMessage(
-                            "Contract pending payment. Complete it from the AMC " +
-                                "detail screen or it will be cancelled in 24 hours.",
-                        )
+                    if (outcome is AmcWizardPaymentOutcome.Paid) {
+                        try {
+                            pendingContractsStore.remove(newId)
+                        } catch (ce: kotlinx.coroutines.CancellationException) {
+                            throw ce
+                        } catch (_: Throwable) {
+                            // Best-effort; AmcDetail clears it on next load.
+                        }
                     }
+                    // Both callbacks touch the navigator: without this check a
+                    // wizard the user backed out of would still toast and then
+                    // navigate to the new contract from whatever screen they
+                    // had moved on to.
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                    onShowMessage(amcWizardPaymentMessage(outcome))
                     onSuccess(newId)
                 },
                 onFailure = { e ->
@@ -492,7 +540,7 @@ class CreateAmcWizardViewModel @Inject constructor(
 
     /**
      * End-to-end Razorpay flow used by the wizard's first-month upfront
-     * payment. Mirrors [AmcPaymentViewModel.runCheckout] verbatim — kept
+     * payment. Mirrors the top-up sheet's checkout — kept
      * inline here so we don't have to constructor-inject another
      * @HiltViewModel (Hilt forbids that). Callers from outside the
      * wizard use [AmcPaymentViewModel].
@@ -502,9 +550,13 @@ class CreateAmcWizardViewModel @Inject constructor(
         amcContractId: String,
         months: Int,
         engineerName: String,
-    ): Boolean {
+    ): AmcWizardPaymentOutcome {
         val orderRes = repo.createPaymentOrder(amcContractId, months)
-        if (orderRes.isFailure) return false
+        if (orderRes.isFailure) {
+            val cause = orderRes.exceptionOrNull()
+            if (isScopeCancellation(cause)) throw cause!!
+            return AmcWizardPaymentOutcome.NotPaid(checkoutFailureMessage(cause))
+        }
         val order = orderRes.getOrThrow()
         val session = auth.sessionState
             .filterIsInstance<AuthSession.SignedIn>()
@@ -516,7 +568,17 @@ class CreateAmcWizardViewModel @Inject constructor(
         // UPI app leaves no client trace; the reconciler can't tell
         // whether the payment captured server-side, so the user gets
         // a stale "pay" CTA even though their money already moved.
-        runCatching { pendingPaymentsStore.add(order.paymentOrderId) }
+        // Cancellation must reach the caller: a swallowed one let execution
+        // continue into checkout.open() after the result bridge was torn
+        // down, so Razorpay could be shown with nobody listening for the
+        // payment result.
+        try {
+            pendingPaymentsStore.add(order.paymentOrderId)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            // Best-effort marker; the server-side order row is the truth.
+        }
         // r516 (v0.4 P5 #10) — funnel ping immediately before handing the
         // user to the Razorpay sheet. We never want to miss "initiated"
         // even if the user backs out of the SDK or the device dies.
@@ -525,7 +587,8 @@ class CreateAmcWizardViewModel @Inject constructor(
             mapOf("amount_paise" to order.amountPaise, "months" to months),
         )
 
-        val result = runCatching {
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        val result = try {
             launcher.startPayment(
                 activity = activity,
                 amountPaise = order.amountPaise,
@@ -537,40 +600,85 @@ class CreateAmcWizardViewModel @Inject constructor(
                 razorpayOrderId = order.razorpayOrderId,
                 keyId = order.keyId,
             )
-        }.getOrElse {
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (e: Throwable) {
             // SDK threw — payment may or may not have captured. Leave
             // the marker for the reconciler to resolve on cold-start.
-            return false
+            return AmcWizardPaymentOutcome.NotPaid(checkoutFailureMessage(e))
         }
         return when (result) {
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Cancelled -> {
-                runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
-                false
+                clearPaymentMarker(order.paymentOrderId)
+                AmcWizardPaymentOutcome.NotPaid(null)
             }
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Failed -> {
-                runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
-                false
+                clearPaymentMarker(order.paymentOrderId)
+                // Razorpay's own reason (bank declined, wrong UPI PIN, …) is
+                // the only thing that tells the hospital what to change; the
+                // generic pending-payment line alone read as a silent refusal.
+                AmcWizardPaymentOutcome.NotPaid(result.message)
             }
             is RazorpayCheckoutLauncher.RazorpayPaymentResult.Success -> {
-                val verifyRes = repo.verifyPayment(
+                // Persist the signature before verifying: until the server
+                // confirms, the device holds the only proof this charge
+                // happened.
+                val payload = com.equipseva.app.core.payments.VerifiableAmcPayment(
                     paymentOrderId = order.paymentOrderId,
                     razorpayOrderId = result.razorpayOrderId.ifBlank { order.razorpayOrderId },
                     razorpayPaymentId = result.razorpayPaymentId,
                     razorpaySignature = result.razorpaySignature,
                 )
-                if (verifyRes.isSuccess) {
-                    runCatching { pendingPaymentsStore.remove(order.paymentOrderId) }
-                    // r516 (v0.4 P5 #10) — server-confirmed contract activation.
-                    analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.AMC_CONTRACT_ACTIVE)
-                    true
-                } else {
-                    // Verify failed AFTER Razorpay reported Success —
-                    // payment likely captured; leave the marker so the
-                    // PendingAmcPaymentsReconciler can resolve on the
-                    // next cold-start via server-side order status.
-                    false
+                try {
+                    pendingPaymentsStore.recordVerifiable(payload)
+                } catch (ce: kotlinx.coroutines.CancellationException) {
+                    throw ce
+                } catch (_: Throwable) {
+                    // Best-effort; the verify attempts below usually settle it.
                 }
+                var lastError: Throwable? = null
+                for (attempt in 0..AMC_WIZARD_VERIFY_RETRY_DELAYS_MS.size) {
+                    if (attempt > 0) {
+                        kotlinx.coroutines.delay(AMC_WIZARD_VERIFY_RETRY_DELAYS_MS[attempt - 1])
+                    }
+                    val verifyRes = repo.verifyPayment(
+                        paymentOrderId = payload.paymentOrderId,
+                        razorpayOrderId = payload.razorpayOrderId,
+                        razorpayPaymentId = payload.razorpayPaymentId,
+                        razorpaySignature = payload.razorpaySignature,
+                    )
+                    if (verifyRes.isSuccess) {
+                        clearPaymentMarker(order.paymentOrderId)
+                        // r516 (v0.4 P5 #10) — server-confirmed contract activation.
+                        analytics.track(com.equipseva.app.core.data.analytics.AnalyticsEvent.AMC_CONTRACT_ACTIVE)
+                        return AmcWizardPaymentOutcome.Paid
+                    }
+                    val error = verifyRes.exceptionOrNull() ?: break
+                    if (isScopeCancellation(error)) throw error
+                    lastError = error
+                    if (!shouldRetryAmcVerify(error)) break
+                }
+                // Verify failed AFTER Razorpay reported Success —
+                // payment likely captured; leave the marker so the
+                // PendingAmcPaymentsReconciler can resolve on the
+                // next cold-start via server-side order status. A charged
+                // hospital and an uncredited contract is the most expensive
+                // state this flow can reach, so it gets reported.
+                lastError?.let {
+                    crashReporter.report(it, "amc wizard verify failed after Razorpay success")
+                }
+                AmcWizardPaymentOutcome.ChargedAwaitingConfirmation
             }
+        }
+    }
+
+    private suspend fun clearPaymentMarker(paymentOrderId: String) {
+        try {
+            pendingPaymentsStore.remove(paymentOrderId)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            // Best-effort; the reconciler clears it on the next cold start.
         }
     }
 
@@ -580,6 +688,64 @@ class CreateAmcWizardViewModel @Inject constructor(
         // AMC default term is 1 year (365 days). Server is the authority on
         // the actual end date — this is only the wizard pre-fill.
         const val DEFAULT_CONTRACT_DAYS: Long = 365L
+    }
+}
+
+/**
+ * Renders a stored monthly fee back into the wizard's fee input.
+ *
+ * Truncating to a whole number silently renewed a ₹2,999.50 contract at
+ * ₹2,999 — a fee cut the hospital never asked for and could not see. A
+ * trailing ".0" on whole-rupee fees is equally wrong in a field the hospital
+ * is about to re-read, so exact-to-the-paise but no cosmetic decimals.
+ *
+ * Locale.US is deliberate: a comma-decimal locale would produce "2999,5",
+ * which the field's own `toDoubleOrNull()` gate then rejects as invalid.
+ */
+internal fun amcFeeFieldValue(monthlyFeeRupees: Double): String =
+    String.format(java.util.Locale.US, "%.2f", monthlyFeeRupees)
+        .trimEnd('0')
+        .trimEnd('.')
+
+/** Outcome of the wizard's first-month charge. */
+internal sealed interface AmcWizardPaymentOutcome {
+    /** Server verified the charge; the contract is active. */
+    data object Paid : AmcWizardPaymentOutcome
+
+    /** Razorpay captured the money; the server has not confirmed it yet. */
+    data object ChargedAwaitingConfirmation : AmcWizardPaymentOutcome
+
+    /** No money moved. [reason] is Razorpay's own copy when it gave one. */
+    data class NotPaid(val reason: String?) : AmcWizardPaymentOutcome
+}
+
+/**
+ * Backoff between verify replays, mirroring the top-up sheet. The verify
+ * edge fn is idempotent, so a replay can only help.
+ */
+private val AMC_WIZARD_VERIFY_RETRY_DELAYS_MS = longArrayOf(1_000L, 3_000L)
+
+/**
+ * The line the hospital sees after the wizard's first-month charge.
+ *
+ * Pinned because the three cases must never be told the same thing:
+ *   * Paid — the contract is live.
+ *   * ChargedAwaitingConfirmation — the SDK reported success, but server credit
+ *     is unconfirmed. Discourage a duplicate payment without promising capture
+ *     or automatic activation; recovery may still need support.
+ *   * NotPaid — nothing moved; the 24 h reaper deadline is the actionable
+ *     fact, and Razorpay's own reason (when it gave one) leads it because it
+ *     is the part the hospital can act on.
+ */
+internal fun amcWizardPaymentMessage(outcome: AmcWizardPaymentOutcome): String = when (outcome) {
+    is AmcWizardPaymentOutcome.Paid -> "AMC contract activated."
+    is AmcWizardPaymentOutcome.ChargedAwaitingConfirmation ->
+        "Your payment is awaiting confirmation. Don't pay again yet. " +
+            "If the contract remains pending, contact support."
+    is AmcWizardPaymentOutcome.NotPaid -> {
+        val pending = "Contract pending payment. Complete it from the AMC " +
+            "detail screen or it will be cancelled in 24 hours."
+        outcome.reason?.takeIf { it.isNotBlank() }?.let { "$it $pending" } ?: pending
     }
 }
 
@@ -611,14 +777,17 @@ fun CreateAmcWizardScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context as? Activity
-    val scope = rememberCoroutineScope()
 
     Surface(modifier = Modifier.fillMaxSize(), color = PaperDefault) {
         Column(modifier = Modifier.fillMaxSize()) {
             EsTopBar(
                 title = "New maintenance contract",
                 subtitle = stepLabel(state.step),
-                onBack = onBack,
+                // Leaving mid-submit tears down the ViewModel between
+                // "contract created" and "first month paid", which strands the
+                // contract in pending_payment; hold the exits until the charge
+                // has resolved one way or the other.
+                onBack = { if (!state.submitting) onBack() },
             )
             Box(modifier = Modifier.weight(1f)) {
                 Column(
@@ -664,6 +833,7 @@ fun CreateAmcWizardScreen(
                             },
                             kind = EsBtnKind.Secondary,
                             size = EsBtnSize.Lg,
+                            disabled = state.submitting,
                         )
                         Box(modifier = Modifier.weight(1f)) {
                             val isLast = state.step == CreateAmcWizardViewModel.Step.Engineer
@@ -678,9 +848,6 @@ fun CreateAmcWizardScreen(
                                         if (activity == null) {
                                             onShowMessage("Couldn't open Razorpay — please try again.")
                                             return@EsBtn
-                                        }
-                                        scope.launch {
-                                            // No-op wrapper: ViewModel handles its own scope.
                                         }
                                         viewModel.submitAndPay(
                                             activity = activity,
@@ -766,6 +933,7 @@ private fun ScopeStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWiza
     EsSection(title = "Scope notes") {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             EsField(
+                palette = LightEsColors,
                 value = state.scopeText,
                 onChange = vm::setScopeText,
                 placeholder = "What's covered? (e.g., quarterly calibration, OT equipment)",
@@ -795,6 +963,7 @@ private fun FrequencyFeeStep(state: CreateAmcWizardViewModel.UiState, vm: Create
             }
             Spacer(Modifier.height(12.dp))
             EsField(
+                palette = LightEsColors,
                 value = state.visitsPerYear.toString(),
                 onChange = vm::setVisitsPerYear,
                 label = "Visits per year",
@@ -806,6 +975,7 @@ private fun FrequencyFeeStep(state: CreateAmcWizardViewModel.UiState, vm: Create
     EsSection(title = "Monthly fee") {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             EsField(
+                palette = LightEsColors,
                 value = state.monthlyFeeRupees,
                 onChange = vm::setMonthlyFeeRupees,
                 label = "Monthly fee (₹)",
@@ -824,6 +994,7 @@ private fun SlaStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWizard
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             EsField(
+                palette = LightEsColors,
                 value = state.responseTimeStandardHours,
                 onChange = vm::setStandardHours,
                 label = "Standard (hours)",
@@ -831,6 +1002,7 @@ private fun SlaStep(state: CreateAmcWizardViewModel.UiState, vm: CreateAmcWizard
                 hint = "Default 24h. SLA breach auto-issues a goodwill credit if exceeded.",
             )
             EsField(
+                palette = LightEsColors,
                 value = state.responseTimeEmergencyHours,
                 onChange = vm::setEmergencyHours,
                 label = "Emergency (hours)",
@@ -977,6 +1149,7 @@ private fun FallbackPickerSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             EsField(
+                palette = LightEsColors,
                 value = query,
                 onChange = onQueryChange,
                 placeholder = "Search by name, brand, or specialization",
@@ -1161,17 +1334,26 @@ internal fun canProceedFrequencyFeeStep(
  * Step 3 (SLA) Next-button gate on the AMC wizard.
  *
  * Both standard AND emergency response-time hours must be positive
- * finite Doubles. Pin > 0.0 strict — a 0-hour SLA would be
- * meaningless and a negative-hour SLA would silently route every
- * visit as breached.
+ * whole hours. Pin > 0 strict — a 0-hour SLA would be meaningless and a
+ * negative-hour SLA would silently route every visit as breached.
+ *
+ * Uses the same parsed values as submission. The database accepts integer
+ * hours, so neither fractional nor invalid input may silently become defaults.
  */
 internal fun canProceedSlaStep(
     responseTimeStandardHours: String,
     responseTimeEmergencyHours: String,
-): Boolean {
-    val std = responseTimeStandardHours.trim().toDoubleOrNull()
-    val emerg = responseTimeEmergencyHours.trim().toDoubleOrNull()
-    return std != null && std > 0.0 && emerg != null && emerg > 0.0
+): Boolean = parseAmcResponseHours(responseTimeStandardHours, responseTimeEmergencyHours) != null
+
+internal data class AmcResponseHours(val standard: Int, val emergency: Int)
+
+internal fun parseAmcResponseHours(
+    responseTimeStandardHours: String,
+    responseTimeEmergencyHours: String,
+): AmcResponseHours? {
+    val standard = responseTimeStandardHours.trim().toIntOrNull()?.takeIf { it > 0 } ?: return null
+    val emergency = responseTimeEmergencyHours.trim().toIntOrNull()?.takeIf { it > 0 } ?: return null
+    return AmcResponseHours(standard = standard, emergency = emergency)
 }
 
 /**

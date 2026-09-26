@@ -1,8 +1,6 @@
 package com.equipseva.app.features.repair
 
-import android.content.Intent
 import android.net.Uri
-import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,7 +51,7 @@ import com.equipseva.app.core.data.repair.RepairBid
 import com.equipseva.app.core.data.repair.RepairBidStatus
 import com.equipseva.app.core.data.repair.RepairJob
 import com.equipseva.app.core.data.repair.RepairJobStatus
-import com.equipseva.app.core.util.formatRupees
+import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.designsystem.components.EsSection
 import com.equipseva.app.designsystem.components.EsTopBar
 import com.equipseva.app.designsystem.components.HelpSupportSheet
@@ -136,20 +134,18 @@ fun RepairJobDetailScreen(
                 // PR-D3: hand the signed report URL to the system browser.
                 // Chrome / WebView render the HTML with photos and the
                 // user can use the print menu to save as PDF if needed.
-                is RepairJobDetailViewModel.Effect.OpenServiceReport -> {
-                    val intent = Intent(Intent.ACTION_VIEW, effect.url.toUri()).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }
+                // The shared helper carries the ActivityNotFoundException
+                // guard these two call sites lacked: a device or work
+                // profile with no browser threw straight out of
+                // startActivity and took the whole detail screen down,
+                // while the "Navigate to site" button a few hundred lines
+                // below had always guarded the identical pattern.
+                is RepairJobDetailViewModel.Effect.OpenServiceReport ->
+                    openExternalUrl(context, effect.url)
                 // Round 449: same browser-handoff for the GST tax
                 // invoice. Hospital uses the print menu to save as PDF.
-                is RepairJobDetailViewModel.Effect.OpenInvoice -> {
-                    val intent = Intent(Intent.ACTION_VIEW, effect.url.toUri()).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }
+                is RepairJobDetailViewModel.Effect.OpenInvoice ->
+                    openExternalUrl(context, effect.url)
             }
         }
     }
@@ -186,7 +182,6 @@ internal fun RepairJobDetailContent(
     modifier: Modifier = Modifier,
 ) {
     var withdrawConfirmOpen by rememberSaveable { mutableStateOf(false) }
-    var checkinSheetOpen by rememberSaveable { mutableStateOf(false) }
     var cancelSheetOpen by rememberSaveable { mutableStateOf(false) }
     var rateSheetOpen by rememberSaveable { mutableStateOf(false) }
     // FIX #10 — Help & Support escalation sheet, opened from the '?'
@@ -212,8 +207,10 @@ internal fun RepairJobDetailContent(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Box(
+                            // 48dp is the Material / WCAG touch-target floor;
+                            // the glyph inside stays 18dp.
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(Color.Transparent)
                                 .clickable(
@@ -235,10 +232,14 @@ internal fun RepairJobDetailContent(
                             Box {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(48.dp)
                                         .clip(CircleShape)
                                         .background(Color.Transparent)
-                                        .clickable { menuOpen = true },
+                                        .clickable(
+                                            onClickLabel = "Open job options",
+                                            role = androidx.compose.ui.semantics.Role.Button,
+                                            onClick = { menuOpen = true },
+                                        ),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
@@ -278,7 +279,7 @@ internal fun RepairJobDetailContent(
                     queuedStatusCount = state.queuedStatusCount,
                     pendingCostRevision = state.pendingCostRevision,
                     onPlaceBid = actions::openBidComposer,
-                    onCheckIn = { checkinSheetOpen = true },
+                    onCheckIn = actions::openCheckinSheet,
                     onMarkDone = actions::openProofSheet,
                     onRate = { rateSheetOpen = true },
                     onCancel = { cancelSheetOpen = true },
@@ -352,6 +353,7 @@ internal fun RepairJobDetailContent(
                     ownBid = state.ownBid,
                     bids = state.bids,
                     engineerNames = state.engineerNames,
+                    assignedEngineerName = state.assignedEngineerName,
                     hospitalName = state.hospitalName,
                     hospitalLocation = state.hospitalLocation,
                     viewerRole = state.viewerRole,
@@ -398,14 +400,11 @@ internal fun RepairJobDetailContent(
         )
     }
 
-    if (checkinSheetOpen) {
+    if (state.checkinSheetOpen) {
         CheckinSheet(
             updating = state.updatingStatus,
-            onDismiss = { if (!state.updatingStatus) checkinSheetOpen = false },
-            onConfirm = { photos ->
-                checkinSheetOpen = false
-                actions.submitCheckinWithProof(photos)
-            },
+            onDismiss = actions::closeCheckinSheet,
+            onConfirm = actions::submitCheckinWithProof,
         )
     }
 
@@ -418,7 +417,10 @@ internal fun RepairJobDetailContent(
         CancelSheet(
             updating = state.updatingStatus,
             jobStatus = state.job?.status,
-            escrowHeldRupees = state.escrow?.takeIf { it.isHeld }?.amountRupees?.toInt(),
+            // Paise-exact: the sheet is a promise about money, and an Int
+            // truncated ₹2,499.75 down to "₹2,499" — understating a refund
+            // the hospital then has to chase.
+            escrowHeldRupees = state.escrow?.takeIf { it.isHeld }?.amountRupees,
             onDismiss = { if (!state.updatingStatus) cancelSheetOpen = false },
             onConfirm = { reason ->
                 cancelSheetOpen = false
@@ -577,6 +579,7 @@ private fun JobBody(
     ownBid: RepairBid?,
     bids: List<RepairBid>,
     engineerNames: Map<String, String>,
+    assignedEngineerName: String?,
     hospitalName: String?,
     hospitalLocation: String?,
     viewerRole: RepairJobDetailViewModel.ViewerRole,
@@ -654,7 +657,11 @@ private fun JobBody(
             val acceptedEngineerUserId = bids.firstOrNull {
                 it.status == com.equipseva.app.core.data.repair.RepairBidStatus.Accepted
             }?.engineerUserId
-            val engineerName = acceptedEngineerUserId?.let { engineerNames[it] } ?: "Engineer"
+            // AMC visit jobs have no bid at all, so the map is empty for them
+            // and the name comes from the engineers row the job points at.
+            val engineerName = acceptedEngineerUserId?.let { engineerNames[it] }
+                ?: assignedEngineerName
+                ?: "Engineer"
             EsSection(title = "Assigned engineer") {
                 AssignedEngineerCard(
                     name = engineerName,
@@ -838,6 +845,75 @@ internal val StepStatuses = listOf(
 internal fun statusStepIndex(currentStatus: RepairJobStatus): Int =
     StepStatuses.indexOf(currentStatus).let { if (it < 0) -1 else it }
 
+internal sealed interface PrimaryCta {
+    data class PlaceBid(val editing: Boolean) : PrimaryCta
+    data object CheckIn : PrimaryCta
+    data object MarkDone : PrimaryCta
+    data object Rate : PrimaryCta
+    data object RatedDone : PrimaryCta
+}
+
+/**
+ * Cancel-affordance gate on the repair-job detail bottom bar.
+ *
+ * Hospital-only, and only while the job is Requested or Assigned.
+ *
+ * Pin the absence of an engineer branch. The engineer side previously
+ * got a Cancel button on an Assigned job, opened the sheet, typed the
+ * mandatory 10-character reason and tapped "Cancel job" — and nothing
+ * happened: cancelJob() routes through a hospital-only transition, and
+ * `repair_jobs_status_transition_guard` raises "only the hospital can
+ * cancel a job" (42501) besides. A control that cannot succeed by
+ * construction is worse than no control; if engineer-initiated
+ * cancellation ever becomes a product need it needs a server path first.
+ */
+internal fun canCancelJob(
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    status: RepairJobStatus,
+): Boolean = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital &&
+    status in setOf(RepairJobStatus.Requested, RepairJobStatus.Assigned)
+
+/**
+ * Which single primary CTA the bottom bar offers, or null for none.
+ *
+ * Pinned rules:
+ *   * Place bid requires an OPEN job: Requested AND no engineer already
+ *     assigned. An AMC maintenance visit is Requested but pre-assigned,
+ *     and the hospital viewing it sees no bids section at all (the
+ *     sibling gates `shouldShowUnmatchedJobBanner` /
+ *     `shouldShowBidsSection` already exclude it) — so a bid composer
+ *     on that job invites an engineer to quote into a void.
+ *   * The on-site actions (Check in / Mark done) require the ASSIGNED
+ *     engineer, not merely an engineer, or every engineer who opens an
+ *     Assigned job gets a CTA the server answers with 42501.
+ *   * Rate / RatedDone are symmetric across both sides on a Completed
+ *     job; the server enforces which rating column each side writes.
+ */
+internal fun primaryCtaFor(
+    viewerRole: RepairJobDetailViewModel.ViewerRole,
+    isAssignedEngineer: Boolean,
+    status: RepairJobStatus,
+    hasEngineerAssigned: Boolean,
+    ownBidPending: Boolean,
+    rated: Boolean,
+): PrimaryCta? {
+    val isEngineer = viewerRole == RepairJobDetailViewModel.ViewerRole.Engineer
+    val isHospital = viewerRole == RepairJobDetailViewModel.ViewerRole.Hospital
+    return when {
+        isEngineer && status == RepairJobStatus.Requested && !hasEngineerAssigned ->
+            PrimaryCta.PlaceBid(editing = ownBidPending)
+        isAssignedEngineer && status == RepairJobStatus.Assigned -> PrimaryCta.CheckIn
+        isAssignedEngineer &&
+            (status == RepairJobStatus.EnRoute || status == RepairJobStatus.InProgress) ->
+            PrimaryCta.MarkDone
+        (isHospital || isEngineer) && status == RepairJobStatus.Completed && !rated ->
+            PrimaryCta.Rate
+        (isHospital || isEngineer) && status == RepairJobStatus.Completed && rated ->
+            PrimaryCta.RatedDone
+        else -> null
+    }
+}
+
 // --- Misc helpers -----------------------------------------------------------
 
 internal fun initialsOf(name: String): String = repairDetailInitials(name)
@@ -943,6 +1019,14 @@ internal fun terminalStatusBannerCopy(
  */
 internal data class EscrowStatusCopy(val label: String, val subtitle: String)
 
+/**
+ * Wire literal from the `repair_job_escrows.status` CHECK. The row model
+ * exposes named predicates for the other five states but not this one,
+ * so the comparison lives here rather than being re-typed at the call
+ * site.
+ */
+internal const val ESCROW_STATUS_CANCELLED = "cancelled"
+
 internal fun escrowStatusCardCopy(
     escrow: com.equipseva.app.core.data.escrow.RepairJobEscrowRepository.EscrowRow,
     isHospital: Boolean,
@@ -1002,6 +1086,21 @@ internal fun escrowStatusCardCopy(
     escrow.isRefunded -> EscrowStatusCopy(
         label = "Refunded",
         subtitle = "${com.equipseva.app.core.util.formatRupees(escrow.amountRupees)} refunded.",
+    )
+    // Not a hypothetical future status: the escrow-on-job-cancel trigger
+    // stamps 'cancelled' on every still-pending escrow the moment a
+    // hospital cancels an Assigned job, so this is a routine path that
+    // used to land in the fallback below and render a card with a
+    // lower-cased server literal and an EMPTY subtitle. Role-split like
+    // Released / Awaiting payment: the hospital needs to know no money
+    // moved, the engineer needs to know why none is coming.
+    escrow.status == ESCROW_STATUS_CANCELLED -> EscrowStatusCopy(
+        label = "Escrow cancelled",
+        subtitle = if (isHospital) {
+            "The job was cancelled before payment — nothing was charged."
+        } else {
+            "The hospital cancelled this job before paying into escrow."
+        },
     )
     else -> EscrowStatusCopy(label = "Escrow ${escrow.status}", subtitle = "")
 }

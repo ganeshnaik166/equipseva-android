@@ -68,6 +68,17 @@ class HospitalBookingCardHelpersTest {
         assertTrue(out.endsWith(" ago"))
     }
 
+    @Test fun `a just-posted booking reads Posted just now, never Posted now ago`() {
+        // relativeLabel's sub-minute answer is the standalone word
+        // "now", so the plain "Posted $rel ago" concatenation printed
+        // "Posted now ago" on every card for the first minute of a
+        // booking's life — the minute the hospital is most likely to be
+        // looking at it.
+        val out = hospitalBookingLeftLabel("", "now")
+        assertEquals("Posted just now", out)
+        assertTrue(!out!!.contains("now ago"))
+    }
+
     @Test fun `whitespace-only schedule treated as blank`() {
         // takeIf { isNotBlank() } folds whitespace-only to null →
         // fall back to relative.

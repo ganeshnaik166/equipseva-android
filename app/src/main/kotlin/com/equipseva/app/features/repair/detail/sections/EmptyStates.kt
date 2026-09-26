@@ -48,6 +48,6 @@ internal fun ErrorState(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ErrorBanner(message = message)
-        EsBtn(text = "Retry", onClick = onRetry, kind = EsBtnKind.Primary)
+        EsBtn(text = stringResource(R.string.common_retry), onClick = onRetry, kind = EsBtnKind.Primary)
     }
 }

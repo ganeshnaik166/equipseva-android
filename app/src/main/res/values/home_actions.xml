@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_actions_hospital_workspace">Hospital workspace</string>
+    <string name="home_actions_title">Get equipment repaired</string>
+    <string name="home_actions_body">Tell us what needs fixing. Review bids before choosing an engineer.</string>
+    <string name="home_actions_request_service">Request service</string>
+    <string name="home_actions_my_bookings">My bookings</string>
+    <string name="home_actions_browse_engineers">Browse engineers</string>
+</resources>

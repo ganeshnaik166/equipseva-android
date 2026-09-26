@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -567,7 +568,9 @@ private fun KpiCell(
             Text(
                 text = sub,
                 fontSize = 10.sp,
-                color = SevaInk400,
+                // SevaInk400 is 3.95:1 on white — under the 4.5:1 AA floor,
+                // and 10 sp is the smallest text on the dashboard.
+                color = SevaInk500,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
@@ -784,7 +787,7 @@ private fun QueueRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -878,7 +881,7 @@ private fun TopEngineerRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -990,7 +993,7 @@ private fun EngineerPayoutsSummaryTile(
             .clip(RoundedCornerShape(12.dp))
             .background(bg)
             .border(width = 1.dp, color = accent, shape = RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
