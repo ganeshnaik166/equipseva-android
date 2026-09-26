@@ -62,3 +62,22 @@ Append dated results. Keep design, implementation, main integration and release 
 - Final combined `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --continue --no-daemon --console=plain` at `04aa5729`: **3,765 tests / 429 suites / 0 failures / 0 errors / 0 skips**, exit 0. Lint 0 errors/91 warnings/2 hints, debug and unsigned R8 release assembly pass. Design ratchet passes; all 13 source/test hashes match the run manifest. `app-release-unsigned.apk` is not a signed release; device/FCM/provider and deployed-grant checks remain open. Crashlytics logged a mapping upload without an independent provider receipt.
 - Independent [critic](helper-reviews/codex-20260926/p1c-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260926/p1c-qa.md) **9.6/10** accept only this local token/draft/cancellation boundary. [Detailed handoff](HANDOFF_P1C_TOKEN_CAPTURE_2026-09-26.md) records exact evidence and limits.
 - Mandatory wider blocker: tracked migration `20260428320000_security_revoke_delete_grants.sql` denies client `device_tokens` DELETE while Android still calls DELETE before registration upsert and for logout. Live grants were not queried. Next P1d-0 sender-only privacy/error-classification tests and fix; P1d-1 claim/release SQL needs actual schema and disposable concurrency tests. No broad app candidate merge or production release from this checkpoint.
+
+## 2026-09-26 — separate Sharp advisory candidate, review pending
+
+- Isolated branch `codex/security-sharp-20260926` from fetched main `6a6b224681d3595b3c358a029e056e74496bac67`; tested code commit `15726a634fe9c6d36516f07c4b92df9314b4718d`. Previous Dependabot PR1867 was not merged.
+- `web/package-lock.json` alone changes 27 Sharp-related entries: Sharp 0.35.3 to 0.35.4 and bundled libvips 1.3.2 to 1.3.3. Manifest and all other locked packages remain unchanged.
+- Local Node 24/npm 10.8.2: `npm ci` installed 101 packages, typecheck passed, DataTable smoke passed and Next production build passed (all exit 0). Installed Sharp reports libheif 1.23.2. GitHub CI uses Node 20/Linux and remains pending at this checkpoint.
+- Independent critic/QA and CI still required before scoped acceptance or main merge. See [the detailed handoff](HANDOFF_SHARP_SECURITY_2026-09-26.md). This does not accept the whole P7.2 dependency ledger or Android app.
+
+## 2026-09-26 — Sharp Linux selector correction after critic hold
+
+- Critic scored initial code `15726a63` **9.2/10, hold**: 16 published Linux Sharp/libvips records lacked their `glibc`/`musl` selectors. A direct pre-fix assertion reproduced 16/16 omissions; no initial 9.5 acceptance is claimed.
+- Corrective code `13bef61efd9d986d7f8b1b6a238b37d0d6376daf` adds only those 16 selectors (48 lines) to `web/package-lock.json`. All 16 complete Linux package records now match the original Dependabot metadata; every other package record matches the prior code commit.
+- Fresh local Node 24/npm 10.8.2 `npm ci`, typecheck, DataTable smoke and Next production build all exit 0. Runtime Sharp reports 0.35.4/libheif 1.23.2. Draft PR1885 still needs fresh Linux CI, secret-scan and independent critic/QA re-score; no main merge or deploy.
+
+## 2026-09-26 — corrected Sharp lockfile passes scoped acceptance
+
+- Code SHA `13bef61efd9d986d7f8b1b6a238b37d0d6376daf`; reviewed PR1885 head `c37568a9aaa33c5baff29b787aedf885f2fd5b1f`. The diff is confined to 27 Sharp-family lock entries. QA checked all 16 Linux selectors against npm registry metadata (16/16 match).
+- Fresh local `npm ci`, typecheck, smoke and Next build exit 0. Fresh GitHub Node 20/Linux web CI and PR/push Gitleaks passed on the reviewed head. Independent [critic](helper-reviews/codex-20260926/sharp-security-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260926/sharp-security-qa.md) **9.7/10** accept only the corrected web dependency patch.
+- PR1885 showed 4/4 checks passed, no conflicts and remained draft at the record. Main merge, alert closure and production/runtime deployment were not yet observed. The broader P7.2/Android app remain unaccepted.
