@@ -34,18 +34,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.equipseva.app.R
 import com.equipseva.app.core.util.openExternalUrl
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.components.EsBtnKind
 import com.equipseva.app.designsystem.components.EsBtnSize
-import com.equipseva.app.designsystem.theme.EsFontFamily
+import com.equipseva.app.designsystem.theme.EsRadius
+import com.equipseva.app.designsystem.theme.EsType
 import com.equipseva.app.designsystem.theme.SevaGreen900
+import com.equipseva.app.designsystem.theme.Spacing
 
 private const val TERMS_URL = "https://equipseva.com/terms"
 private const val PRIVACY_URL = "https://equipseva.com/privacy"
@@ -80,7 +80,7 @@ internal fun WelcomeContent(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .heightIn(min = maxHeight)
-                    .padding(horizontal = 24.dp, vertical = if (compact) 16.dp else 24.dp),
+                    .padding(horizontal = Spacing.xl, vertical = if (compact) Spacing.lg else Spacing.xl),
                 verticalArrangement = if (compact) Arrangement.Top else Arrangement.SpaceBetween,
             ) {
                 Column(
@@ -94,28 +94,24 @@ internal fun WelcomeContent(
                         contentDescription = null,
                         modifier = Modifier
                             .size(if (compact) 48.dp else 64.dp)
-                            .clip(RoundedCornerShape(16.dp)),
+                            .clip(RoundedCornerShape(EsRadius.Xl)),
                     )
-                    Spacer(Modifier.height(if (compact) 12.dp else 28.dp))
+                    Spacer(Modifier.height(if (compact) Spacing.md else 28.dp))
                     Text(
                         text = stringResource(R.string.app_name),
-                        fontFamily = EsFontFamily,
-                        fontSize = if (compact) 28.sp else 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = if (compact) 34.sp else 38.sp,
-                        letterSpacing = (-0.72).sp,
+                        style = if (compact) EsType.WelcomeBrandCompact else EsType.WelcomeBrand,
                         color = Color.White,
                     )
                     if (!compact) {
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(Spacing.md))
                         WelcomeTagline()
                     }
                 }
 
-                if (compact) Spacer(Modifier.height(16.dp))
+                if (compact) Spacer(Modifier.height(Spacing.lg))
                 Column(Modifier.fillMaxWidth()) {
                     EsBtn(
-                        text = "Sign in",
+                        text = stringResource(R.string.welcome_sign_in),
                         onClick = onSignIn,
                         kind = EsBtnKind.Lime,
                         size = EsBtnSize.Lg,
@@ -125,29 +121,25 @@ internal fun WelcomeContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(EsRadius.Md))
+                            .border(1.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(EsRadius.Md))
                             .background(Color.Transparent)
                             .clickable(role = Role.Button, onClick = onSignUp)
                             .defaultMinSize(minHeight = 52.dp)
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = stringResource(R.string.welcome_create_account),
-                            fontFamily = EsFontFamily,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
+                            style = EsType.WelcomeAction,
                             textAlign = TextAlign.Center,
                             color = Color.White,
                         )
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(Spacing.md))
                     Text(
-                        text = "By continuing you agree to our",
-                        fontFamily = EsFontFamily,
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
+                        text = stringResource(R.string.welcome_legal_intro),
+                        style = EsType.WelcomeLegal,
                         textAlign = TextAlign.Center,
                         color = Color.White.copy(alpha = 0.75f),
                         modifier = Modifier.fillMaxWidth(),
@@ -157,12 +149,16 @@ internal fun WelcomeContent(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        LegalAction("Terms", onTerms)
-                        Text("and", fontSize = 12.sp, color = Color.White.copy(alpha = 0.75f))
-                        LegalAction("Privacy", onPrivacy)
+                        LegalAction(stringResource(R.string.welcome_terms), onTerms)
+                        Text(
+                            text = stringResource(R.string.welcome_and),
+                            style = EsType.WelcomeLegal,
+                            color = Color.White.copy(alpha = 0.75f),
+                        )
+                        LegalAction(stringResource(R.string.welcome_privacy), onPrivacy)
                     }
                     if (compact) {
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(Spacing.lg))
                         WelcomeTagline()
                     }
                 }
@@ -175,9 +171,7 @@ internal fun WelcomeContent(
 private fun WelcomeTagline() {
     Text(
         text = stringResource(R.string.welcome_tagline),
-        fontFamily = EsFontFamily,
-        fontSize = 16.sp,
-        lineHeight = 23.sp,
+        style = EsType.WelcomeTagline,
         color = Color.White.copy(alpha = 0.75f),
     )
 }
@@ -186,16 +180,14 @@ private fun WelcomeTagline() {
 private fun LegalAction(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
+            .defaultMinSize(minWidth = 64.dp, minHeight = Spacing.MinTouchTarget)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = Spacing.sm),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontFamily = EsFontFamily,
-            fontSize = 12.sp,
-            lineHeight = 18.sp,
+            style = EsType.WelcomeLegal,
             textDecoration = TextDecoration.Underline,
             color = Color.White,
         )
