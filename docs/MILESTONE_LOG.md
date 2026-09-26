@@ -2,6 +2,13 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-26 — Sign-in recovery action target, local candidate (review pending)
+
+- Branch `codex/signin-recovery-target-20260926`, fetched-main base `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`; frozen app/test code `ffbc930f9a97334a7a17605c00f44cab7eb02135`. Only `SignInScreen.kt` and a new `SignInRecoveryTargetTest.kt` changed in the code commit.
+- Focused test-first RED: 3 tests / 2 failures on the original source (missing button role and <48dp target at 320×420dp/2× text); pending-auth disabled behavior passed. Minimal fix uses `Spacing.MinTouchTarget` and `Role.Button` on the recovery action while keeping its caption, callback and disabled rule. Focused GREEN: 3/0. No auth/reset repository call occurs on that navigation callback.
+- Design-lint ratchet passes with all negative signals unchanged. Full combined local unit/lint/debug/unsigned-R8 run at code `ffbc930f`: **2,910 tests / 342 suites / 0 failures/errors/skips**, lint **0 errors / 87 warnings / 2 hints**, both assemblies green, Gradle exit 0. `PRECHECK_LOOSE=1` allowed missing signing certificate/keystore; this is not a shippable release. Logs and boundaries: [handoff](HANDOFF_SIGNIN_RECOVERY_TARGET_2026-09-26.md).
+- Independent critic/QA, hosted CI, main integration and physical TalkBack/device and hosted-reset behavior are pending. No app-wide or auth-wide score is claimed; the coordinator owns acceptance and integration.
+
 ## 2026-09-19 — P0 product plan published
 
 - Main: `24e0199937c09c137e8045aa7664dcd4f746dbb1`; content: `5541df8f43d656951bf53197f74da5a7b0291768`; PR1879 merged.
