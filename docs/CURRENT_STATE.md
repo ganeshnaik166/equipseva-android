@@ -1,5 +1,9 @@
 # EquipSeva — current work and resume point
 
+## P1d-0 sender-only main integration opened 26 September 2026
+
+This isolated worktree `equipseva-p1d0-main-20260926` and branch `codex/p1d0-main-20260926` start from fetched `origin/main` `6a6b224681d3595b3c358a029e056e74496bac67`. The owned step is to selectively port the locally accepted P1d-0 sender code/test/config from `codex/p1d0-sender-privacy-20260926` (tested source `85b91ddd`, critic and QA 9.6/10 each) onto current main, run its checks and PR CI, then update continuity. The helper branch's P1a/P1b/P1c Android ancestry must not be merged. No SQL grants, Android client, UI or production Supabase function deployment belong to this integration step. The Sharp web advisory is a separate PR1885 and may advance main before this branch is published; fetch and reconcile it first.
+
 Updated 26 September 2026. Read this before coding; verify branch/HEAD and remote state rather than assuming this dated snapshot is still latest.
 
 Historical 21 September resume: the owner explicitly authorised using the remaining allowance, overriding the earlier threshold stop for that session. Base `144dac5a44cc1c115f50470fe8331416e261748c`, fetched and clean. The coordinator took ownership of the test agent's `OutboxSignOutCleanerTest.kt` cancellation fixture and then the bounded adapter fix. That work is completed and reviewed below.
