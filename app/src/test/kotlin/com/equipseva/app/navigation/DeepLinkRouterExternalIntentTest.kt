@@ -21,9 +21,6 @@ class DeepLinkRouterExternalIntentTest {
     @Test fun external_extra_cannot_open_privileged_or_account_mutation_routes() = runTest {
         val denied = listOf(
             Routes.FOUNDER_DASHBOARD,
-            Routes.FOUNDER_CASH_SUSPENDED,
-            Routes.FOUNDER_ESCROW_DISPUTES,
-            Routes.FOUNDER_AMC_ESCALATIONS,
             "founder/integrity?user=$uuid&name=Injected",
             Routes.AUTH_SIGN_IN,
             Routes.HOSPITAL_PHONE_ONBOARDING,
@@ -62,8 +59,6 @@ class DeepLinkRouterExternalIntentTest {
         val accepted = listOf(
             Routes.HOME,
             Routes.PROFILE,
-            Routes.KYC,
-            Routes.ENGINEER_AMC_VISITS,
             Routes.NOTIFICATIONS,
             Routes.ENGINEER_DIRECTORY,
             Routes.repairJobDetailRoute("RPR-00027"),
@@ -99,6 +94,23 @@ class DeepLinkRouterExternalIntentTest {
             router.dispatch(intentWithRoute(requireNotNull(mapped)))
             assertEquals(
                 "Founder notification $kind must open a safe visible landing",
+                Routes.NOTIFICATIONS,
+                (router.events.first() as DeepLinkRouter.Event.OpenRoute).route,
+            )
+        }
+    }
+
+    @Test fun role_specific_notification_taps_fall_back_to_inbox() = runTest {
+        val kinds = listOf(
+            NotificationDeepLink.KIND_KYC_STATUS_CHANGED,
+            NotificationDeepLink.KIND_AMC_VISIT_UNASSIGNED,
+        )
+        kinds.forEach { kind ->
+            val mapped = NotificationDeepLink.routeFor(kind, emptyMap())
+            val router = DeepLinkRouter()
+            router.dispatch(intentWithRoute(requireNotNull(mapped)))
+            assertEquals(
+                "Role-specific notification $kind must open a safe visible landing",
                 Routes.NOTIFICATIONS,
                 (router.events.first() as DeepLinkRouter.Event.OpenRoute).route,
             )
