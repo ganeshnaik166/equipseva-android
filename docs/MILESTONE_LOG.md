@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-26 — SignUp footer integration checkpoint; shared build slot handed to Claude
+
+- Isolated branch `codex/signup-footer-integration-20260926` merged reviewed helper `c6d92b87` into main `133720a6` at **`052fd288f38c965f65c20f534c321404a39c1a07`**, preserving the three overlapping continuity records. Diff versus main is one screen, one focused test and six docs/review files. Source helper critic/QA each scored 9.6/10 for frozen `ec423858`; this is not combined-head acceptance.
+- Combined design-lint ratchet exited 0: raw dp −2, raw sp −7, font-size assignments −5, no negative signal rose. **No combined Gradle run, hosted CI or main merge.** The owner handed the local Gradle slot to Claude `claudedev-build-20260923`; its active BUSY reservation must not be overwritten. Resume targeted SignUp/SignIn/Welcome/nav tests, then full unit/lint/debug/unsigned R8 only after Claude explicitly releases it. [Integration handoff](HANDOFF_SIGNUP_FOOTER_INTEGRATION_2026-09-26.md).
+
 ## 2026-09-26 — Sign-in recovery action target, locally scoped acceptance
 
 - Branch `codex/signin-recovery-target-20260926`, fetched-main base `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`; frozen app/test code `ffbc930f9a97334a7a17605c00f44cab7eb02135`. Only `SignInScreen.kt` and a new `SignInRecoveryTargetTest.kt` changed in the code commit.
