@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +57,7 @@ import com.equipseva.app.designsystem.theme.SevaGreen700
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.Spacing
 import com.equipseva.app.features.auth.state.AuthEffect
 
 @Composable
@@ -192,22 +195,33 @@ fun SignUpScreen(
                 )
 
                 Spacer(Modifier.height(16.dp))
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = stringResource(R.string.signup_already_have_account),
                         fontSize = 13.sp,
                         color = SevaInk600,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    Text(
-                        text = stringResource(R.string.signup_sign_in_link),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = SevaGreen700,
-                        modifier = Modifier.clickable(onClick = onSignIn),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .defaultMinSize(
+                                minWidth = Spacing.MinTouchTarget,
+                                minHeight = Spacing.MinTouchTarget,
+                            )
+                            .clickable(role = Role.Button, onClick = onSignIn)
+                            .padding(horizontal = Spacing.sm),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.signup_sign_in_link),
+                            style = EsType.Label.copy(fontWeight = FontWeight.SemiBold),
+                            color = SevaGreen700,
+                        )
+                    }
                 }
                 Spacer(Modifier.height(24.dp))
             }
