@@ -87,6 +87,35 @@ class DeepLinkRouterExternalIntentTest {
         assertEquals(Routes.NOTIFICATIONS, (router.events.first() as DeepLinkRouter.Event.OpenRoute).route)
     }
 
+    @Test fun founder_queue_notification_taps_fall_back_to_inbox() = runTest {
+        val kinds = listOf(
+            NotificationDeepLink.KIND_ADMIN_ENGINEER_AUTO_SUSPENDED,
+            NotificationDeepLink.KIND_ADMIN_ESCROW_DISPUTE_OPENED,
+            NotificationDeepLink.KIND_AMC_ADMIN_ESCALATION_RAISED,
+        )
+        kinds.forEach { kind ->
+            val mapped = NotificationDeepLink.routeFor(kind, emptyMap())
+            val router = DeepLinkRouter()
+            router.dispatch(intentWithRoute(requireNotNull(mapped)))
+            assertEquals(
+                "Founder notification $kind must open a safe visible landing",
+                Routes.NOTIFICATIONS,
+                (router.events.first() as DeepLinkRouter.Event.OpenRoute).route,
+            )
+        }
+    }
+
+    @Test fun valid_app_link_wins_over_founder_inbox_fallback() = runTest {
+        val router = DeepLinkRouter()
+        router.dispatch(intentWithRoute(Routes.FOUNDER_CASH_SUSPENDED).apply {
+            data = Uri.parse("https://equipseva.com/job/RPR-00027")
+        })
+        assertEquals(
+            Routes.repairJobDetailRoute("RPR-00027"),
+            (router.events.first() as DeepLinkRouter.Event.OpenRoute).route,
+        )
+    }
+
     private fun intentWithRoute(route: String): Intent = Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
 
     private suspend fun DeepLinkRouter.nextOrNull(): DeepLinkRouter.Event? =
