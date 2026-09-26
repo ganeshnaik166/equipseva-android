@@ -1,0 +1,7 @@
+# Welcome accessibility — independent QA, 26 September 2026
+
+**Score: 9.6/10, pass for the bounded Welcome screen accessibility scope.** Reviewed source/test candidate `ce8ac65972b34eaf46a6fa5ef372770589bac1f0` and synthetic normal/compact visual probes. QA did not run Gradle, a device or TalkBack; focused test and probe results were reported by the coordinator.
+
+At 320×420dp and 200% text, both account actions, the agreement copy and independently underlined Terms/Privacy are in the first viewport. The tagline follows below and remains visible after scrolling. Tests assert the first-view actions, legal-before-tagline order, scroll reachability, 48dp legal targets, separate callbacks and no duplicated logo announcement. Live Terms/Privacy destinations were observed to redirect to genuine 200 titled pages. Initial QA score 9.1/10 held the hidden CTAs and duplicate logo; an intermediate 9.3/10 held legal copy below long marketing text. Both were corrected and re-probed.
+
+The repository's Roborazzi workflow has no Welcome golden, so reviewed local probes are not a Welcome visual-regression CI gate. Full Android/PR CI, physical device/TalkBack and the planned four-persona entry flow remain unverified. An adjacent pre-existing defect remains outside this screen slice: direct Welcome → Create account → Sign up, then tapping Sign in calls `popBackStack(AUTH_SIGN_IN)` when that destination is absent; that path is being handled separately.
