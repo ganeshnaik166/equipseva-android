@@ -125,3 +125,4 @@ Append dated results. Keep design, implementation, main integration and release 
 ## 2026-09-26 — signup footer navigation merged on main
 
 - [PR1889](https://github.com/ganeshnaik166/equipseva-android/pull/1889) passed all seven applicable GitHub checks and merged as **`edae85ed50aa9f819a0a4fddaeea50ebae93ff64`**. The Welcome candidate then merged this main commit without app-source conflict; its final combined-head CI and main merge remain separate gates.
+- On combined commit **`26f0ba2aa86448a01b328d5d55687324cb0d1ebd`**, Welcome **5/0** plus signup-nav **5/0** targeted tests passed (`BUILD SUCCESSFUL in 1m53s`), and the design ratchet exited 0 with no negative signal above baseline. Independent combined-tree critic and QA each scored **9.6/10 for integration scope**, with QA holding main merge until final hosted CI passes. No device or signed-release claim follows.
