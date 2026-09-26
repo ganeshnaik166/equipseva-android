@@ -23,4 +23,8 @@ Reading installed Sharp directly reported `sharp=0.35.4`, `heif=1.23.2`, `vips=8
 
 ## Boundaries and next action
 
-This resolves the locked transitive Sharp version on the web console branch; it does not claim all dependency alerts, uploaded-image path safety, Android security, a production deploy or an app-wide score. The app candidate and P1d sender work live in other checkouts and are untouched. Fetch before pushing this branch. Wait for PR1885's fresh web and secret-scan CI checks, then obtain separate critic and QA scores for corrected code `13bef61e`. Merge only after applicable gates are green.
+This resolves the locked transitive Sharp version on the web console branch; it does not claim all dependency alerts, uploaded-image path safety, Android security, a production deploy or an app-wide score. The app candidate and P1d sender work live in other checkouts and are untouched. Fetch before pushing this branch. The correction checkpoint was pending fresh CI and independent reviews; their final results follow.
+
+## Final scoped review and integration gate
+
+Fresh [Node 20/Linux web CI](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36236614153/job/108389433302) passed dependency install, typecheck, smoke and build at pushed PR head `c37568a9`. PR and push Gitleaks checks passed. Independent [critic](helper-reviews/codex-20260926/sharp-security-critic.md) rescored corrected code `13bef61e` **9.6/10** and [QA](helper-reviews/codex-20260926/sharp-security-qa.md) scored it **9.7/10**, each scoped solely to this lockfile update; the first 9.2 hold remains in their evidence. The PR UI showed 4/4 checks passed and no base conflicts. Next: mark PR1885 ready and merge, then confirm main's lock and alert state. No production deployment or whole-app acceptance follows from this review.

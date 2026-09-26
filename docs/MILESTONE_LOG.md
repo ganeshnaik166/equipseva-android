@@ -75,3 +75,9 @@ Append dated results. Keep design, implementation, main integration and release 
 - Critic scored initial code `15726a63` **9.2/10, hold**: 16 published Linux Sharp/libvips records lacked their `glibc`/`musl` selectors. A direct pre-fix assertion reproduced 16/16 omissions; no initial 9.5 acceptance is claimed.
 - Corrective code `13bef61efd9d986d7f8b1b6a238b37d0d6376daf` adds only those 16 selectors (48 lines) to `web/package-lock.json`. All 16 complete Linux package records now match the original Dependabot metadata; every other package record matches the prior code commit.
 - Fresh local Node 24/npm 10.8.2 `npm ci`, typecheck, DataTable smoke and Next production build all exit 0. Runtime Sharp reports 0.35.4/libheif 1.23.2. Draft PR1885 still needs fresh Linux CI, secret-scan and independent critic/QA re-score; no main merge or deploy.
+
+## 2026-09-26 — corrected Sharp lockfile passes scoped acceptance
+
+- Code SHA `13bef61efd9d986d7f8b1b6a238b37d0d6376daf`; reviewed PR1885 head `c37568a9aaa33c5baff29b787aedf885f2fd5b1f`. The diff is confined to 27 Sharp-family lock entries. QA checked all 16 Linux selectors against npm registry metadata (16/16 match).
+- Fresh local `npm ci`, typecheck, smoke and Next build exit 0. Fresh GitHub Node 20/Linux web CI and PR/push Gitleaks passed on the reviewed head. Independent [critic](helper-reviews/codex-20260926/sharp-security-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260926/sharp-security-qa.md) **9.7/10** accept only the corrected web dependency patch.
+- PR1885 showed 4/4 checks passed, no conflicts and remained draft at the record. Main merge, alert closure and production/runtime deployment were not yet observed. The broader P7.2/Android app remain unaccepted.
