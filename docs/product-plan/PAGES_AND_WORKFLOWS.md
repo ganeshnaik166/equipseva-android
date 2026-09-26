@@ -140,7 +140,7 @@ Some are screens, some sheets/steps; implementation can compose them without cla
 | N27 Workspace membership review/recovery | Restriction/revocation/invite error -> safe retry/support/leave -> root | Gate; retains no forbidden data, no orphan cleanup of another membership |
 | N28 Founder organizations/subscriptions | Founder console -> scoped tenant lookup/billing incident -> audited decision | Admin; new global surface not given to subscribed owners; no unlogged impersonation |
 | N29 Trust/abuse report and appeal status | Job/profile/membership -> report with minimal evidence -> receipt/status | Form; no defamation badge/automatic ban from one report, abuse rate limits |
-| N30 Locale/theme preferences | Profile -> EN/HI/TE; System/Light/Dark -> persist | Form; device preference vs account boundary defined, no reset on workspace switch |
+| N30 Theme preference | Profile -> System/Light/Dark -> persist | Form; device preference vs account boundary defined, no reset on workspace switch. Language selection dropped: English only (owner decision 23 September 2026) |
 
 Trial duration, monthly price, included active seats, grace length, overage rules and billing channel remain configurable product decisions; this plan does not invent a live offer. Demo starts without card details; conversion requires explicit real setup and terms. Trial/subscription cancellation preserves already owed service, financial/dispute records and data rights under policy. Do not convert unavailable billing status into “active” or “expired”; show unknown with retry and bounded safe capabilities.
 
@@ -267,7 +267,7 @@ Headings Space Grotesk 28/34sp 600, body Inter 16/24sp 400, labels 14–16sp 600
 - Founder: dense accessible queues/evidence and reasoned decisions; no full customer records on a decorative live dashboard.
 - All: reduced-motion handling, no idle simulated agents or eternal loading animation. No website dashboard update is part of this app plan.
 
-Accessibility acceptance per changed surface: light/dark, EN/HI/TE, 200% fonts and narrow screens, IME/insets, TalkBack order/labels/state announcements, hardware/gesture Back, keyboard focus, rotation/process restoration and offline/retry. Essential copy and amounts remain readable. Verify actual rendered pairs including alpha, disabled, selected and loading states; normal text target4.5:1 and meaningful icons/boundaries3:1. A theme token calculation alone is not rendered acceptance.
+Accessibility acceptance per changed surface: light/dark, English copy, 200% fonts and narrow screens, IME/insets, TalkBack order/labels/state announcements, hardware/gesture Back, keyboard focus, rotation/process restoration and offline/retry. Essential copy and amounts remain readable. Verify actual rendered pairs including alpha, disabled, selected and loading states; normal text target4.5:1 and meaningful icons/boundaries3:1. A theme token calculation alone is not rendered acceptance.
 
 ## 9. Implementation branches and measurable exit gates
 

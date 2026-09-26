@@ -39,9 +39,9 @@ Statuses: **planned**, **partial** (some reusable implementation), **blocked** (
 | P5.2 | Engineer discovery-to-payout journey | Page map complete; changes planned | Substantial legacy flow, selected fixes | Partial older UI | Eligibility, assignment, attendance, evidence, payment/provider cases |
 | P5.3 | District discovery and map-free attendance | Planned | Old discovery/GPS dependencies remain | Absent | Server/API/old-client migration, collusion/manual-review controls |
 | P6.1 | Team home, invitations, dispatch and business reports | New page plan | New | Absent | Team isolation, assignments, conflicts, member removal and expiry |
-| P7.1 | Remaining account/chat/AMC/admin redesign | Full page carry-forward map | Partial reusable components/legacy screens | Partial | Reviewed images, locales, accessibility and affected runtime flows |
+| P7.1 | Remaining account/chat/AMC/admin redesign | Full page carry-forward map | Partial reusable components/legacy screens | Partial | Reviewed images, accessibility and affected runtime flows (English only) |
 | P7.2 | Complete owned-source review and dependency disposition | Review plan + bounded existing audits | Incomplete | Some fixes integrated | Final-hash review ledger; open HIGH/security/payment findings closed |
-| P8.1 | Signed/minified device and provider pilot | Planned | Unsigned assembly evidence only | Not released | Physical-device/provider/TalkBack/locales; human hospital, engineer, team-owner/dispatcher and platform-operator tasks |
+| P8.1 | Signed/minified device and provider pilot | Planned | Unsigned assembly evidence only | Not released | Physical-device/provider/TalkBack; human hospital, engineer, team-owner/dispatcher and platform-operator tasks |
 | P8.2 | Operations, capacity, privacy and incident readiness | Planned | Existing CI/cron/monitoring primitives | Partial | Restore exercise, load profile, alerts, lawful retention and runbooks |
 
 ## First implementation contract
@@ -66,7 +66,7 @@ Statuses: **planned**, **partial** (some reusable implementation), **blocked** (
 | Demo | No production repository access, no real push/jobs/messages/payments/exports; clear labelled state; safe exit/restart/reset; fake data cannot be promoted |
 | Geography | Missing/unknown/retired codes, wrong state/district pair, renamed district, cross-state coverage, stale catalog refresh, offline selection and historical job snapshot |
 | Abuse/integrity | Forged or replayed attestation, modified package/signature, unavailable attestation, fake claim, copied evidence, collusion, takeover, member/owner abuse and human appeal |
-| UI/runtime | Light/dark, EN/HI/TE, 320/360dp and 2x fonts, keyboard/Back/IME, loading/empty/error/offline/pending/denied; device/photo/provider return and process restart |
+| UI/runtime | Light/dark, English copy only (owner decision 23 September 2026), 320/360dp and 2x fonts, keyboard/Back/IME, loading/empty/error/offline/pending/denied; device/photo/provider return and process restart |
 | Operations | Tenant-bound load mix, query/index plans, queue recovery, webhook backlog, safe logs, backup restore, signing and symbol upload |
 
 Record **synthetic**, **source-inspected**, **local executed**, **hosted CI**, **staging/provider**, **device**, and **human** evidence separately. Never promote one class to another.
@@ -75,7 +75,7 @@ Human acceptance includes representative hospital request/approval/dispute tasks
 
 ## Critic / QA review contract
 
-Frozen rubric per applicable scope: correctness 25; security/privacy 25; recovery/data/money 20; usability/accessibility/locales 15; visual consistency 10; performance/operations 5. Both independent critic and QA scores must meet 9.5, and applicable critical dimensions must also meet 9.5. Missing mandatory evidence means unaccepted, not an assumed 9.5.
+Frozen rubric per applicable scope: correctness 25; security/privacy 25; recovery/data/money 20; usability/accessibility 15; visual consistency 10; performance/operations 5. Both independent critic and QA scores must meet 9.5, and applicable critical dimensions must also meet 9.5. Missing mandatory evidence means unaccepted, not an assumed 9.5.
 
 Planning reviews assess completeness, feasibility, source reconciliation, threat coverage and testability only. Reviewers must list exclusions. Implementation, integration and release require their own evidence/reviews. No numeric score certifies that fraud, root detection or hacking is impossible.
 

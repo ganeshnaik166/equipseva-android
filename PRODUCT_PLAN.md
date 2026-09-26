@@ -4,7 +4,7 @@
 
 EquipSeva connects hospitals with biomedical engineers and gives engineering businesses a paid workspace to manage their teams. The platform owner governs the service. We continue the existing Android app and backend; we do not start again or discard working features.
 
-This is the governing product plan for new work. It supersedes conflicting older role, map, billing and page-sequencing proposals. The approved lime/ink visual theme, original logo, English/Hindi/Telugu support and existing security/release gates remain. Historical handoffs are evidence of their recorded revisions, not a competing roadmap.
+This is the governing product plan for new work. It supersedes conflicting older role, map, billing and page-sequencing proposals. The approved lime/ink visual theme, original logo and existing security/release gates remain. **Owner decision, 23 September 2026: the product is English only** — no Hindi/Telugu translations, words, locale resources or language pickers; this supersedes every EN/HI/TE reference in earlier plan text. Historical handoffs are evidence of their recorded revisions, not a competing roadmap.
 
 ## Read in this order
 
@@ -149,9 +149,9 @@ The page plan maps every existing screen to retain/adapt/replace/retire and list
 | Secondary text | `#555D50` | `#B9C2B1` |
 | Primary action | `#C6FF00` with `#11150B` text | Same pair |
 
-Original logo stays intact. Space Grotesk headings **28/34sp, 600**; Inter body **16/24sp, 400**; labels/buttons **14–16sp, 600**; supporting text **12–14sp, 400/500**. Bundled Devanagari/Telugu fallback fonts are retained. Main actions have 52dp minimum height and a 26dp radius cap that permits taller text; targets at least 48dp; cards 24dp; hero/sheets 28dp; fields 16dp. Use existing tokens, not a second hard-coded theme.
+Original logo stays intact. Space Grotesk headings **28/34sp, 600**; Inter body **16/24sp, 400**; labels/buttons **14–16sp, 600**; supporting text **12–14sp, 400/500**. The app ships no Hindi/Telugu copy and bundles no Devanagari/Telugu fallback fonts (English only, owner decision 23 September 2026). Main actions have 52dp minimum height and a 26dp radius cap that permits taller text; targets at least 48dp; cards 24dp; hero/sheets 28dp; fields 16dp. Use existing tokens, not a second hard-coded theme.
 
-Every page covers loading, empty, ready, error, offline, pending, denied and success where applicable; retained data always belongs to the current login/workspace. Do not use lime alone to claim paid/verified/complete. Large text, small screens, light/dark, EN/HI/TE, keyboard/Back, screen-reader labels and reduced motion are acceptance requirements. New admin/billing copy must be translated and reviewed too. Human task validation includes hospital staff, independent/team engineers, team owner/dispatcher and the platform operator; record observed completion, mistakes, recovery and participant limitations separately from agent review.
+Every page covers loading, empty, ready, error, offline, pending, denied and success where applicable; retained data always belongs to the current login/workspace. Do not use lime alone to claim paid/verified/complete. Large text, small screens, light/dark, English copy, keyboard/Back, screen-reader labels and reduced motion are acceptance requirements. New admin/billing copy is English and must be reviewed too. Human task validation includes hospital staff, independent/team engineers, team owner/dispatcher and the platform operator; record observed completion, mistakes, recovery and participant limitations separately from agent review.
 
 ## 9. Security and fraud posture
 
@@ -188,7 +188,7 @@ Keep the Android app as a modular monolith with shared components and bounded fe
 | **P4** | Monthly organisation entitlement, compliant checkout, seats and billing management | P2; provider configuration and payment reliability |
 | **P5** | Hospital and engineer job journey, district discovery and map-free attendance | P1/P2; new server contracts and fraud/recovery tests |
 | **P6** | Team operations: invitations, dispatch, status/reporting, delegated admin and ownership transfer | P2/P4/P5 |
-| **P7** | Remaining profile/chat/AMC/admin pages, accessibility/locales and code audit | Relevant ownership and money foundations |
+| **P7** | Remaining profile/chat/AMC/admin pages, accessibility and code audit | Relevant ownership and money foundations |
 | **P8** | Real provider/device pilot, signed release, monitoring/restore readiness and final independent audit | All applicable gates |
 
 UI layout/prototype work can run alongside isolated backend foundations, but it cannot ship live privileged controls before their server contracts. Preserve prior accepted work; merge bounded tested changes, not all accumulated WIP simply because documentation landed.
@@ -201,7 +201,7 @@ Current source has known cleanup, navigation, payment, attestation and visual ac
 
 The previous “about 50% pending” was an unmeasured estimate for a narrower scope. **Do not reuse it for this expanded product.** Track each requirement with separate design, implementation, integration and release-evidence states. The delivery ledger is authoritative; page counts, LOC and passing-test percentages are not completion percentages.
 
-Owner-approved direction: the three public purposes, privately controlled platform owner, monthly team access with a demo, state/district instead of maps, unchanged theme, high security and staged implementation. Product defaults in this document resolve routine workflow choices and can be revised through a recorded decision before affected code ships.
+Owner-approved direction: the three public purposes, privately controlled platform owner, monthly team access with a demo, state/district instead of maps, unchanged theme, high security, staged implementation and — from 23 September 2026 — English-only product copy. Product defaults in this document resolve routine workflow choices and can be revised through a recorded decision before affected code ships.
 
 Before live subscription launch, settle the actual price/seat allowance, billing channel enrollment, terms/taxes/refund handling, provider credentials and support ownership. Before broad rollout, establish verified organisation-claim evidence, retention periods, incident contacts and device/provider/user-validation evidence. These are named launch dependencies; independent design, synthetic testing and safe foundational coding can proceed now.
 

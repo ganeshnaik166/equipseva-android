@@ -8,6 +8,10 @@ Before any model starts or resumes work, read these files in order:
 
 Verify this information against `git status`, branch/HEAD, fetched origin and the actual source. Historical handoffs describe their revisions; they are not current completion claims. Do not restart finished work or use the old two-role/map roadmap.
 
+## Standing product decisions (owner)
+
+- **English only — 23 September 2026.** The owner directed: "no need of Hindi, Telugu translations or words, all should be in English." Every string resource, UI label, notification, document and plan item is English. Do not add, translate, restore or maintain `values-hi`, `values-te` or any other locale resource directory, language picker, per-app locale config or Hindi/Telugu copy. Where an older document says EN/HI/TE or "translate", English alone applies. Number/date formatting still pins `Locale.ENGLISH`/`Locale.US` where tests require it; that is device-locale robustness, not translation.
+
 ## Preserve ownership and evidence
 
 - Preserve other checkouts, uncommitted changes and active reservations. Never switch, reset, clean or force-push another task's checkout.
