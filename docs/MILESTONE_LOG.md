@@ -69,3 +69,9 @@ Append dated results. Keep design, implementation, main integration and release 
 - `web/package-lock.json` alone changes 27 Sharp-related entries: Sharp 0.35.3 to 0.35.4 and bundled libvips 1.3.2 to 1.3.3. Manifest and all other locked packages remain unchanged.
 - Local Node 24/npm 10.8.2: `npm ci` installed 101 packages, typecheck passed, DataTable smoke passed and Next production build passed (all exit 0). Installed Sharp reports libheif 1.23.2. GitHub CI uses Node 20/Linux and remains pending at this checkpoint.
 - Independent critic/QA and CI still required before scoped acceptance or main merge. See [the detailed handoff](HANDOFF_SHARP_SECURITY_2026-09-26.md). This does not accept the whole P7.2 dependency ledger or Android app.
+
+## 2026-09-26 — Sharp Linux selector correction after critic hold
+
+- Critic scored initial code `15726a63` **9.2/10, hold**: 16 published Linux Sharp/libvips records lacked their `glibc`/`musl` selectors. A direct pre-fix assertion reproduced 16/16 omissions; no initial 9.5 acceptance is claimed.
+- Corrective code `13bef61efd9d986d7f8b1b6a238b37d0d6376daf` adds only those 16 selectors (48 lines) to `web/package-lock.json`. All 16 complete Linux package records now match the original Dependabot metadata; every other package record matches the prior code commit.
+- Fresh local Node 24/npm 10.8.2 `npm ci`, typecheck, DataTable smoke and Next production build all exit 0. Runtime Sharp reports 0.35.4/libheif 1.23.2. Draft PR1885 still needs fresh Linux CI, secret-scan and independent critic/QA re-score; no main merge or deploy.
