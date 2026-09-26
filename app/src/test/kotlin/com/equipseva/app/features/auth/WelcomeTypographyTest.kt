@@ -9,10 +9,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.sp
 import androidx.test.core.app.ApplicationProvider
 import com.equipseva.app.designsystem.components.EsBtn
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.EsType
+import com.equipseva.app.designsystem.theme.WelcomeBodyFontFamily
+import com.equipseva.app.designsystem.theme.WelcomeHeadingFontFamily
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -33,7 +36,10 @@ class WelcomeTypographyTest {
     @Test
     fun heading_uses_bundled_space_grotesk_at_semibold_weight() {
         assertNotEquals(FontFamily.SansSerif, EsType.WelcomeBrand.fontFamily)
+        assertEquals(WelcomeHeadingFontFamily, EsType.WelcomeBrand.fontFamily)
         assertEquals(FontWeight.SemiBold, EsType.WelcomeBrand.fontWeight)
+        assertEquals(28.sp, EsType.WelcomeBrand.fontSize)
+        assertEquals(34.sp, EsType.WelcomeBrand.lineHeight)
         assertEquals(EsType.WelcomeBrand.fontFamily, EsType.WelcomeBrandCompact.fontFamily)
         composeRule.setContent {
             EquipSevaTheme { WelcomeScreen(onSignIn = {}, onSignUp = {}) }
@@ -44,6 +50,7 @@ class WelcomeTypographyTest {
     @Test
     fun body_and_supporting_copy_use_bundled_inter() {
         assertNotEquals(FontFamily.SansSerif, EsType.WelcomeTagline.fontFamily)
+        assertEquals(WelcomeBodyFontFamily, EsType.WelcomeTagline.fontFamily)
         assertEquals(EsType.WelcomeTagline.fontFamily, EsType.WelcomeLegal.fontFamily)
         assertEquals(FontWeight.Normal, EsType.WelcomeTagline.fontWeight ?: FontWeight.Normal)
     }
@@ -57,6 +64,7 @@ class WelcomeTypographyTest {
         val signIn = renderedStyle("Sign in")
         val createAccount = renderedStyle("Create account")
         assertNotEquals(FontFamily.SansSerif, signIn.fontFamily)
+        assertEquals(WelcomeBodyFontFamily, signIn.fontFamily)
         assertEquals(signIn.fontFamily, createAccount.fontFamily)
         assertEquals(FontWeight.SemiBold, signIn.fontWeight)
         assertEquals(FontWeight.SemiBold, createAccount.fontWeight)

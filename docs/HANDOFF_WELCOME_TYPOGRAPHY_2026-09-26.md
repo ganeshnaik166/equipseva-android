@@ -1,6 +1,6 @@
 # Welcome typography candidate — 26 September 2026
 
-Status: **test-first RED checkpoint; production implementation and review pending**.
+Status: **test-first RED checkpoint with unverified production implementation; GREEN, visual review and independent reviews pending**.
 
 ## Ownership and starting point
 
@@ -8,6 +8,7 @@ Status: **test-first RED checkpoint; production implementation and review pendin
 - Branch: `codex/welcome-typography-20260926`, fetched `origin/main` base `afe2bd33cdc37ca842b921c9817d75cdc645fc74` (accepted Welcome PR1888).
 - Own only Welcome font resources/styles, a backward-compatible `EsBtn` label-style override used only by Welcome, focused tests and continuity docs. Leave global `EsFontFamily`, Material typography, colours, navigation, signup and session identity untouched.
 - Focused unchanged-production `WelcomeTypographyTest` command: `./gradlew :app:testDebugUnitTest --tests 'com.equipseva.app.features.auth.WelcomeTypographyTest' --console=plain`, using CI placeholder local config. **6 tests / 5 failures / 1 passing default-button control**, Gradle exit 1 in 2m22s; failures are the new font/style/resource assertions, not a compile or fixture failure. Output: `outputs/welcome-typography-red-20260926.log` outside Git. The shared slot was released after the run.
+- Implementation WIP uses two explicit font-family tokens for Welcome only, bundles the exact pinned binaries/notices below, changes its brand to Space Grotesk 28/34sp weight 600, body/legal/actions to Inter, and adds an optional `EsBtn.labelStyle` whose default remains the existing style. No global type/palette/auth/navigation change. This source has not yet compiled or passed its tests.
 
 ## Font provenance and licensing
 
