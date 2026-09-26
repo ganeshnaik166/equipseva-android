@@ -1,7 +1,8 @@
 package com.equipseva.app.core.auth
 
 import com.equipseva.app.core.sync.OutboxSignOutCleaner
-import com.equipseva.app.core.data.repair.RequestServiceDraftStore
+import com.equipseva.app.core.data.repair.DraftStoreFixture
+import com.equipseva.app.core.data.repair.sampleRequestDraft
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import com.equipseva.app.core.sync.handlers.PhotoUploadStash
 import com.equipseva.app.navigation.DeepLinkRouter
@@ -13,11 +14,14 @@ import io.mockk.slot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -31,12 +35,24 @@ import org.junit.Test
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class SignOutCleanupOwnershipTest {
 
-    private class Harness {
+    private class Harness(scope: TestScope) {
         val order = mutableListOf<String>()
         val networkRelease = CompletableDeferred<Unit>()
         val revoked = slot<DeviceTokenRegistrar.Revocation?>()
+        val draftFixture = DraftStoreFixture(scope)
+        val ownership = LocalSessionOwnership(
+            draftFixture.auth,
+            {
+                draftFixture.identity?.let { identity ->
+                    identity.sessionId?.let { LocalSessionOwnership.Identity(identity.ownerId, it) }
+                }
+            },
+            scope.backgroundScope,
+        )
         val registrar = mockk<DeviceTokenRegistrar> {
-            coEvery { captureRevocation() } answers {
+            coEvery { captureRevocation(any()) } answers {
+                assertTrue("cleanup must pass the first exact ticket", firstArg<LocalSessionOwnership.Ticket?>() === ownership.capture())
+                assertNull("draft must be fenced synchronously before token capture", draftFixture.store.activeSession.value)
                 order += "capture"
                 DeviceTokenRegistrar.Revocation("A", "fcm-token-A")
             }
@@ -49,9 +65,6 @@ class SignOutCleanupOwnershipTest {
         val outboxCleaner = mockk<OutboxSignOutCleaner> { coEvery { clearForSignOut(any()) } answers { order += "outbox" } }
         val stash = mockk<PhotoUploadStash> { coEvery { clearAll() } answers { order += "stash" } }
         val router = mockk<DeepLinkRouter> { every { clear() } answers { order += "router" } }
-        val drafts = mockk<RequestServiceDraftStore> {
-            coEvery { fenceAndClearForSignOut() } answers { order += "drafts" }
-        }
         val cleanup = SignOutCleanup(
             deviceTokenRegistrar = registrar,
             outboxSignOutCleaner = outboxCleaner,
@@ -63,27 +76,27 @@ class SignOutCleanupOwnershipTest {
             pendingEscrowPaymentsStore = mockk(relaxed = true),
             pendingAmcPaymentsStore = mockk(relaxed = true),
             pendingAmcContractsStore = mockk(relaxed = true),
-            requestServiceDraftStore = drafts,
+            requestServiceDraftStore = draftFixture.store,
             deepLinkRouter = router,
-            localSessionOwnership = mockk(relaxed = true),
+            localSessionOwnership = ownership,
             context = mockk(relaxed = true),
         )
     }
 
     @Test fun `identity is captured first, every local wipe runs, and the network revoke is last`() = runTest {
-        val h = Harness()
+        val h = Harness(this)
         val wipe = async { h.cleanup.wipeLocalUserState() }
         runCurrent()
         // Suspended inside the network step: all local work is already done.
         assertFalse(wipe.isCompleted)
-        assertEquals(listOf("drafts", "capture", "router", "outbox", "stash", "revoke:start"), h.order)
+        assertEquals(listOf("capture", "router", "outbox", "stash", "revoke:start"), h.order)
         h.networkRelease.complete(Unit)
         wipe.await()
         assertEquals("revoke:end", h.order.last())
     }
 
     @Test fun `revoke targets the captured departing user even after the next user signs in`() = runTest {
-        val h = Harness()
+        val h = Harness(this)
         val wipe = async { h.cleanup.wipeLocalUserState() }
         runCurrent()
         // "B signs in" here would previously have made revoke() read B as the live
@@ -95,18 +108,18 @@ class SignOutCleanupOwnershipTest {
     }
 
     @Test fun `a step that throws is skipped but the rest still runs`() = runTest {
-        val h = Harness()
+        val h = Harness(this)
         coEvery { h.outboxCleaner.clearForSignOut(any()) } throws IllegalStateException("db closed")
         val wipe = async { h.cleanup.wipeLocalUserState() }
         runCurrent()
         h.networkRelease.complete(Unit)
         wipe.await()
-        assertTrue(h.order.containsAll(listOf("drafts", "capture", "router", "stash", "revoke:start", "revoke:end")))
+        assertTrue(h.order.containsAll(listOf("capture", "router", "stash", "revoke:start", "revoke:end")))
         assertFalse(h.order.contains("outbox"))
     }
 
     @Test fun `cancellation propagates instead of marching through the remaining wipes`() = runTest {
-        val h = Harness()
+        val h = Harness(this)
         coEvery { h.stash.clearAll() } throws CancellationException("caller went away")
         var cancelled = false
         val wipe = async {
@@ -120,5 +133,34 @@ class SignOutCleanupOwnershipTest {
         wipe.await()
         assertTrue("CancellationException must escape bestEffort", cancelled)
         assertFalse("no network revoke after cancellation", h.order.contains("revoke:start"))
+    }
+
+    @Test fun `cancellation at A draft disk wait stops global wipes and preserves B's draft`() = runTest {
+        val h = Harness(this)
+        val diskGate = CompletableDeferred<Unit>()
+        h.draftFixture.disk.nextWriteGate = diskGate
+        var cancelled = false
+        val wipe = launch {
+            try {
+                h.cleanup.wipeLocalUserState()
+            } catch (_: CancellationException) {
+                cancelled = true
+            }
+        }
+        runCurrent()
+        assertEquals(listOf("capture"), h.order)
+        wipe.cancel(CancellationException("stop A cleanup"))
+        diskGate.complete(Unit)
+        wipe.join()
+        assertTrue("draft-disk cancellation must reach the sign-out caller", cancelled)
+        assertFalse("cancelled A must not enter later global cleanup", h.order.contains("router"))
+        assertFalse("cancelled A must not revoke a token", h.order.contains("revoke:start"))
+
+        h.draftFixture.signIn("B", "session-B")
+        runCurrent()
+        val bLease = h.draftFixture.lease()
+        val bDraft = sampleRequestDraft("B after cancelled sign-out")
+        h.draftFixture.store.saveDraft(bLease, bDraft)
+        assertEquals(bDraft, h.draftFixture.store.loadDraft(bLease))
     }
 }

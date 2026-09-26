@@ -18,11 +18,20 @@ class SignOutDraftFenceTest {
         val fixture = DraftStoreFixture(this)
         val old = fixture.lease()
         fixture.store.saveDraft(old, sampleRequestDraft())
+        val ownership = LocalSessionOwnership(
+            fixture.auth,
+            {
+                fixture.identity?.let { identity ->
+                    identity.sessionId?.let { LocalSessionOwnership.Identity(identity.ownerId, it) }
+                }
+            },
+            backgroundScope,
+        )
         val networkRelease = CompletableDeferred<Unit>()
         // A4-02: cleanup now captures the departing (user, token) first and hands
         // it to revoke(capture) as the LAST step; the network wait lives there.
         val registrar = mockk<DeviceTokenRegistrar> {
-            coEvery { captureRevocation() } returns DeviceTokenRegistrar.Revocation("A", "fcm-token-A")
+            coEvery { captureRevocation(any()) } returns DeviceTokenRegistrar.Revocation("A", "fcm-token-A")
             coEvery { revoke(any()) } coAnswers {
                 assertFalse(fixture.store.isCurrent(old))
                 networkRelease.await()
@@ -41,7 +50,7 @@ class SignOutDraftFenceTest {
             pendingAmcContractsStore = mockk(relaxed = true),
             requestServiceDraftStore = fixture.store,
             deepLinkRouter = mockk(relaxed = true),
-            localSessionOwnership = mockk(relaxed = true),
+            localSessionOwnership = ownership,
             context = mockk(relaxed = true),
         )
         val wipe = async { cleanup.wipeLocalUserState() }

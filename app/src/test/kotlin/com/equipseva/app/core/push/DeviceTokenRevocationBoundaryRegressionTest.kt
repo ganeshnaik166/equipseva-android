@@ -1,5 +1,6 @@
 package com.equipseva.app.core.push
 
+import com.equipseva.app.core.auth.LocalSessionOwnership
 import com.equipseva.app.core.data.dao.DeviceTokenDao
 import com.equipseva.app.core.data.entities.DeviceTokenEntity
 import com.equipseva.app.testing.TestSupabaseClient
@@ -17,6 +18,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -70,7 +72,9 @@ class DeviceTokenRevocationBoundaryRegressionTest {
             }
             install(Postgrest)
         }
-        val registrar = DeviceTokenRegistrar(dao, client)
+        // Convenience capture remains available to older callers. P1c sign-out
+        // uses the separate ticketed overload tested in DeviceTokenCaptureOwnershipTest.
+        val registrar = DeviceTokenRegistrar(dao, client, mockk<LocalSessionOwnership>(relaxed = true))
     }
 
     @Test fun `late A revoke cannot erase B's new local token registration`() = runTest {

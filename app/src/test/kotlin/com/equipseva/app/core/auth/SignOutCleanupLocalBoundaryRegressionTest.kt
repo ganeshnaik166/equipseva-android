@@ -81,8 +81,9 @@ class SignOutCleanupLocalBoundaryRegressionTest {
                 }
             }).build()
         val registrar = mockk<DeviceTokenRegistrar> {
-            coEvery { captureRevocation() } answers {
-                draft.identity?.ownerId?.let { DeviceTokenRegistrar.Revocation(it, "token-$it") }
+            coEvery { captureRevocation(any()) } answers {
+                firstArg<LocalSessionOwnership.Ticket?>()?.identity?.ownerId
+                    ?.let { DeviceTokenRegistrar.Revocation(it, "token-$it") }
                     .also { captures += it }
             }
             coEvery { revoke(any()) } answers { revoked += firstArg<DeviceTokenRegistrar.Revocation?>() }
@@ -161,6 +162,10 @@ class SignOutCleanupLocalBoundaryRegressionTest {
             try {
                 runCurrent()
                 assertTrue("the real draft fence retires A before waiting on disk", h.draft.store.activeSession.value == null)
+                assertEquals(
+                    "token capture must finish before draft disk suspension",
+                    listOf(DeviceTokenRegistrar.Revocation("A", "token-A")), h.captures,
+                )
                 h.draft.signIn("B", "session-B")
                 runCurrent()
                 gate.complete(Unit)
@@ -235,7 +240,8 @@ class SignOutCleanupLocalBoundaryRegressionTest {
             try {
                 runCurrent()
                 assertNull("A must be paused at the real draft fence", h.draft.store.activeSession.value)
-                assertTrue("Token capture has not run past the draft barrier", h.captures.isEmpty())
+                assertEquals("A token must be captured before the draft barrier",
+                    listOf(DeviceTokenRegistrar.Revocation("A", "token-A")), h.captures)
                 h.draft.signIn("B", "session-B")
                 runCurrent()
                 realIo {

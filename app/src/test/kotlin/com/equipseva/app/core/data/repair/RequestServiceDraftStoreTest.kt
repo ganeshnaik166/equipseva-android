@@ -7,11 +7,14 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.LocalSessionOwnership
 import com.equipseva.app.testing.FakeAuthRepository
 import java.io.IOException
 import java.util.Base64
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
@@ -20,11 +23,139 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.*
 import org.junit.Test
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class RequestServiceDraftStoreTest {
+    private fun TestScope.ownershipFor(fixture: DraftStoreFixture) = LocalSessionOwnership(
+        fixture.auth,
+        {
+            fixture.identity?.let { identity ->
+                identity.sessionId?.let { LocalSessionOwnership.Identity(identity.ownerId, it) }
+            }
+        },
+        backgroundScope,
+    )
+
+    @Test fun `ticketed draft fence is synchronous and delayed clear cannot remove B draft`() = runTest {
+        val fixture = DraftStoreFixture(this)
+        val ownership = ownershipFor(fixture)
+        runCurrent()
+        val aLease = fixture.lease()
+        fixture.store.saveDraft(aLease, sampleRequestDraft("A draft"))
+        val ticketA = requireNotNull(ownership.capture())
+        val clearHandle = requireNotNull(fixture.store.fenceForSignOut(ticketA, ownership))
+        assertNull("A lease must retire before disk suspension", fixture.store.activeSession.value)
+
+        val gate = CompletableDeferred<Unit>()
+        fixture.disk.nextAdmissionGate = gate
+        val clear = async { fixture.store.clearFencedForSignOut(clearHandle) }
+        runCurrent()
+        fixture.signIn("B", "session-B")
+        runCurrent()
+        val bLease = fixture.lease()
+        val bDraft = sampleRequestDraft("B draft")
+        fixture.store.saveDraft(bLease, bDraft)
+        assertEquals("B must commit while A is still held before edit admission", bDraft,
+            fixture.store.loadDraft(bLease))
+        gate.complete(Unit)
+        clear.await()
+        assertEquals(bDraft, fixture.store.loadDraft(bLease))
+        assertFalse(fixture.store.isCurrent(aLease))
+    }
+
+    @Test fun `stale or missing cleanup ticket cannot retire B draft lease`() = runTest {
+        val fixture = DraftStoreFixture(this)
+        val ownership = ownershipFor(fixture)
+        runCurrent()
+        val ticketA = requireNotNull(ownership.capture())
+        fixture.signIn("B", "session-B")
+        runCurrent()
+        val bLease = fixture.lease()
+        val bDraft = sampleRequestDraft("B stays")
+        fixture.store.saveDraft(bLease, bDraft)
+        assertNull(fixture.store.fenceForSignOut(null, ownership))
+        assertNull(fixture.store.fenceForSignOut(ticketA, ownership))
+        assertTrue("a stale sign-out must leave B's lease active", fixture.store.isCurrent(bLease))
+        assertEquals(bDraft, fixture.store.loadDraft(bLease))
+    }
+
+    @Test fun `A B A observation rejects old A fence even when the session claim matches`() = runTest {
+        val fixture = DraftStoreFixture(this)
+        val ownership = ownershipFor(fixture)
+        runCurrent()
+        val oldTicket = requireNotNull(ownership.capture())
+        fixture.signIn("B", "session-B")
+        runCurrent()
+        fixture.signIn("A", "session-A")
+        runCurrent()
+        val freshLease = fixture.lease()
+        val freshDraft = sampleRequestDraft("new A draft")
+        fixture.store.saveDraft(freshLease, freshDraft)
+        assertNull(fixture.store.fenceForSignOut(oldTicket, ownership))
+        assertTrue(fixture.store.isCurrent(freshLease))
+        assertEquals(freshDraft, fixture.store.loadDraft(freshLease))
+    }
+
+    @Test fun `old A clear held on disk cannot erase fresh A after observed A B A`() = runTest {
+        val fixture = DraftStoreFixture(this)
+        val ownership = ownershipFor(fixture)
+        runCurrent()
+        val oldLease = fixture.lease()
+        fixture.store.saveDraft(oldLease, sampleRequestDraft("old A draft"))
+        val oldTicket = requireNotNull(ownership.capture())
+        val oldClearHandle = requireNotNull(fixture.store.fenceForSignOut(oldTicket, ownership))
+        val gate = CompletableDeferred<Unit>()
+        fixture.disk.nextAdmissionGate = gate
+        val oldClear = async { fixture.store.clearFencedForSignOut(oldClearHandle) }
+        runCurrent()
+        fixture.signIn("B", "session-B")
+        runCurrent()
+        fixture.signIn("A", "session-A")
+        runCurrent()
+        val freshLease = fixture.lease()
+        val freshDraft = sampleRequestDraft("new A draft")
+        fixture.store.saveDraft(freshLease, freshDraft)
+        assertEquals("fresh A must commit before old A enters the transform", freshDraft,
+            fixture.store.loadDraft(freshLease))
+        gate.complete(Unit)
+        oldClear.await()
+        assertEquals(freshDraft, fixture.store.loadDraft(freshLease))
+        assertFalse(fixture.store.isCurrent(oldLease))
+    }
+
+    @Test fun `cancelled A disk clear does not erase B draft after its gate releases`() = runTest {
+        val fixture = DraftStoreFixture(this)
+        val ownership = ownershipFor(fixture)
+        runCurrent()
+        val ticketA = requireNotNull(ownership.capture())
+        val oldHandle = requireNotNull(fixture.store.fenceForSignOut(ticketA, ownership))
+        val gate = CompletableDeferred<Unit>()
+        fixture.disk.nextWriteGate = gate
+        var cancelled = false
+        val clear = launch {
+            try {
+                fixture.store.clearFencedForSignOut(oldHandle)
+            } catch (_: CancellationException) {
+                cancelled = true
+            }
+        }
+        runCurrent()
+        clear.cancel(CancellationException("A cleanup cancelled"))
+        gate.complete(Unit)
+        clear.join()
+        assertTrue("DataStore cancellation must escape A clear", cancelled)
+
+        fixture.signIn("B", "session-B")
+        runCurrent()
+        val bLease = fixture.lease()
+        val bDraft = sampleRequestDraft("B after cancellation")
+        fixture.store.saveDraft(bLease, bDraft)
+        assertEquals(bDraft, fixture.store.loadDraft(bLease))
+    }
+
     @Test fun `owner and login session isolate persistence and stale operations`() = runTest {
         val fixture = DraftStoreFixture(this)
         val old = fixture.lease()
@@ -231,6 +362,8 @@ class RequestServiceDraftStoreTest {
 internal class DraftPreferencesStore : DataStore<Preferences> {
     private val state = MutableStateFlow<Preferences>(emptyPreferences())
     private val mutex = Mutex()
+    /** Stall one caller before DataStore admits the write, without blocking newer writers. */
+    var nextAdmissionGate: CompletableDeferred<Unit>? = null
     var nextWriteGate: CompletableDeferred<Unit>? = null
     var readGate: CompletableDeferred<Unit>? = null
     var nextWriteFailure: Exception? = null
@@ -241,14 +374,18 @@ internal class DraftPreferencesStore : DataStore<Preferences> {
         nextReadFailure?.let { nextReadFailure = null; throw it }
         emitAll(state)
     }
-    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-        mutex.withLock {
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+        val admission = nextAdmissionGate
+        nextAdmissionGate = null
+        admission?.await()
+        return mutex.withLock {
             val gate = nextWriteGate
             nextWriteGate = null
             gate?.await()
             nextWriteFailure?.let { nextWriteFailure = null; throw it }
             transform(state.value).also { state.value = it }
         }
+    }
     fun replace(value: Preferences) { state.value = value }
 }
 
