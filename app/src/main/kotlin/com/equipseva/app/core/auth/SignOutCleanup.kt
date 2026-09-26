@@ -37,9 +37,9 @@ import javax.inject.Singleton
  * resume against a replacement login. AMC and outbox deletion use an independent
  * ticket captured first and checked inside their actual storage transaction.
  * Its producers/readers and historical global records remain unowned. A4
- * remains open: token capture and outbox deletion regressions stay enabled in
- * SignOutCleanupLocalBoundaryRegressionTest, and other cleanup resources still
- * need ownership at their own mutation boundaries. The plan at
+ * remains open: the outbox regression stays enabled, while the token-capture
+ * regression still fails in SignOutCleanupLocalBoundaryRegressionTest. Other
+ * cleanup resources need ownership at their own mutation boundaries. The plan at
  * docs/helper-reviews/codex-20260919/signout-ownership-plan.md describes the
  * required ownership migration. A precheck or another reorder is insufficient.
  *

@@ -284,7 +284,10 @@ class SignOutCleanupLocalBoundaryRegressionTest {
         fun proof(id: String) = VerifiableAmcPayment(id, "order-$id", "payment-$id", "synthetic-$id")
 
         suspend fun <T> realIo(block: suspend () -> T): T = withContext(Dispatchers.IO) {
-            withTimeout(10_000) { block() }
+            // Cold native Room opening approached ten seconds in the focused
+            // run and exceeded it while full-suite lint/R8 competed for CPU.
+            // Keep the disk work bounded without timing out before assertions.
+            withTimeout(30_000) { block() }
         }
     }
 }
