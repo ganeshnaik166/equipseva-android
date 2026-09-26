@@ -6,7 +6,7 @@
 - Branch: `codex/signup-nav-fallback-20260926`; fetched `origin/main` base `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`.
 - Test-first WIP commit: `2b2c769f19a2506c827f394205ccbda442039025`. Initial code commit: `8f35faf3`. Final code commit: `88f136d1848f63adf40e4c72870226bc2be221f1`. The later documentation commit is metadata only.
 - Code files: `app/src/main/kotlin/com/equipseva/app/navigation/AuthNavGraph.kt` and new `app/src/test/kotlin/com/equipseva/app/navigation/SignUpToSignInNavigationTest.kt`. The first commit also records this scope in `docs/CURRENT_STATE.md`.
-- Welcome source/tests, P1d sender, shared auth/session code, and all other checkouts were untouched. This branch is deliberately unpushed and unmerged at the coordinator's request.
+- Welcome source/tests, P1d sender, shared auth/session code, and all other checkouts were untouched. This branch is unmerged; the coordinator handles PR/CI integration.
 
 ## Behavior
 
@@ -26,4 +26,4 @@
 
 ## Review and integration gates
 
-This fixes only the sign-up footer stack. It does not add the planned third registration persona, alter authentication policy, or establish an app-wide score. Critic feedback on the earlier code led to the stale-callback guard; final-code independent critic/QA acceptance is still pending. **Do not accept or merge this WIP from these local results alone**. Review the three code/test commits, run a real device direct/nested/recovery/Back smoke, and have the coordinator integrate only after its own acceptance. No live account or production request was used.
+This fixes only the sign-up footer stack. It does not add the planned third registration persona, alter authentication policy, or establish an app-wide score. Critic feedback on the earlier code led to the stale-callback guard. Independent final-code critic **9.7/10** and QA **9.6/10** reviewed `88f136d1` plus the five focused tests; neither ran Gradle independently, and both exclude device navigation. Applicable hosted PR Android/secret-scan checks and coordinator review remain before main integration. Physical direct/nested/recovery/Back smoke remains a later device gate; no live account or production request was used.
