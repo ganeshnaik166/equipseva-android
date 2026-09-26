@@ -21,7 +21,7 @@ Official source: [`google/fonts` commit `23e54b51`](https://github.com/google/fo
 | `space_grotesk_OFL.txt` | `ofl/spacegrotesk/OFL.txt` | `564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72` |
 | `inter_OFL.txt` | `ofl/inter/OFL.txt` | `5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57` |
 
-Bundle both complete OFL copyright/licence files in app assets alongside the font resources. Preserve names and attribution; the implementation does not modify the font binaries.
+The two TTF binaries are byte-for-byte identical to the pinned downloads. The complete OFL copyright/licence text is bundled in app assets; one upstream trailing space was removed from each notice to keep the repository whitespace check clean, without changing any terms or attribution. Shipped notice SHA-256: Space Grotesk `18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943`, Inter `5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39`.
 
 ## Gates to complete
 
