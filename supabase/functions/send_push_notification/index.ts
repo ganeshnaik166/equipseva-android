@@ -3,7 +3,8 @@
 // Fan-out push delivery for `public.notifications`. Triggered by a Supabase
 // Database Webhook (or pg_net trigger) on INSERT into `public.notifications`.
 // Looks up the recipient's `device_tokens` rows (max 10) and pushes the
-// notification via FCM HTTP v1. Dead tokens (404 / UNREGISTERED) are deleted.
+// notification via FCM HTTP v1. Token deletion is held until a versioned
+// server claim can distinguish a stale FCM result from a new owner.
 //
 // Webhook payload shape (Supabase DB webhook):
 //   { type: "INSERT" | "UPDATE" | "DELETE", table, schema, record, old_record }
@@ -24,11 +25,14 @@
 // notification row server-side (defence-in-depth — even though the row was
 // just written, we re-read by id under service role to confirm it exists).
 //
-// We deliberately log only counts / token-suffixes — never title, body, or
-// user_id — to keep PII out of edge function logs.
+// Log aggregate counts only, never token fragments, recipient IDs or content.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import {
+  deliverNotification,
+  sendToFcm,
+} from "./push_contract.ts";
 
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -149,8 +153,7 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`google_oauth_failed: ${res.status} ${txt.slice(0, 200)}`);
+    throw new Error(`google_oauth_failed:${res.status}`);
   }
   const body = await res.json() as { access_token: string; expires_in: number };
   cachedToken = {
@@ -158,71 +161,6 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
     expiresAt: now + (body.expires_in ?? 3600),
   };
   return cachedToken.token;
-}
-
-// ---------- FCM send ----------
-
-interface SendResult {
-  token: string;
-  ok: boolean;
-  status: number;
-  unregistered: boolean;
-}
-
-async function sendOne(
-  projectId: string,
-  accessToken: string,
-  token: string,
-  title: string | null,
-  body: string | null,
-  data: Record<string, unknown>,
-): Promise<SendResult> {
-  // FCM v1 requires `data` values to be strings.
-  const dataStr: Record<string, string> = {};
-  for (const [k, v] of Object.entries(data ?? {})) {
-    if (v === null || v === undefined) continue;
-    dataStr[k] = typeof v === "string" ? v : JSON.stringify(v);
-  }
-
-  const message: Record<string, unknown> = {
-    token,
-    data: dataStr,
-  };
-  if (title || body) {
-    message.notification = {
-      title: title ?? "",
-      body: body ?? "",
-    };
-  }
-
-  // Cap FCM send wait at 8s — usually responds in ~200ms.
-  const res = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ message }),
-      signal: AbortSignal.timeout(8_000),
-    },
-  );
-
-  let unregistered = false;
-  if (!res.ok) {
-    const txt = await res.text();
-    // FCM v1 surfaces dead tokens as 404 + status UNREGISTERED, or 400 with
-    // INVALID_ARGUMENT for malformed tokens. Treat both as deletable.
-    if (
-      res.status === 404 ||
-      txt.includes("UNREGISTERED") ||
-      txt.includes("registration-token-not-registered")
-    ) {
-      unregistered = true;
-    }
-  }
-  return { token, ok: res.ok, status: res.status, unregistered };
 }
 
 // ---------- HTTP handler ----------
@@ -291,12 +229,7 @@ serve(async (req) => {
   // produces opaque 404 NOT_FOUND / 403 PERMISSION_DENIED from FCM
   // far downstream. Surface up front with a clear error.
   if (sa.project_id && sa.project_id !== fcmProjectId) {
-    console.error(
-      "send_push_notification: FCM_PROJECT_ID",
-      fcmProjectId,
-      "!= service account project_id",
-      sa.project_id,
-    );
+    console.error("send_push_notification fcm_project_mismatch");
     return json(500, {
       ok: false,
       code: "server_error",
@@ -316,7 +249,7 @@ serve(async (req) => {
     // Don't echo PostgREST raw error in the response — webhook
     // response is captured to function logs which carry the SQL
     // hints / table names. Same pattern as PR #686 / PR #704.
-    console.error("send_push_notification notif_fetch_failed", notifErr);
+    console.error("send_push_notification notif_fetch_failed");
     return json(500, { ok: false, code: "server_error", message: "notif_fetch_failed" });
   }
   if (!notif) return json(200, { ok: true, skipped: true, reason: "row_gone" });
@@ -328,7 +261,7 @@ serve(async (req) => {
     .order("updated_at", { ascending: false })
     .limit(MAX_TOKENS_PER_USER);
   if (tokensErr) {
-    console.error("send_push_notification tokens_fetch_failed", tokensErr);
+    console.error("send_push_notification tokens_fetch_failed");
     return json(500, { ok: false, code: "server_error", message: "tokens_fetch_failed" });
   }
   if (!tokens || tokens.length === 0) {
@@ -338,43 +271,48 @@ serve(async (req) => {
   let accessToken: string;
   try {
     accessToken = await getAccessToken(sa);
-  } catch (e) {
-    // Round 306 — don't echo raw Google OAuth response body; it can
-    // contain account metadata, quota errors, or service-account
-    // identifiers. Log server-side, return generic to client.
-    console.error("send_push_notification fcm_auth_failed", e);
+  } catch {
+    // OAuth errors can contain account metadata. Log only the fixed code.
+    console.error("send_push_notification fcm_auth_failed");
     return json(502, { ok: false, code: "fcm_auth_failed", message: "fcm_auth_failed" });
   }
 
-  const data = (notif.data ?? {}) as Record<string, unknown>;
-  // Tag deep-link metadata for the Android click handler.
-  if (notif.kind && typeof data.kind === "undefined") {
-    data.kind = notif.kind;
-  }
-  if (typeof data.notification_id === "undefined") {
-    data.notification_id = notif.id;
-  }
-
-  const results = await Promise.all(
-    tokens.map((t) => sendOne(fcmProjectId, accessToken, t.token, notif.title, notif.body, data)),
+  // A DB webhook's record and even notifications.data are selectors, never
+  // outbound payloads. The fetched row supplies the recipient; the pure
+  // contract builds generic text and an allow-listed route for Android taps.
+  const outcome = await deliverNotification(
+    notif,
+    tokens.map((t) => t.token),
+    (message) => sendToFcm(fcmProjectId, accessToken, message),
   );
 
-  // Reap dead tokens.
-  const dead = results.filter((r) => r.unregistered).map((r) => r.token);
-  if (dead.length > 0) {
-    await admin.from("device_tokens").delete().in("token", dead);
-  }
-
-  const sent = results.filter((r) => r.ok).length;
-  // No PII in logs — token suffix only, for grep-by-device debugging.
+  // Never DELETE by token: a delayed UNREGISTERED for A can remove B's fresh
+  // claim after a shared device switches accounts. Count old rows until the
+  // versioned claim/reap API is deployed; operations must watch this count.
   console.log(JSON.stringify({
-    notification_id: notif.id,
     devices: tokens.length,
-    sent,
-    failed: results.length - sent,
-    dead_count: dead.length,
-    token_suffixes: results.map((r) => r.token.slice(-8)),
+    sent: outcome.sent,
+    failed: outcome.failed,
+    unregistered_count: outcome.unregistered,
+    transport_failure: outcome.transportFailure,
   }));
 
-  return json(200, { ok: true, sent, failed: results.length - sent, reaped: dead.length });
+  // Preserve the old non-2xx response for transport exceptions. Whether the
+  // webhook dispatcher retries is deployment-specific and unverified here.
+  // A replay can duplicate successful siblings; exactly-once needs a ledger.
+  if (outcome.transportFailure) {
+    return json(502, {
+      ok: false,
+      code: "fcm_transport_failure",
+      sent: outcome.sent,
+      failed: outcome.failed,
+      reaped: 0,
+    });
+  }
+  return json(200, {
+    ok: true,
+    sent: outcome.sent,
+    failed: outcome.failed,
+    reaped: 0,
+  });
 });

@@ -4,7 +4,10 @@ import test from "node:test";
 import {
   buildSafePushMessage,
   classifyFcmFailure,
+  deliverNotification,
   sendBatch,
+  sendToFcm,
+  SUPPORTED_KINDS,
 } from "./push_contract.ts";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -142,8 +145,92 @@ test("a failed token send does not lose a successful sibling or expose token IDs
     if (token === "dead-token") return { ok: false, status: 404, unregistered: true };
     return { ok: true, status: 200, unregistered: false };
   });
-  assert.deepEqual(outcome, { sent: 1, failed: 2, unregistered: 1 });
+  assert.deepEqual(outcome, { sent: 1, failed: 2, unregistered: 1, transportFailure: true });
   assert.equal(JSON.stringify(outcome).includes("token"), false);
+});
+
+test("completed FCM rate-limit and server errors keep the prior acknowledgement contract", async () => {
+  const outcome = await sendBatch(["rate-limit", "server-error"], async (token) => ({
+    ok: false,
+    status: token === "rate-limit" ? 429 : 503,
+    unregistered: false,
+  }));
+  assert.deepEqual(outcome, { sent: 0, failed: 2, unregistered: 0, transportFailure: false });
+});
+
+test("real fan-out boundary gives every send the sanitized fetched row", async () => {
+  const sentMessages = [];
+  const outcome = await deliverNotification(row({
+    data: { conversation_id: CONVERSATION, user_id: B, patient_name: "Patient R" },
+  }), ["token-one", "token-two"], async (message) => {
+    sentMessages.push(message);
+    return { ok: true, status: 200, unregistered: false };
+  });
+  assert.deepEqual(outcome, { sent: 2, failed: 0, unregistered: 0, transportFailure: false });
+  assert.equal(sentMessages.length, 2);
+  for (const message of sentMessages) {
+    assert.equal(message.data.user_id, A);
+    assert.equal(message.data.conversation_id, CONVERSATION);
+    assert.equal(JSON.stringify(message).includes("Patient R"), false);
+  }
+});
+
+test("stale token invalidity is counted but never offered as a deletion key", async () => {
+  const result = await deliverNotification(row(), ["token-now-owned-by-B"], async () => ({
+    ok: false,
+    status: 404,
+    unregistered: true,
+  }));
+  assert.deepEqual(result, { sent: 0, failed: 1, unregistered: 1, transportFailure: false });
+  assert.equal(JSON.stringify(result).includes("token-now-owned-by-B"), false);
+});
+
+test("sender-to-FCM path transmits only generic text and validated tap fields", async () => {
+  const requests = [];
+  const outcome = await deliverNotification(row({
+    data: { conversation_id: CONVERSATION, user_id: B, title: "secret", body: "secret" },
+  }), ["current-token"], (message) => sendToFcm(
+    "project-id", "synthetic-oauth", message,
+    async (url, init) => {
+      requests.push({ url, init });
+      return new Response(JSON.stringify({ name: "synthetic-message" }), { status: 200 });
+    },
+  ));
+  assert.deepEqual(outcome, { sent: 1, failed: 0, unregistered: 0, transportFailure: false });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "https://fcm.googleapis.com/v1/projects/project-id/messages:send");
+  const wire = JSON.parse(requests[0].init.body);
+  assert.deepEqual(wire, { message: {
+    token: "current-token",
+    notification: { title: "EquipSeva", body: "You have a new notification." },
+    data: {
+      user_id: A,
+      notification_id: NOTIFICATION,
+      kind: "chat_message_new",
+      conversation_id: CONVERSATION,
+      channel: "chat",
+      category: "chat",
+    },
+  } });
+  assert.equal(JSON.stringify(wire).includes("secret"), false);
+});
+
+test("FCM response parser does not mistake generic 404 for a dead token", async () => {
+  const message = buildSafePushMessage(row(), "current-token");
+  const generic = await sendToFcm("project", "synthetic-oauth", message,
+    async () => new Response(JSON.stringify({ error: { status: "NOT_FOUND" } }), { status: 404 }));
+  assert.deepEqual(generic, { ok: false, status: 404, unregistered: false });
+});
+
+test("sender kind allowlist covers every Android push route kind", () => {
+  const androidSource = readFileSync(new URL(
+    "../../../app/src/main/kotlin/com/equipseva/app/navigation/NotificationDeepLink.kt",
+    import.meta.url,
+  ), "utf8");
+  const androidKinds = [...androidSource.matchAll(/const val KIND_[A-Z_]+ = "([a-z_]+)"/g)]
+    .map((match) => match[1]);
+  assert.equal(androidKinds.length, 34, "Android kind inventory changed; review the push contract");
+  assert.deepEqual([...SUPPORTED_KINDS].sort(), androidKinds.sort());
 });
 
 test("sender never reaps by token or logs token suffixes before versioned claims exist", () => {
@@ -151,4 +238,6 @@ test("sender never reaps by token or logs token suffixes before versioned claims
   assert.doesNotMatch(source, /\.delete\(\)\s*\.in\(["']token["']/);
   assert.doesNotMatch(source, /token_suffixes|\.token\.slice\(-8\)/);
   assert.doesNotMatch(source, /notif\.title,\s*notif\.body,\s*data/);
+  assert.match(source, /deliverNotification\(\s*notif/);
+  assert.match(source, /sendToFcm\(/);
 });
