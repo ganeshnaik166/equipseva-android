@@ -2,6 +2,13 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-26 — Sign-in recovery action target, locally scoped acceptance
+
+- Branch `codex/signin-recovery-target-20260926`, fetched-main base `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`; frozen app/test code `ffbc930f9a97334a7a17605c00f44cab7eb02135`. Only `SignInScreen.kt` and a new `SignInRecoveryTargetTest.kt` changed in the code commit.
+- Focused test-first RED: 3 tests / 2 failures on the original source (missing button role and <48dp target at 320×420dp/2× text); pending-auth disabled behavior passed. Minimal fix uses `Spacing.MinTouchTarget` and `Role.Button` on the recovery action while keeping its caption, callback and disabled rule. Focused GREEN: 3/0. No auth/reset repository call occurs on that navigation callback.
+- Design-lint ratchet passes with all negative signals unchanged. Full combined local unit/lint/debug/unsigned-R8 run at code `ffbc930f`: **2,910 tests / 342 suites / 0 failures/errors/skips**, lint **0 errors / 87 warnings / 2 hints**, both assemblies green, Gradle exit 0. `PRECHECK_LOOSE=1` allowed missing signing certificate/keystore; this is not a shippable release. Logs and boundaries: [handoff](HANDOFF_SIGNIN_RECOVERY_TARGET_2026-09-26.md).
+- Independent [critic](helper-reviews/codex-20260926/signin-recovery-critic.md) **9.7/10** and [QA](helper-reviews/codex-20260926/signin-recovery-qa.md) **9.6/10** pass the frozen action-target slice with no mandatory blocker. Critic confirmed 48dp/Button semantics, unchanged submitting guard, and callback isolation; QA checked RED/GREEN, compact 2× text and the full local gate. An attempted disabled tap and physical edge-tap are optional follow-up evidence. Hosted CI, main integration, physical TalkBack/device and hosted-reset behavior remain pending; no app-wide or auth-wide score is claimed. The coordinator owns integration.
+
 ## 2026-09-19 — P0 product plan published
 
 - Main: `24e0199937c09c137e8045aa7664dcd4f746dbb1`; content: `5541df8f43d656951bf53197f74da5a7b0291768`; PR1879 merged.
@@ -126,3 +133,8 @@ Append dated results. Keep design, implementation, main integration and release 
 
 - [PR1889](https://github.com/ganeshnaik166/equipseva-android/pull/1889) passed all seven applicable GitHub checks and merged as **`edae85ed50aa9f819a0a4fddaeea50ebae93ff64`**. The Welcome candidate then merged this main commit without app-source conflict; its final combined-head CI and main merge remain separate gates.
 - On combined commit **`26f0ba2aa86448a01b328d5d55687324cb0d1ebd`**, Welcome **5/0** plus signup-nav **5/0** targeted tests passed (`BUILD SUCCESSFUL in 1m53s`), and the design ratchet exited 0 with no negative signal above baseline. Independent combined-tree critic and QA each scored **9.6/10 for integration scope**, with QA holding main merge until final hosted CI passes. No device or signed-release claim follows.
+
+## 2026-09-26 — Welcome accessibility merged on main; Sign in candidate reconciled
+
+- Final Welcome [PR1888](https://github.com/ganeshnaik166/equipseva-android/pull/1888) head `497582331f1172640753268a67c533f2c0fa970b` passed six applicable GitHub checks: Android push/PR unit/lint/design/debug/unsigned R8, Roborazzi verify and push/PR Gitleaks; record-golden was skipped. The independent combined critic/QA score **9.6/10** for this bounded integration had no source blocker and its final CI hold was satisfied. GitHub merged it at **`afe2bd33cdc37ca842b921c9817d75cdc645fc74`**. Physical device/TalkBack and signed release remain open.
+- The isolated Sign in recovery candidate merged this exact main commit into its own branch, preserving its frozen `ffbc930f` app/test change; its post-merge targeted/full verification and hosted PR checks are separate remaining gates. No session-identity/root security fix is included here.
