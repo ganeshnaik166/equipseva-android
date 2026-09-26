@@ -23,3 +23,5 @@ Independent WIP critique found that simply dropping three real founder queue pus
 **Implementation is not yet verified or accepted.** Run the unchanged focused test for the new fallback RED, implement the safe inbox landing, rerun focused GREEN, design ratchet and appropriate full unit/lint/debug/unsigned-R8 checks after acquiring the shared Gradle slot; obtain independent critic and QA ≥9.5 on the frozen diff; then hosted CI before main. No device, release signing or real account was used.
 
 Separate HIGH A3-02 remains: `DeepLinkRouter` and `DeepLinkHost` buffer routes across login boundaries, so an A push/link can replay into B. Also open: A3-03 activity recreation redelivery, recipient binding, founder-only in-app gates, and server object authorization. Do not claim the entire deep-link/security program closed from this policy slice.
+
+An independent read-only [A3-02 owner-replay plan](helper-reviews/codex-20260926/a3-02-owner-replay-plan.md) records source seams, synthetic test cases and merge ownership. It does not change the A3-01 implementation or satisfy its missing GREEN/review gates.
