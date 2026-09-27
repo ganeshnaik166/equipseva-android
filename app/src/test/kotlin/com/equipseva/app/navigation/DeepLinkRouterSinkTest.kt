@@ -2,6 +2,7 @@ package com.equipseva.app.navigation
 
 import android.content.Intent
 import android.net.Uri
+import android.os.BadParcelableException
 import com.equipseva.app.core.auth.LoginTicketSnapshot
 import com.equipseva.app.core.auth.LoginTicketSource
 import io.mockk.every
@@ -178,6 +179,73 @@ class DeepLinkRouterSinkTest {
             listOf(DeepLinkRouter.Event.OpenRoute(Routes.NOTIFICATIONS, ticketB)),
             received,
         )
+    }
+
+    @Test fun malformed_exported_route_bundle_cannot_crash_or_dispatch() {
+        val tickets = ticketSource(ticketA)
+        val router = DeepLinkRouter(tickets)
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+        val intent = mockk<Intent> {
+            every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } throws
+                BadParcelableException("synthetic malformed route Bundle")
+        }
+
+        router.dispatch(intent)
+
+        assertTrue(received.isEmpty())
+        verify(exactly = 0) { tickets.currentTicket() }
+    }
+
+    @Test fun malformed_exported_recipient_bundle_cannot_crash_or_dispatch() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+        val intent = mockk<Intent> {
+            every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } returns Routes.HOME
+            every { data } returns null
+            every { getStringExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID) } throws
+                ClassCastException("synthetic wrong-type recipient")
+        }
+
+        router.dispatch(intent)
+
+        assertTrue(received.isEmpty())
+    }
+
+    @Test fun malformed_exported_data_cannot_crash_or_dispatch() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+        val intent = mockk<Intent> {
+            every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } returns null
+            every { data } throws BadParcelableException("synthetic malformed data URI")
+        }
+
+        router.dispatch(intent)
+
+        assertTrue(received.isEmpty())
+    }
+
+    @Test fun wrong_typed_route_extra_is_ignored_without_navigating() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+
+        router.dispatch(Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, 42))
+
+        assertTrue(received.isEmpty())
+    }
+
+    @Test fun forged_matching_recipient_still_cannot_open_non_allowlisted_route() {
+        val router = DeepLinkRouter(ticketSource(ticketB))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+
+        router.dispatch(routeIntent(Routes.FOUNDER_DASHBOARD, ticketB.userId))
+        assertTrue(received.isEmpty())
+        router.dispatch(routeIntent(Routes.HOME, ticketB.userId))
+        assertEquals(listOf(DeepLinkRouter.Event.OpenRoute(Routes.HOME, ticketB)), received)
     }
 
     private fun ticketSource(ticket: LoginTicketSnapshot?): LoginTicketSource = mockk {

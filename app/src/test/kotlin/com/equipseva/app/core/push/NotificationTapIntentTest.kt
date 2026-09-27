@@ -1,6 +1,7 @@
 package com.equipseva.app.core.push
 
 import android.app.Application
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
@@ -8,6 +9,9 @@ import com.equipseva.app.MainActivity
 import com.equipseva.app.navigation.DeepLinkRouter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +24,7 @@ import org.robolectric.annotation.Config
 class NotificationTapIntentTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val recipientA = "11111111-1111-4111-8111-111111111111"
+    private val recipientB = "22222222-2222-4222-8222-222222222222"
     private val route = "repair/detail/RPR-00027"
 
     @Test fun route_tap_carries_server_recipient_without_copying_other_payload_fields() {
@@ -68,5 +73,55 @@ class NotificationTapIntentTest {
         assertEquals(route, intent.getStringExtra(DeepLinkRouter.EXTRA_ROUTE))
         assertFalse(intent.hasExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID))
         assertTrue(intent.component?.className == MainActivity::class.java.name)
+    }
+
+    @Test fun same_request_code_for_different_recipients_has_distinct_internal_intent_identity() {
+        val first = notificationTapIntent(context, route, mapOf("user_id" to recipientA))
+        val second = notificationTapIntent(
+            context,
+            "repair/detail/RPR-00028",
+            mapOf("user_id" to recipientB),
+        )
+
+        // Two FCM messages with a null messageId both use request code 0 in
+        // the production PendingIntent call. Extras do not enter filterEquals.
+        val nullMessageId: String? = null
+        assertEquals(0, nullMessageId.hashCode())
+        assertFalse("Different push owners must not alias", first.filterEquals(second))
+
+        val firstData = first.data
+        val secondData = second.data
+        assertNotNull(firstData)
+        assertNotNull(secondData)
+        assertNotEquals(firstData, secondData)
+        listOf(firstData, secondData).forEach { uri ->
+            assertFalse(uri?.scheme.equals("http", ignoreCase = true))
+            assertFalse(uri?.scheme.equals("https", ignoreCase = true))
+            assertNull(
+                DeepLinkRouter.routeForParts(uri?.scheme, uri?.host, uri?.pathSegments.orEmpty()),
+            )
+        }
+    }
+
+    @Test fun same_request_code_does_not_update_another_recipient_pending_intent() {
+        val first = notificationTapIntent(context, route, mapOf("user_id" to recipientA))
+        val second = notificationTapIntent(
+            context,
+            "repair/detail/RPR-00028",
+            mapOf("user_id" to recipientB),
+        )
+        val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        val firstPending = PendingIntent.getActivity(context, 0, first, flags)
+        val secondPending = PendingIntent.getActivity(context, 0, second, flags)
+        try {
+            assertNotEquals(
+                "FLAG_UPDATE_CURRENT must not alias another recipient's tray action",
+                firstPending,
+                secondPending,
+            )
+        } finally {
+            firstPending.cancel()
+            secondPending.cancel()
+        }
     }
 }

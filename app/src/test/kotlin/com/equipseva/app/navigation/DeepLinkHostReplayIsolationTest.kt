@@ -209,6 +209,21 @@ class DeepLinkHostReplayIsolationTest {
         assertEquals(accountARoute, host.nextRouteOrNull())
     }
 
+    @Test fun observed_Unknown_drops_ingress_even_if_SDK_ticket_is_still_nonnull() = runTest {
+        val tickets = TicketHarness(loginA)
+        val auth = FakeAuthRepository(AuthSession.Unknown)
+        val host = host(tickets, auth)
+        advanceUntilIdle()
+
+        tickets.router.dispatch(routeIntent(accountARoute))
+        auth.setSession(accountA)
+        advanceUntilIdle()
+
+        assertNull("Unknown admitted a route for the next observed login", host.nextRouteOrNull())
+        tickets.router.dispatch(routeIntent(accountARoute))
+        assertEquals(accountARoute, host.nextRouteOrNull())
+    }
+
     private fun routeIntent(route: String, recipient: String? = userA): Intent =
         Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route).apply {
             if (recipient != null) putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)
