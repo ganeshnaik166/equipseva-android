@@ -405,6 +405,29 @@ class DeepLinkStartupHandoffTest {
         assertNull("SDK ticket loss left a startup tap for later login", newHost.nextRouteOrNull())
     }
 
+    @Test fun old_hosts_direct_A_to_B_replacement_retires_new_A_Activity_tap() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
+        val oldAuth = FakeAuthRepository(accountA)
+        val oldHost = host(tickets, oldAuth)
+        advanceUntilIdle()
+        register(oldHost, oldOwner)
+
+        tickets.router.beginActivity(newOwner)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userA), newOwner)
+        tickets.current = loginB
+        oldAuth.setSession(accountB) // Direct replacement, no SignedOut/Unknown event.
+        advanceUntilIdle()
+        tickets.current = loginA // Isolate the observed boundary with the same ticket.
+
+        val newHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        assertNull("A's tap survived an observed A→B boundary", newHost.nextRouteOrNull())
+    }
+
     private fun pushIntent(route: String, recipient: String): Intent =
         Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
             .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)
