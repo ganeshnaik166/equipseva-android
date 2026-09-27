@@ -1,0 +1,26 @@
+# A10 engineer-status integration — 27 September 2026
+
+## Scope and Git ownership
+
+- Isolated branch/worktree: `codex/engineer-status-integration-20260927` at `C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-engineer-status-integration-20260927`.
+- Fetched base: `origin/main` `11ac01c1d9e55439eb0673036e5589a07677e629`. Main subsequently accepted Welcome typography at `06a4f9f85c82e1834eb74e55dd8f5776c4a36b70`, merged into this candidate at `1606220557d37f48ba9d1747d2087cc2592ac472`.
+- The A10 implementation was selectively ported from frozen helper commit `16b405b882b859c6085450ad6fe4370434df8970` into `9a19533ea139551e656975d771d7035b3cbf918e`. Its only app/test changes are `DeepLinkHost.kt` engineer-status logic/imports and new `DeepLinkHostEngineerStatusTest.kt`. Router, event channel, last-screen persistence, auth repository, root graph, notification parser and backend are unchanged.
+- The old helper's `RecordingUserPrefs` test fixture was absent from current main. The initial targeted command failed at test compilation for that unresolved reference; test-only commit `f3e8727ebfa15f0f61973e558fd6e83559a19c14` replaced that dependency with a self-contained MockK prefs double. No assertions or production API changed.
+
+## Behavior and exact evidence
+
+The `outputs/...` logs below live outside Git under `C:/Users/lokes/Documents/Codex/2026-09-07/im/outputs/`.
+
+The auth collector observes all emitted states without network I/O. SignedOut, Unknown and blank IDs retire the owner and clear status. Each observed login has a generation; each fetch/manual refresh has a revision. Cancellation and a post-return ownership check prevent late noncooperative responses from publishing into a successor login, including observed A→B→A. Duplicate or email-only updates to the same observed login do not refetch. Unknown requires a later explicit nonblank SignedIn to refetch. Manual refresh snapshots the current observed owner and does not wait for future login. A failed or missing engineer fetch yields null; this presentation state is not an authorization rule.
+
+- Historical helper RED: 23 tests / 2 behavioral failures, then an isolated manual-before-login RED 1/1, on its September 11 base. Historical helper GREEN 23/0 does not substitute for current-tree checks.
+- This candidate's first targeted run failed at `:app:compileDebugUnitTestKotlin` because `RecordingUserPrefs` was missing (`outputs/a10-engineer-status-targeted-20260927.log`). The committed fixture correction then passed **23 tests / 0 failures/errors/skips**, Gradle exit 0 (`outputs/a10-engineer-status-targeted-rerun-20260927.log` and test XML).
+- Design ratchet exited 0 on the Welcome-integrated tree (`outputs/a10-engineer-status-design-20260927.log`).
+- The exact combined source tree `1606220557d37f48ba9d1747d2087cc2592ac472` passed `.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --continue --no-daemon --console=plain` with Gradle exit 0, **BUILD SUCCESSFUL in 11m 52s**. XML: **2,959 tests / 348 suites / 0 failures, errors or skips**. Lint: **0 errors / 87 warnings / 2 hints**. Debug APK and `app-release-unsigned.apk` exist. Log: `outputs/a10-engineer-status-combined-full-20260927.log`. `PRECHECK_LOOSE=1` permitted compile-only unsigned release assembly with local ignored placeholders; it does not establish signing, provider configuration or shipment. The release task reported a Crashlytics mapping upload, but no receipt was independently checked.
+- Independent exact combined-tree [critic](helper-reviews/codex-20260927/a10-engineer-status-critic.md) and [QA](helper-reviews/codex-20260927/a10-engineer-status-qa.md) each scored **9.6/10 for this bounded A10 change**, with no mandatory code/test-design blocker. Their score does not cover global account isolation, app security or release.
+
+## Limits and next gates
+
+Repository-level identity transitions that are not emitted to this host, or are conflated before observation, remain indistinguishable. A3-02 cross-account buffered notification delivery, root/session security, stale signup `addRole`, global sign-out cleanup and server row permissions are separate work. Pre-existing `MainNavGraph` pinned restore can await a non-null engineer status indefinitely after a failed/missing lookup; its null-state snackbar also says “Submit your KYC first” when status is merely loading/offline. Those files are outside this A10 port and need separate tests/fixes.
+
+The shared Gradle slot was released at 03:32:41 UTC after zero Gradle processes. Fetch before pushing this owned branch, obtain hosted PR Android/visual/secret checks, and verify main merge only after all gates. Device/TalkBack, real provider accounts, and signed release remain open.
