@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — Security candidate status checkpoint, no app/SQL integration
+
+- [Draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) remains RED (8 focused tests / 3 failures, hosted Android failure); [draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900) has hosted focused SQL green but a source-inferred missing prehistory baseline; [draft PR1901](https://github.com/ganeshnaik166/equipseva-android/pull/1901) has PGlite 14/14, bounded exact-source critic/QA 9.6/9.6, hosted SQL and secret-scan green, with staging and production still open. This entry and [handoff](HANDOFF_SECURITY_STATUS_2026-09-27.md) are documentation only. S3a remains the bounded accepted production result.
+
 ## 2026-09-27 — A3 RED and migration/default-grant follow-up, status only
 
 - A3-02 [draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) branch `da45af88` retains test-only `0fbafc26`: focused class **8/3 failed**, Gradle exit **1**, with observed-B/unobserved-A, mirrored A/B and missed-terminal same-ticket security targets. Five prior cases passed; no production/SDK fix or full gate followed. Earlier pre-RED hosted green does not apply to this head, and exact-code critic **8.8/10** / QA **8.9/10** block it. [Branch handoff](https://github.com/ganeshnaik166/equipseva-android/blob/da45af888f43e896442a471693e979ad814207e7/docs/HANDOFF_A3_02_REPLAY_2026-09-27.md).
