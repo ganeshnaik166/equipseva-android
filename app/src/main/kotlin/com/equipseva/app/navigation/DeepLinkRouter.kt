@@ -2,6 +2,7 @@ package com.equipseva.app.navigation
 
 import android.content.Intent
 import android.net.Uri
+import android.os.BadParcelableException
 import com.equipseva.app.core.auth.LoginTicketSnapshot
 import com.equipseva.app.core.auth.LoginTicketSource
 import javax.inject.Inject
@@ -61,12 +62,31 @@ class DeepLinkRouter @Inject constructor(
 
     fun dispatch(intent: Intent?) {
         if (intent == null) return
+        // MainActivity is exported. Android may throw while unparcelling an
+        // attacker-supplied Bundle or URI; never let that crash the Activity.
+        // Keep the active-host callback outside this catch so app bugs there
+        // remain visible rather than being misclassified as bad input.
+        val event = try {
+            resolveEvent(intent)
+        } catch (_: BadParcelableException) {
+            return
+        } catch (_: ClassCastException) {
+            return
+        } catch (_: IllegalArgumentException) {
+            return
+        } ?: return
+        synchronized(sinkLock) {
+            activeSink?.sink?.invoke(event)
+        }
+    }
+
+    private fun resolveEvent(intent: Intent): Event.OpenRoute? {
         val externalRoute = intent.getStringExtra(EXTRA_ROUTE)
         val directRoute = externalRoute?.takeIf(DeepLinkPolicy::allows)
         val appLinkRoute = routeFor(intent.data)
         val inboxFallback = DeepLinkPolicy.inboxFallback(externalRoute)
-        if (directRoute == null && appLinkRoute == null && inboxFallback == null) return
-        val ticket = ticketSource.currentTicket() ?: return
+        if (directRoute == null && appLinkRoute == null && inboxFallback == null) return null
+        val ticket = ticketSource.currentTicket() ?: return null
         // A push captured for account A must not inherit account B's live
         // ticket at tap time. The extra is forgeable on this exported Activity;
         // it filters stale notifications, while the allow-list and server RLS
@@ -77,13 +97,10 @@ class DeepLinkRouter @Inject constructor(
             directRoute != null && matchesPushRecipient -> directRoute
             appLinkRoute != null -> appLinkRoute
             inboxFallback != null && matchesPushRecipient -> inboxFallback
-            else -> return
+            else -> return null
         }
-        if (!DeepLinkPolicy.allows(route)) return
-        val event = Event.OpenRoute(route, ticket)
-        synchronized(sinkLock) {
-            activeSink?.sink?.invoke(event)
-        }
+        if (!DeepLinkPolicy.allows(route)) return null
+        return Event.OpenRoute(route, ticket)
     }
 
     companion object {

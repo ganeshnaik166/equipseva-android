@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalTime
+import java.util.UUID
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -142,6 +144,9 @@ internal fun notificationTapIntent(
     data: Map<String, String>,
 ): Intent = Intent(context, MainActivity::class.java)
     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    // PendingIntent matching ignores extras. A private, random data URI keeps
+    // distinct tray actions separate even when FCM message IDs share a request code.
+    .setData(Uri.parse("equipseva-internal-notification://tap/${UUID.randomUUID()}"))
     .apply {
         if (route != null) {
             putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
