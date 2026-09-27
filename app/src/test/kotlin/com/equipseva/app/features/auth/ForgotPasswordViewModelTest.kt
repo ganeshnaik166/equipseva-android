@@ -83,16 +83,38 @@ class ForgotPasswordViewModelTest {
         )
     }
 
-    @Test fun `re-submitting after success fires a second call`() = runTest {
+    @Test fun `receipt blocks hidden duplicate submit until edit email is chosen`() = runTest {
         viewModel.onEmailChange("user@example.com")
         viewModel.onSubmit()
+        viewModel.onSubmit() // Pending duplicate tap must not enqueue a second request.
         viewModel.state.first { it.sent }
+        viewModel.onSubmit() // The receipt is not a second submit surface.
+        assertEquals(listOf("user@example.com"), fake.resetEmails)
 
+        viewModel.onEditEmail()
+        assertEquals(false, viewModel.state.value.sent)
+        assertEquals("user@example.com", viewModel.state.value.email)
+        assertEquals(listOf("user@example.com"), fake.resetEmails)
         viewModel.onEmailChange("other@example.com")
         viewModel.onSubmit()
         viewModel.state.first { it.sent && fake.resetEmails.size == 2 }
 
         assertEquals(listOf("user@example.com", "other@example.com"), fake.resetEmails)
+    }
+
+    @Test fun `failed request stays editable and can retry without an edit transition`() = runTest {
+        fake.resetEmailResult = Result.failure(IOException("offline"))
+        viewModel.onEmailChange("user@example.com")
+        viewModel.onSubmit()
+        viewModel.state.first { !it.submitting && it.errorMessage != null }
+
+        assertEquals(false, viewModel.state.value.sent)
+        fake.resetEmailResult = Result.success(Unit)
+        viewModel.onSubmit()
+        viewModel.state.first { it.sent }
+
+        assertEquals(listOf("user@example.com", "user@example.com"), fake.resetEmails)
+        assertNull(viewModel.state.value.errorMessage)
     }
 
     @Test fun `email is trimmed before validation and dispatch`() = runTest {

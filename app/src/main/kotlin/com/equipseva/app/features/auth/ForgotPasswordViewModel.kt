@@ -30,12 +30,22 @@ class ForgotPasswordViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     fun onEmailChange(value: String) {
-        _state.update { it.copy(email = value, emailError = null, errorMessage = null) }
+        _state.update { current ->
+            if (current.submitting || current.sent) current
+            else current.copy(email = value, emailError = null, errorMessage = null)
+        }
+    }
+
+    fun onEditEmail() {
+        _state.update { current ->
+            if (current.submitting || !current.sent) current
+            else current.copy(sent = false, emailError = null, errorMessage = null)
+        }
     }
 
     fun onSubmit() {
         val current = _state.value
-        if (current.submitting) return
+        if (current.submitting || current.sent) return
 
         val trimmed = current.email.trim()
         if (!Validators.emailIsValid(trimmed)) {

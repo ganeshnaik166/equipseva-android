@@ -170,9 +170,10 @@
     <string name="about_copyright">© %1$s EquipSeva</string>
 
     <!-- Forgot password -->
-    <string name="forgot_password_email_instructions">Enter your email. We\'ll send a link to reset your password.</string>
-    <string name="forgot_password_check_email">Check your email</string>
-    <string name="forgot_password_reset_link_sent">We\'ve sent a reset link to %1$s.</string>
+    <string name="forgot_password_email_instructions">Enter your email to request a password reset link.</string>
+    <string name="forgot_password_request_received">Request received</string>
+    <string name="forgot_password_receipt_description">If an account exists for that email, check your inbox and spam folder for a reset link. It may take a few minutes.</string>
+    <string name="forgot_password_edit_email">Edit email</string>
 
     <!-- EsDropdown -->
     <string name="es_dropdown_search_placeholder">Search…</string>
