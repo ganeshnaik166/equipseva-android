@@ -5,9 +5,10 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
+import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.testing.FakeAuthRepository
-import com.equipseva.app.testing.RecordingUserPrefs
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import java.io.IOException
 import androidx.lifecycle.viewModelScope
@@ -21,6 +22,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.withContext
 import org.junit.After
@@ -78,10 +80,13 @@ class DeepLinkHostEngineerStatusTest {
                 else withContext(NonCancellable) { request.result.await() }
             }
         }
-        val prefs = RecordingUserPrefs.create()
+        val prefs = mockk<UserPrefs> {
+            every { activeRole } returns flowOf(null)
+            every { lastScreen } returns flowOf(null)
+        }
         val host = DeepLinkHost(
             router = router,
-            userPrefs = prefs.mock,
+            userPrefs = prefs,
             authRepository = if (sessionFlow == null) auth else object : AuthRepository by auth {
                 override val sessionState: Flow<AuthSession> = checkNotNull(sessionFlow)
             },
