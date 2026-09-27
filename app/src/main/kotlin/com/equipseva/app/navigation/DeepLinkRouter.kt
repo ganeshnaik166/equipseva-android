@@ -27,7 +27,8 @@ class DeepLinkRouter @Inject constructor() {
     sealed interface Event {
         /**
          * A pre-resolved route string the nav graph can navigate directly to.
-         * Emitted for both EXTRA_ROUTE and recognized App Link URIs.
+         * Emitted for admitted EXTRA_ROUTE values, safe inbox fallbacks, and
+         * recognized App Link URIs.
          */
         data class OpenRoute(val route: String) : Event
     }
@@ -37,9 +38,11 @@ class DeepLinkRouter @Inject constructor() {
 
     fun dispatch(intent: Intent?) {
         if (intent == null) return
-        val route = intent.getStringExtra(EXTRA_ROUTE)
+        val externalRoute = intent.getStringExtra(EXTRA_ROUTE)
+        val route = externalRoute
             ?.takeIf(DeepLinkPolicy::allows)
             ?: routeFor(intent.data)
+            ?: DeepLinkPolicy.inboxFallback(externalRoute)
         route?.let { channel.trySend(Event.OpenRoute(it)) }
     }
 

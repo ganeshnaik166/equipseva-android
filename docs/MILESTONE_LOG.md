@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-01 safe notification fallback targeted GREEN
+
+- Same isolated branch and source scope as the WIP entry below. Claude released the shared Gradle slot; Codex reserved it for A3-01. Bounded-wait test polish `2948ff16` retained fail-fast behavior. At the current pre-fix allow-list, `DeepLinkRouterExternalIntentTest` gave **7 tests / 2 expected behavioral failures** (founder and role-specific inbox fallback), Gradle exit 1, log `outputs/deeplink-fallback-red-20260927.log`.
+- The source now removes `KYC` and engineer AMC visits from direct external admission and maps them plus three founder queue pushes to the safe notifications inbox after valid App Link precedence. The same unchanged test class passes **7/0** on this working source, Gradle exit 0, log `outputs/deeplink-fallback-green-20260927.log`; design ratchet exits 0 with no negative signal increase. Full unit/lint/debug/unsigned R8, post-fix critic/QA, latest-main reconciliation, hosted CI and main merge remain pending. This does not fix A3-02 replay or server-side object authorization.
+
 ## 2026-09-26 — A3-01 external-intent boundary paused WIP
 
 - Branch `codex/deeplink-extra-policy-20260926` from main `afe2bd33`: test-only initial RED `5a86ec05` yielded **4/3 behavioral failures** after fixing invalid Robolectric bootstrap. A syntax allow-list candidate in `DeepLinkPolicy.kt` and `DeepLinkRouter.kt` is unverified. Independent provisional source critique **9.2/10** identified lost founder push landings and role-specific route admission; no acceptance score.

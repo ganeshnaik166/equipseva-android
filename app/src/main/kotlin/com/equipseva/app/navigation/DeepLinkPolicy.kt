@@ -18,9 +18,18 @@ internal object DeepLinkPolicy {
     private val fixedRoutes = setOf(
         Routes.HOME,
         Routes.PROFILE,
-        Routes.KYC,
         Routes.NOTIFICATIONS,
         Routes.ENGINEER_DIRECTORY,
+    )
+
+    // These real push destinations need an owner/role gate that the exported
+    // activity cannot prove. Keep the notification visible through the inbox
+    // instead of dropping its tap or opening a privileged/mutation screen.
+    private val inboxFallbackRoutes = setOf(
+        Routes.FOUNDER_CASH_SUSPENDED,
+        Routes.FOUNDER_ESCROW_DISPUTES,
+        Routes.FOUNDER_AMC_ESCALATIONS,
+        Routes.KYC,
         Routes.ENGINEER_AMC_VISITS,
     )
 
@@ -40,4 +49,7 @@ internal object DeepLinkPolicy {
             route.startsWith(marker) && validId(route.removePrefix(marker))
         }
     }
+
+    fun inboxFallback(route: String?): String? =
+        if (route in inboxFallbackRoutes) Routes.NOTIFICATIONS else null
 }
