@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A10 engineer-status isolation merged main; A3-02 remains RED WIP
+
+- [PR1894](https://github.com/ganeshnaik166/equipseva-android/pull/1894) head `5e675602d88e3be04be95962a6ce26d25943affe` passed both hosted Android `build (debug + release R8)` checks, `verify goldens`, and both Gitleaks checks; `record goldens (Linux)` was skipped. It merged to main **`2639d480c394ddffd2b160124b4a495bd7686789`**. The bounded A10 source is `DeepLinkHost.kt` engineer-status observed-owner/refresh handling plus its new focused test. Exact Welcome-integrated local source `1606220557d37f48ba9d1747d2087cc2592ac472` passed targeted **23/0**, full **2,959/0** across 348 suites, lint **0 errors / 87 warnings / 2 hints**, design ratchet, debug and **unsigned** release R8. Independent exact-tree critic and QA each scored **9.6/10 for A10 only**. Repository-unobserved identity, buffered/recipient route ownership, device/TalkBack, real-provider and signed-release gates remain open; [handoff](HANDOFF_ENGINEER_STATUS_INTEGRATION_2026-09-27.md).
+- Separate A3-02 branch `codex/deeplink-replay-fence-20260927` at `abec5d7bbb1f96cf824c3215f67b9220a3cf1a86` preserves test-first **6/5 RED** against unchanged production. No A3-02 production fix, critic/QA acceptance, hosted CI or main merge follows from that WIP. Fetch its `docs/HANDOFF_A3_02_REPLAY_2026-09-27.md` and integrate current main/A10 before editing the overlapping host.
+
 ## 2026-09-27 — Welcome typography merged main; A10 targeted integration
 
 - [Welcome typography PR1893](https://github.com/ganeshnaik166/equipseva-android/pull/1893) passed both hosted Android builds, goldens verification and both secret scans, with record-goldens skipped. It merged to main `06a4f9f85c82e1834eb74e55dd8f5776c4a36b70`. The exact pre-merge combined tree passed 2,936/0 full unit, lint/debug/unsigned R8, with bounded critic and QA 9.6/9.6. Device/TalkBack and signed release remain open.
