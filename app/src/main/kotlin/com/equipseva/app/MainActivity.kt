@@ -69,9 +69,9 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         // first frame is either the blocker or the nav graph, not flicker.
         devModeVerdict.value = DeviceIntegrityCheck.run(this)
         // onCreate runs before Compose installs the authenticated main host.
-        // A restored task may carry either its old Intent or a new external tap.
-        // The saved delivery identity suppresses the old one; the router still
-        // binds any newly admitted tap to this Activity and an exact login.
+        // A restored task's Intent may already have been handled after the
+        // last state save. Only a fresh launch dispatches it here; an exact
+        // in-process retained owner can transfer one unfinished push below.
         if (savedInstanceState == null) {
             deepLinkRouter.beginActivity(deepLinkLaunchOwner)
         } else {
@@ -155,8 +155,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         // setIntent in onNewIntent normally makes this the latest delivery.
-        // A tap delivered after this save with no later save can still leave a
-        // stale marker after process death; the Bundle alone cannot resolve it.
+        // A tap delivered after this save can leave a stale marker after
+        // process death; the Bundle alone cannot authorize restored dispatch.
         RestoredTaskIngress.record(outState, intent)
     }
 

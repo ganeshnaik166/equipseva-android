@@ -59,31 +59,29 @@ class RestoredTaskIngressTest {
         }
     }
 
-    @Test fun restored_launcher_task_accepts_each_new_external_tap_format() {
+    @Test fun restored_launcher_task_drops_external_intent_without_fresh_delivery_proof() {
         val saved = savedAfter(Intent(Intent.ACTION_MAIN))
 
-        assertTrue(RestoredTaskIngress.shouldDispatch(saved, notificationTap(newDelivery)))
-        assertTrue(RestoredTaskIngress.shouldDispatch(saved, appLink("RPR-00027")))
-        assertTrue(RestoredTaskIngress.shouldDispatch(saved, rawBackgroundTap(newDelivery)))
+        assertFalse(RestoredTaskIngress.shouldDispatch(saved, notificationTap(newDelivery)))
+        assertFalse(RestoredTaskIngress.shouldDispatch(saved, appLink("RPR-00027")))
+        assertFalse(RestoredTaskIngress.shouldDispatch(saved, rawBackgroundTap(newDelivery)))
     }
 
-    @Test fun new_notification_identity_is_distinct_from_the_saved_notification() {
-        assertTrue(RestoredTaskIngress.shouldDispatch(
+    @Test fun different_notification_identity_cannot_prove_freshness_after_restore() {
+        assertFalse(RestoredTaskIngress.shouldDispatch(
             savedAfter(notificationTap(oldDelivery)),
             notificationTap(newDelivery),
         ))
-        assertTrue(RestoredTaskIngress.shouldDispatch(
+        assertFalse(RestoredTaskIngress.shouldDispatch(
             savedAfter(rawBackgroundTap(oldDelivery)),
             rawBackgroundTap(newDelivery),
         ))
     }
 
-    @Test fun changed_app_link_opens_but_identical_url_fails_closed_after_restore() {
+    @Test fun changed_and_identical_app_links_both_fail_closed_after_restore() {
         val saved = savedAfter(appLink("RPR-00027"))
 
-        assertTrue(RestoredTaskIngress.shouldDispatch(saved, appLink("RPR-00028")))
-        // There is no OS delivery nonce for App Links. An identical second tap
-        // cannot be distinguished from Android restoring the prior Intent.
+        assertFalse(RestoredTaskIngress.shouldDispatch(saved, appLink("RPR-00028")))
         assertFalse(RestoredTaskIngress.shouldDispatch(saved, appLink("RPR-00027")))
     }
 
@@ -102,21 +100,23 @@ class RestoredTaskIngressTest {
         ))
     }
 
-    @Test fun malformed_push_extra_does_not_hide_an_independent_new_app_link() {
+    @Test fun restored_app_link_is_dropped_even_with_malformed_push_extra() {
         val saved = savedAfter(Intent(Intent.ACTION_MAIN))
         val link = appLink("RPR-00027")
             .putExtra(DeepLinkRouter.EXTRA_ROUTE, 42)
 
-        assertTrue(RestoredTaskIngress.shouldDispatch(saved, link))
+        assertFalse(RestoredTaskIngress.shouldDispatch(saved, link))
+        assertTrue(RestoredTaskIngress.shouldDispatch(null, link))
         assertEquals(listOf(route), startupRoutes(link))
     }
 
-    @Test fun fresh_restored_tap_still_passes_through_exported_route_policy() {
+    @Test fun restored_tap_is_dropped_and_fresh_tap_still_passes_route_policy() {
         val saved = savedAfter(Intent(Intent.ACTION_MAIN))
         val malicious = notificationTap(newDelivery)
             .putExtra(DeepLinkRouter.EXTRA_ROUTE, Routes.FOUNDER_DASHBOARD)
 
-        assertTrue(RestoredTaskIngress.shouldDispatch(saved, malicious))
+        assertFalse(RestoredTaskIngress.shouldDispatch(saved, malicious))
+        assertTrue(RestoredTaskIngress.shouldDispatch(null, malicious))
         assertTrue(startupRoutes(malicious).isEmpty())
     }
 

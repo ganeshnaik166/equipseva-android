@@ -231,14 +231,18 @@ fun MainNavGraph(
                     // Event collection can resume after a session boundary.
                     // Recheck the SDK ticket and observed login immediately
                     // before Navigation consumes the route.
-                    if (!deepLinkHost.isCurrent(event)) return@collect
-                    // Route comes pre-resolved from NotificationDeepLink; the
-                    // server-emitted (kind, data) was mapped to a known
-                    // Routes helper before the PendingIntent fired. We still
-                    // guard against malformed adb-injected routes and stale
-                    // pre-server-PR-#192 deep_link strings so a bad payload
-                    // can't crash MainActivity with IllegalArgumentException.
-                    runCatching { navController.navigate(event.route) }
+                    try {
+                        if (!deepLinkHost.isCurrent(event)) return@collect
+                        // Route comes pre-resolved from NotificationDeepLink;
+                        // final validation still guards malformed external
+                        // routes at Navigation's consumption boundary.
+                        runCatching { navController.navigate(event.route) }
+                    } finally {
+                        // A completed attempt cannot be replayed after an
+                        // Activity recreation. Exact ownership makes an old
+                        // collector unable to clear a newer notification.
+                        deepLinkHost.finishNavigation(event)
+                    }
                 }
             }
         }

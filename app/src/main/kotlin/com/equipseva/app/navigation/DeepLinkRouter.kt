@@ -84,6 +84,8 @@ class DeepLinkRouter @Inject constructor(
     private val latestIngress = mutableMapOf<LaunchOwner, Long>()
     private var nextIngress = 0L
     private var pendingStartup: StartupHandoff? = null
+    /** One accepted route awaiting MainNavGraph's final navigation attempt. */
+    private var inFlight: StartupHandoff? = null
 
     /** A recreated or second Activity gets a fresh, unforgeable route owner. */
     fun beginActivity(owner: LaunchOwner) = synchronized(sinkLock) {
@@ -92,6 +94,7 @@ class DeepLinkRouter @Inject constructor(
         ++nextIngress
         // The newest Activity launch supersedes an older unclaimed tap.
         pendingStartup = null
+        inFlight = null
     }
 
     /** Activity teardown cannot revoke another Activity's pending launch. */
@@ -100,6 +103,7 @@ class DeepLinkRouter @Inject constructor(
         sinks.remove(owner)
         latestIngress.remove(owner)
         if (pendingStartup?.owner === owner) pendingStartup = null
+        if (inFlight?.owner === owner) inFlight = null
     }
 
     /**
@@ -110,42 +114,53 @@ class DeepLinkRouter @Inject constructor(
     internal fun endActivityForRecreation(owner: LaunchOwner) = synchronized(sinkLock) {
         activeOwners -= owner
         sinks.remove(owner)
-        if (pendingStartup?.owner !== owner) latestIngress.remove(owner)
+        if (pendingStartup?.owner !== owner && inFlight?.owner !== owner) {
+            latestIngress.remove(owner)
+        }
     }
 
     /**
-     * Start a new Activity and atomically transfer at most one exact pending
+     * Start a new Activity and atomically transfer at most one exact unfinished
      * notification. The opaque old owner exists only in process, never in a
      * Bundle. A changed ticket, route-only App Link or process death drops it.
+     * A saved marker can predate onNewIntent; the current Intent must match
+     * our locally recorded unique delivery, owner, ingress and login ticket.
      */
     internal fun transferPendingToRestoredActivity(
         previousOwner: LaunchOwner?,
         newOwner: LaunchOwner,
-        savedDeliveryIdentity: String?,
+        @Suppress("UNUSED_PARAMETER") savedDeliveryIdentity: String?,
         currentIntent: Intent?,
     ): Boolean = synchronized(sinkLock) {
-        val pending = pendingStartup
+        val unfinished = listOfNotNull(pendingStartup, inFlight).firstOrNull {
+            previousOwner != null && it.owner === previousOwner && it.event.ingress != 0L &&
+                latestIngress[previousOwner] == it.event.ingress
+        }
         val witness = readTicketWitness()
         val eligible = previousOwner != null && previousOwner !== newOwner &&
-            pending != null && pending.owner === previousOwner &&
-            pending.event.ingress != 0L &&
-            latestIngress[previousOwner] == pending.event.ingress &&
-            witness?.ticket == pending.event.ticket &&
-            pending.event.deliveryIdentity == savedDeliveryIdentity &&
-            RestoredTaskIngress.matchesUniquePushIdentity(savedDeliveryIdentity, currentIntent)
+            unfinished != null && witness?.ticket == unfinished.event.ticket &&
+            unfinished.event.deliveryIdentity != null &&
+            RestoredTaskIngress.matchesUniquePushIdentity(
+                unfinished.event.deliveryIdentity, currentIntent,
+            )
         // beginActivity's supersession happens regardless of transfer outcome.
         activeOwners += newOwner
         latestIngress.remove(newOwner)
         val transferIngress = ++nextIngress
         pendingStartup = null
-        if (eligible) {
+        inFlight = null
+        // This is a replacement Activity even when the transfer is denied.
+        // Never leave its predecessor able to dispatch another route.
+        if (previousOwner != null && previousOwner !== newOwner) {
             activeOwners -= previousOwner
             sinks.remove(previousOwner)
             latestIngress.remove(previousOwner)
+        }
+        if (eligible) {
             latestIngress[newOwner] = transferIngress
             pendingStartup = StartupHandoff(
                 newOwner,
-                pending.event.copy(
+                unfinished.event.copy(
                     launchOwner = newOwner,
                     ingress = transferIngress,
                     restoring = witness.restoring,
@@ -211,6 +226,9 @@ class DeepLinkRouter @Inject constructor(
             if (owner !in activeOwners) return@synchronized null
             val ingress = ++nextIngress
             latestIngress[owner] = ingress
+            // Even an invalid newer Intent supersedes this owner's queued
+            // navigation; a stale collector cannot finish it afterward.
+            if (inFlight?.owner === owner) inFlight = null
             val ownedEvent = event?.copy(ingress = ingress, deliveryIdentity = deliveryIdentity)
             val matchingSink = sinks[owner]
             if ((startup && matchingSink == null) || ownedEvent?.restoring == true) {
@@ -297,6 +315,34 @@ class DeepLinkRouter @Inject constructor(
     internal fun deferVerifiedForCurrentTicket(event: Event.OpenRoute): Boolean =
         retainIfLatest(event, requireRestoring = false)
 
+    /** Reserve before the host queues a verified event. */
+    internal fun reserveInFlight(event: Event.OpenRoute): Boolean = synchronized(sinkLock) {
+        val owner = event.launchOwner
+        if (owner !in activeOwners || sinks[owner] == null || event.ingress == 0L ||
+            latestIngress[owner] != event.ingress || nextIngress != event.ingress ||
+            readTicketWitness()?.let { !it.restoring && it.ticket == event.ticket } != true
+        ) return@synchronized false
+        inFlight = StartupHandoff(owner, event)
+        true
+    }
+
+    internal fun isInFlight(owner: LaunchOwner, ingress: Long, ticket: LoginTicketSnapshot): Boolean =
+        synchronized(sinkLock) {
+            owner in activeOwners && ingress != 0L &&
+                latestIngress[owner] == ingress && nextIngress == ingress &&
+                inFlight?.let {
+                    it.owner === owner && it.event.ingress == ingress && it.event.ticket == ticket
+                } == true
+        }
+
+    /** An older completion cannot erase a newer tap. */
+    internal fun finishNavigation(owner: LaunchOwner, ingress: Long, ticket: LoginTicketSnapshot) =
+        synchronized(sinkLock) {
+            if (inFlight?.let {
+                it.owner === owner && it.event.ingress == ingress && it.event.ticket == ticket
+            } == true) inFlight = null
+        }
+
     private fun retainIfLatest(event: Event.OpenRoute, requireRestoring: Boolean): Boolean =
         synchronized(sinkLock) {
             val owner = event.launchOwner
@@ -307,6 +353,9 @@ class DeepLinkRouter @Inject constructor(
             if (witness.ticket != event.ticket ||
                 (requireRestoring && !witness.restoring)
             ) return@synchronized false
+            if (inFlight?.owner === owner && inFlight?.event?.ingress == event.ingress) {
+                inFlight = null
+            }
             pendingStartup = StartupHandoff(owner, event.copy(restoring = witness.restoring))
             true
         }
@@ -317,9 +366,9 @@ class DeepLinkRouter @Inject constructor(
      * once the SDK again shows an authenticated or restoring login.
      */
     internal fun retireStartupForTerminalSession(owner: LaunchOwner) = synchronized(sinkLock) {
-        if (pendingStartup?.owner === owner && readTicketWitness() == null) {
-            pendingStartup = null
-        }
+        if (readTicketWitness() != null) return@synchronized
+        if (pendingStartup?.owner === owner) pendingStartup = null
+        if (inFlight?.owner === owner) inFlight = null
     }
 
     /**
@@ -330,13 +379,15 @@ class DeepLinkRouter @Inject constructor(
      */
     internal fun observeAuthenticatedSession(owner: LaunchOwner, observedUserId: String) =
         synchronized(sinkLock) {
-            val pending = pendingStartup ?: return@synchronized
-            if (pending.owner !== owner || owner !in activeOwners ||
-                observedUserId.isBlank()
-            ) return@synchronized
+            if (owner !in activeOwners || observedUserId.isBlank()) return@synchronized
             val witness = readTicketWitness()
-            if (witness?.ticket != pending.event.ticket) {
+            val pending = pendingStartup
+            if (pending?.owner === owner && witness?.ticket != pending.event.ticket) {
                 pendingStartup = null
+            }
+            val queued = inFlight
+            if (queued?.owner === owner && witness?.ticket != queued.event.ticket) {
+                inFlight = null
             }
         }
 
@@ -351,41 +402,26 @@ class DeepLinkRouter @Inject constructor(
         preserveInitializingRestoration: Boolean = false,
     ) =
         synchronized(sinkLock) {
-            val pending = pendingStartup ?: return@synchronized
+            if (pendingStartup == null && inFlight == null) return@synchronized
             val witness = readTicketWitness()
-            if (preserveInitializingRestoration && pending.event.restoring &&
-                witness?.ticket == pending.event.ticket
-            ) {
-                // The host's delayed Unknown describes the same Initializing
-                // interval in which this tap was captured, not a new login.
-                return@synchronized
-            }
-            if (observer != null &&
-                witness?.ticket == pending.event.ticket
-            ) {
-                // A delayed sign-out for an older session of the same user
-                // must not erase this newer exact ticket. A real terminal
-                // SDK state has no witness and retires the handoff below.
-                return@synchronized
-            }
             val sdkTicket = witness?.takeUnless { it.restoring }?.ticket
-            val lostTicketWitness = witness?.ticket != pending.event.ticket
-            val observedOwnerBoundary = pending.owner === observer &&
-                (departedUserId == null || pending.event.ticket.userId == departedUserId)
-            // A departing old Activity cannot infer that a different Activity's
-            // pending tap is stale merely because the SDK is Initializing.
-            // On one Activity, A's delayed sign-out or direct replacement also
-            // cannot erase an exact B tap captured for the next login.
-            // A concrete different ticket or loss of the exact stored witness
-            // does prove that this handoff cannot be claimed safely.
-            if (observedOwnerBoundary ||
-                pending.event.ticket.userId == departedUserId ||
-                (sdkTicket != null && sdkTicket != pending.event.ticket) ||
-                lostTicketWitness ||
-                (observer == null && departedUserId == null && sdkTicket == null)
-            ) {
-                pendingStartup = null
+            fun shouldRetire(handoff: StartupHandoff): Boolean {
+                val event = handoff.event
+                if (preserveInitializingRestoration && event.restoring &&
+                    witness?.ticket == event.ticket
+                ) return false
+                // A delayed callback from an old login cannot erase an exact
+                // newer SDK ticket, including another Activity's tap.
+                if (observer != null && witness?.ticket == event.ticket) return false
+                val observedOwnerBoundary = handoff.owner === observer &&
+                    (departedUserId == null || event.ticket.userId == departedUserId)
+                return observedOwnerBoundary || event.ticket.userId == departedUserId ||
+                    (sdkTicket != null && sdkTicket != event.ticket) ||
+                    witness?.ticket != event.ticket ||
+                    (observer == null && departedUserId == null && sdkTicket == null)
             }
+            if (pendingStartup?.let(::shouldRetire) == true) pendingStartup = null
+            if (inFlight?.let(::shouldRetire) == true) inFlight = null
         }
 
     /** Bad push extras contribute nothing; a valid HTTPS App Link stands alone. */

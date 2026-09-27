@@ -214,7 +214,9 @@ class DeepLinkActivityRecreationTest {
         val second = notificationTap(notificationTwo, userA)
         h.router.beginActivity(oldOwner)
         h.router.dispatchStartup(first, oldOwner)
-        assertTrue(RestoredTaskIngress.shouldDispatch(savedAfter(first), second))
+        // A different restored Intent is not proof it arrived after the last
+        // save; an in-process onNewIntent handles genuinely live new taps.
+        assertFalse(RestoredTaskIngress.shouldDispatch(savedAfter(first), second))
 
         assertFalse(h.router.transferPendingToRestoredActivity(
             oldOwner, newOwner, savedIdentity(first), second,

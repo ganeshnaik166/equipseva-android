@@ -283,6 +283,12 @@ class DeepLinkHost @Inject constructor(
     private val _events = Channel<VerifiedEvent>(Channel.BUFFERED)
     val events: Flow<VerifiedEvent> = _events.receiveAsFlow().filter(::isCurrent)
 
+    /** A navigation attempt consumes only its exact in-flight reservation. */
+    @MainThread
+    fun finishNavigation(event: VerifiedEvent.OpenRoute) {
+        router.finishNavigation(event.launchOwner, event.ingress, event.ticket)
+    }
+
     /** Called only while MainNavGraph is in composition; close on disposal. */
     @MainThread
     fun registerRouterSink(
@@ -325,51 +331,59 @@ class DeepLinkHost @Inject constructor(
             publishStatusFor(owner)
         }
         if (owner.ticket != raw.ticket) return false
-        return _events.trySend(
+        if (!router.reserveInFlight(raw)) return false
+        val accepted = _events.trySend(
             VerifiedEvent.OpenRoute(
                 raw.route, raw.ticket, owner.generation, launchOwner, raw.ingress,
                 raw.deliveryIdentity,
             ),
         ).isSuccess
+        if (!accepted) router.finishNavigation(launchOwner, raw.ingress, raw.ticket)
+        return accepted
     }
 
     /** Recheck at the final navigation boundary; the collector can resume after logout. */
     @MainThread
-    fun isCurrent(event: VerifiedEvent): Boolean = when (event) {
-        is VerifiedEvent.OpenRoute -> {
-            val owner = activeSession
-            val suspended = suspendedNavigation?.takeIf { it.launchOwner === event.launchOwner }
-            val lineage = owner ?: suspended?.login
-            val sameObservedLogin = lineage != null && lineage.userId == event.ticket.userId &&
-                lineage.ticket == event.ticket &&
-                lineage.generation == event.observedGeneration &&
-                registeredOwner === event.launchOwner &&
-                router.isOwnerActive(event.launchOwner)
-            if (!sameObservedLogin) {
-                false
-            } else {
-                val sdkTicket = loginTicketSource.currentTicket()
-                if (owner != null && sdkTicket == event.ticket) {
-                    true
-                } else {
-                    val raw = DeepLinkRouter.Event.OpenRoute(
-                        route = event.route,
-                        ticket = event.ticket,
-                        launchOwner = event.launchOwner,
-                        restoring = sdkTicket == null,
-                        ingress = event.ingress,
-                        deliveryIdentity = event.deliveryIdentity,
-                    )
-                    // The channel consumes this event on a failed filter.
-                    // Retain it only if the router still sees the exact
-                    // provisional witness or SDK ticket at this ingress.
-                    when {
-                        sdkTicket == null -> router.deferVerifiedDuringRestoration(raw)
-                        owner == null && sdkTicket == event.ticket ->
-                            router.deferVerifiedForCurrentTicket(raw)
-                        else -> Unit
-                    }
+    fun isCurrent(event: VerifiedEvent): Boolean {
+        return when (event) {
+            is VerifiedEvent.OpenRoute -> {
+                if (!router.isInFlight(event.launchOwner, event.ingress, event.ticket)) return false
+                val owner = activeSession
+                val suspended = suspendedNavigation?.takeIf { it.launchOwner === event.launchOwner }
+                val lineage = owner ?: suspended?.login
+                val sameObservedLogin = lineage != null && lineage.userId == event.ticket.userId &&
+                    lineage.ticket == event.ticket &&
+                    lineage.generation == event.observedGeneration &&
+                    registeredOwner === event.launchOwner &&
+                    router.isOwnerActive(event.launchOwner)
+                if (!sameObservedLogin) {
+                    finishNavigation(event)
                     false
+                } else {
+                    val sdkTicket = loginTicketSource.currentTicket()
+                    if (owner != null && sdkTicket == event.ticket) {
+                        true
+                    } else {
+                        val raw = DeepLinkRouter.Event.OpenRoute(
+                            route = event.route,
+                            ticket = event.ticket,
+                            launchOwner = event.launchOwner,
+                            restoring = sdkTicket == null,
+                            ingress = event.ingress,
+                            deliveryIdentity = event.deliveryIdentity,
+                        )
+                        // The channel consumes this event on a failed filter.
+                        // Retain it only if the router still sees the exact
+                        // provisional witness or SDK ticket at this ingress.
+                        val retained = when {
+                            sdkTicket == null -> router.deferVerifiedDuringRestoration(raw)
+                            owner == null && sdkTicket == event.ticket ->
+                                router.deferVerifiedForCurrentTicket(raw)
+                            else -> false
+                        }
+                        if (!retained) finishNavigation(event)
+                        false
+                    }
                 }
             }
         }

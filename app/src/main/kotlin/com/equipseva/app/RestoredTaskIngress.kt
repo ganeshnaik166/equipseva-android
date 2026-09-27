@@ -3,7 +3,6 @@ package com.equipseva.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import com.equipseva.app.navigation.DeepLinkPolicy
 import com.equipseva.app.navigation.DeepLinkRouter
 
 /**
@@ -24,18 +23,15 @@ internal object RestoredTaskIngress {
         RegexOption.IGNORE_CASE,
     )
 
-    /** Fresh launches keep the existing startup behavior. Restores fail closed. */
-    fun shouldDispatch(savedState: Bundle?, intent: Intent?): Boolean {
-        if (savedState == null) return true
-        val previous = try {
-            savedState.getString(STATE_DELIVERY)
-        } catch (_: RuntimeException) {
-            null
-        } ?: return false
-        if (!validSavedIdentity(previous)) return false
-        val current = deliveryIdentity(intent) ?: return false
-        return current != LAUNCHER && current != previous
-    }
+    /**
+     * A restored Intent can already have been handled after the last state
+     * save, even when its delivery ID differs from the saved marker. Its ID
+     * cannot prove freshness after process death. New taps delivered to a
+     * living Activity use onNewIntent directly; an exact in-process pending
+     * push can instead transfer through the router's retained opaque owner.
+     */
+    fun shouldDispatch(savedState: Bundle?, @Suppress("UNUSED_PARAMETER") intent: Intent?): Boolean =
+        savedState == null
 
     /** Save only a bounded identity, never an Intent, credential, or push payload. */
     fun record(outState: Bundle, intent: Intent?) {
@@ -112,17 +108,4 @@ internal object RestoredTaskIngress {
         return id.lowercase()
     }
 
-    private fun validSavedIdentity(identity: String): Boolean {
-        if (identity.length > 128) return false
-        return when {
-            identity == LAUNCHER -> true
-            identity.startsWith(NOTIFICATION) ->
-                uuid.matches(identity.removePrefix(NOTIFICATION))
-            identity.startsWith(RAW_PUSH) ->
-                uuid.matches(identity.removePrefix(RAW_PUSH))
-            identity.startsWith(APP_LINK) ->
-                DeepLinkPolicy.allows(identity.removePrefix(APP_LINK))
-            else -> false
-        }
-    }
 }
