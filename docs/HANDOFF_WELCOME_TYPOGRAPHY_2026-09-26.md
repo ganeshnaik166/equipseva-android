@@ -2,7 +2,7 @@
 
 Status on 27 September: **Welcome-only local typography and visual review accepted; latest-main integration, full build, hosted CI and device review pending**.
 
-First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585f698913`, verified equal to local HEAD after fetch/push. The RED commit is `20be747a`, implementation `6ad6e3b3`, and bundled-license whitespace correction `bb867c86`. Current tested source tip `fc82310cedf0908e28adef3a6334d1f4236c09f6` is intentionally behind newer main and has no PR. The shared Gradle slot was released by Codex at 02:35:44 UTC after the scoped checks; re-read the slot before another build.
+First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585f698913`, verified equal to local HEAD after fetch/push. The RED commit is `20be747a`, implementation `6ad6e3b3`, and bundled-license whitespace correction `bb867c86`. The Welcome-only locally reviewed source is `fc82310cedf0908e28adef3a6334d1f4236c09f6`; its docs evidence commit is `ae38fa40a9283702a8d6f79fd0f772ec38331714`. Main through accepted SignUp PR1892 `11ac01c1d9e55439eb0673036e5589a07677e629` has now been merged into this candidate without an app-source overlap. The shared Gradle slot was released by Codex at 02:35:44 UTC after the scoped checks; re-read the slot before another build.
 
 ## Ownership and starting point
 
@@ -34,6 +34,5 @@ The two TTF binaries are byte-for-byte identical to the pinned downloads. The co
 
 ## Gates to complete
 
-1. Reconcile latest `main` after SignUp PR1892's hosted CI/merge; preserve separate SignUp and A3 acceptance records. The scoped Welcome source is frozen at `fc82310` before this integration.
-2. Run design lint, full unit, lintDebug, assembleDebug and unsigned assembleRelease on the combined source using a fresh shared-slot reservation. Record actual counts/failures; unsigned assembly is not release approval.
-3. Review the exact combined tree for regression, open a PR, require applicable hosted CI before main merge. Device/TalkBack verification remains a later acceptance gate. Three-choice registration is separate and still depends on the P2 authority contract.
+1. Run design lint, full unit, lintDebug, assembleDebug and unsigned assembleRelease on the combined source using a fresh shared-slot reservation. Record actual counts/failures; unsigned assembly is not release approval.
+2. Review the exact combined tree for regression, open a PR, require applicable hosted CI before main merge. Device/TalkBack verification remains a later acceptance gate. Three-choice registration is separate and still depends on the P2 authority contract.
