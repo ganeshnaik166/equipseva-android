@@ -103,11 +103,16 @@ class DeepLinkHost @Inject constructor(
                 // for this Activity while the SDK restores. A10 status and
                 // request ownership still retire immediately below.
                 val departing = activeSession
-                val launchOwner = registeredOwner
-                if (departing?.ticket != null && launchOwner != null &&
-                    router.isOwnerActive(launchOwner)
+                val candidate = departing ?: suspendedNavigation?.login
+                val launchOwner = registeredOwner ?: suspendedNavigation?.launchOwner
+                val exactWitness = loginTicketSource.currentTicket()
+                    ?: loginTicketSource.provisionalStoredTicketDuringInitializing()
+                if (candidate?.ticket != null && launchOwner != null &&
+                    router.isOwnerActive(launchOwner) && exactWitness == candidate.ticket
                 ) {
-                    suspendedNavigation = SuspendedNavigation(departing, launchOwner)
+                    suspendedNavigation = SuspendedNavigation(candidate, launchOwner)
+                } else {
+                    suspendedNavigation = null
                 }
                 if (activeSession != null) {
                     router.retireStartupFor(
@@ -260,6 +265,7 @@ class DeepLinkHost @Inject constructor(
             internal val observedGeneration: Long,
             internal val launchOwner: DeepLinkRouter.LaunchOwner,
             internal val ingress: Long,
+            internal val deliveryIdentity: String? = null,
         ) : VerifiedEvent
     }
 
@@ -298,14 +304,25 @@ class DeepLinkHost @Inject constructor(
 
     @MainThread
     private fun acceptRoute(raw: DeepLinkRouter.Event.OpenRoute): Boolean {
-        val owner = activeSession ?: return false
+        var owner = activeSession ?: return suspendedNavigation == null
         val launchOwner = registeredOwner ?: return false
         if (launchOwner !== raw.launchOwner || !router.isOwnerActive(launchOwner)) return false
-        if (owner.userId != raw.ticket.userId || owner.ticket != raw.ticket ||
-            loginTicketSource.currentTicket() != raw.ticket
-        ) return false
+        val sdkTicket = loginTicketSource.currentTicket()
+        if (owner.userId != raw.ticket.userId || sdkTicket != raw.ticket) return false
+        if (owner.ticket == null) {
+            // A mapped SignedIn can precede a usable SDK ticket. Its user ID
+            // alone never releases a stored tap; an exact later SDK ticket
+            // may promote that observed login on re-registration.
+            owner = owner.copy(ticket = raw.ticket, generation = ++nextGeneration)
+            activeSession = owner
+            publishStatusFor(owner)
+        }
+        if (owner.ticket != raw.ticket) return false
         return _events.trySend(
-            VerifiedEvent.OpenRoute(raw.route, raw.ticket, owner.generation, launchOwner, raw.ingress),
+            VerifiedEvent.OpenRoute(
+                raw.route, raw.ticket, owner.generation, launchOwner, raw.ingress,
+                raw.deliveryIdentity,
+            ),
         ).isSuccess
     }
 
@@ -334,6 +351,7 @@ class DeepLinkHost @Inject constructor(
                         launchOwner = event.launchOwner,
                         restoring = sdkTicket == null,
                         ingress = event.ingress,
+                        deliveryIdentity = event.deliveryIdentity,
                     )
                     // The channel consumes this event on a failed filter.
                     // Retain it only if the router still sees the exact

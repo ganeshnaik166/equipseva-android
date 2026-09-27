@@ -44,6 +44,32 @@ internal object RestoredTaskIngress {
         else outState.putString(STATE_DELIVERY, identity)
     }
 
+    /** Only a unique push delivery may cross an in-process Activity recreation. */
+    fun uniqueSavedDeliveryIdentity(savedState: Bundle?): String? {
+        val identity = try {
+            savedState?.getString(STATE_DELIVERY)
+        } catch (_: RuntimeException) {
+            null
+        }
+        return identity?.takeIf(::isUniquePushIdentity)
+    }
+
+    /** Called at both ingress and transfer; never treats a route as a delivery ID. */
+    fun uniquePushIdentity(intent: Intent?): String? =
+        deliveryIdentity(intent)?.takeIf(::isUniquePushIdentity)
+
+    fun matchesUniquePushIdentity(savedIdentity: String?, intent: Intent?): Boolean =
+        savedIdentity != null && isUniquePushIdentity(savedIdentity) &&
+            uniquePushIdentity(intent) == savedIdentity
+
+    private fun isUniquePushIdentity(identity: String): Boolean =
+        identity.length <= 128 && (
+            (identity.startsWith(NOTIFICATION) &&
+                uuid.matches(identity.removePrefix(NOTIFICATION))) ||
+            (identity.startsWith(RAW_PUSH) &&
+                uuid.matches(identity.removePrefix(RAW_PUSH)))
+            )
+
     private fun deliveryIdentity(intent: Intent?): String? {
         if (intent == null) return null
         // Android may throw when unparcelling a hostile exported Intent. Only

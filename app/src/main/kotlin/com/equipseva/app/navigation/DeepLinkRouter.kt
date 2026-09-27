@@ -3,6 +3,7 @@ package com.equipseva.app.navigation
 import android.content.Intent
 import android.net.Uri
 import android.os.BadParcelableException
+import com.equipseva.app.RestoredTaskIngress
 import com.equipseva.app.core.auth.LoginTicketSnapshot
 import com.equipseva.app.core.auth.LoginTicketSource
 import javax.inject.Inject
@@ -49,7 +50,23 @@ class DeepLinkRouter @Inject constructor(
             val restoring: Boolean = false,
             /** Monotonic local delivery order; never read from an Intent. */
             internal val ingress: Long = 0L,
-        ) : Event
+            /** A bounded, unique push identity for configuration-only transfer. */
+            internal val deliveryIdentity: String? = null,
+        ) : Event {
+            // Payload equality predates ingress/transfer metadata. Ownership
+            // checks read those fields explicitly, never via event equality.
+            override fun equals(other: Any?): Boolean = this === other ||
+                (other is OpenRoute && route == other.route && ticket == other.ticket &&
+                    launchOwner == other.launchOwner && restoring == other.restoring)
+
+            override fun hashCode(): Int {
+                var result = route.hashCode()
+                result = 31 * result + ticket.hashCode()
+                result = 31 * result + launchOwner.hashCode()
+                result = 31 * result + restoring.hashCode()
+                return result
+            }
+        }
     }
 
     private class SinkRegistration(val sink: (Event.OpenRoute) -> Boolean)
@@ -83,6 +100,59 @@ class DeepLinkRouter @Inject constructor(
         sinks.remove(owner)
         latestIngress.remove(owner)
         if (pendingStartup?.owner === owner) pendingStartup = null
+    }
+
+    /**
+     * The old Activity is gone before its configuration replacement starts.
+     * Revoke its delivery authority, but leave its exact pending handoff for
+     * one in-process transfer. A normal teardown always calls [endActivity].
+     */
+    internal fun endActivityForRecreation(owner: LaunchOwner) = synchronized(sinkLock) {
+        activeOwners -= owner
+        sinks.remove(owner)
+        if (pendingStartup?.owner !== owner) latestIngress.remove(owner)
+    }
+
+    /**
+     * Start a new Activity and atomically transfer at most one exact pending
+     * notification. The opaque old owner exists only in process, never in a
+     * Bundle. A changed ticket, route-only App Link or process death drops it.
+     */
+    internal fun transferPendingToRestoredActivity(
+        previousOwner: LaunchOwner?,
+        newOwner: LaunchOwner,
+        savedDeliveryIdentity: String?,
+        currentIntent: Intent?,
+    ): Boolean = synchronized(sinkLock) {
+        val pending = pendingStartup
+        val witness = readTicketWitness()
+        val eligible = previousOwner != null && previousOwner !== newOwner &&
+            pending != null && pending.owner === previousOwner &&
+            pending.event.ingress != 0L &&
+            latestIngress[previousOwner] == pending.event.ingress &&
+            witness?.ticket == pending.event.ticket &&
+            pending.event.deliveryIdentity == savedDeliveryIdentity &&
+            RestoredTaskIngress.matchesUniquePushIdentity(savedDeliveryIdentity, currentIntent)
+        // beginActivity's supersession happens regardless of transfer outcome.
+        activeOwners += newOwner
+        latestIngress.remove(newOwner)
+        val transferIngress = ++nextIngress
+        pendingStartup = null
+        if (eligible) {
+            activeOwners -= previousOwner
+            sinks.remove(previousOwner)
+            latestIngress.remove(previousOwner)
+            latestIngress[newOwner] = transferIngress
+            pendingStartup = StartupHandoff(
+                newOwner,
+                pending.event.copy(
+                    launchOwner = newOwner,
+                    ingress = transferIngress,
+                    restoring = witness.restoring,
+                ),
+            )
+        }
+        eligible
     }
 
     internal fun isOwnerActive(owner: LaunchOwner): Boolean = synchronized(sinkLock) {
@@ -136,11 +206,12 @@ class DeepLinkRouter @Inject constructor(
         } catch (_: IllegalArgumentException) {
             resolveAppLinkOnly(intent, owner)
         }
+        val deliveryIdentity = RestoredTaskIngress.uniquePushIdentity(intent)
         val delivery = synchronized(sinkLock) {
             if (owner !in activeOwners) return@synchronized null
             val ingress = ++nextIngress
             latestIngress[owner] = ingress
-            val ownedEvent = event?.copy(ingress = ingress)
+            val ownedEvent = event?.copy(ingress = ingress, deliveryIdentity = deliveryIdentity)
             val matchingSink = sinks[owner]
             if ((startup && matchingSink == null) || ownedEvent?.restoring == true) {
                 // An old Activity's sink cannot consume this new launch.
@@ -245,6 +316,26 @@ class DeepLinkRouter @Inject constructor(
     }
 
     /**
+     * The root Activity observes auth even when role/onboarding has no host.
+     * A delayed callback is ignored unless it names the SDK's current user;
+     * an exact new login ticket (including same-UID relogin) retires the tap.
+     */
+    internal fun observeAuthenticatedSession(owner: LaunchOwner, observedUserId: String) =
+        synchronized(sinkLock) {
+            val pending = pendingStartup ?: return@synchronized
+            if (pending.owner !== owner || owner !in activeOwners ||
+                observedUserId.isBlank()
+            ) return@synchronized
+            val witness = readTicketWitness()
+            if (witness?.restoring == false &&
+                witness.ticket.userId == observedUserId &&
+                witness.ticket != pending.event.ticket
+            ) {
+                pendingStartup = null
+            }
+        }
+
+    /**
      * Retire on this Activity's auth boundary, a departing recipient, or an
      * SDK ticket change. A stale A host must not erase a new B Activity's tap
      * while B's exact ticket is still live.
@@ -264,7 +355,7 @@ class DeepLinkRouter @Inject constructor(
                 // interval in which this tap was captured, not a new login.
                 return@synchronized
             }
-            if (observer != null && departedUserId != null &&
+            if (observer != null &&
                 witness?.ticket == pending.event.ticket
             ) {
                 // A delayed sign-out for an older session of the same user

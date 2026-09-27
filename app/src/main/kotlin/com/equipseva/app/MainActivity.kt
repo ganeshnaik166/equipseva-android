@@ -72,15 +72,35 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         // A restored task may carry either its old Intent or a new external tap.
         // The saved delivery identity suppresses the old one; the router still
         // binds any newly admitted tap to this Activity and an exact login.
-        deepLinkRouter.beginActivity(deepLinkLaunchOwner)
+        if (savedInstanceState == null) {
+            deepLinkRouter.beginActivity(deepLinkLaunchOwner)
+        } else {
+            // Only Android's in-process configuration retention can supply
+            // the previous opaque owner. A process restart has no such owner
+            // and therefore cannot resurrect a saved launch Intent.
+            @Suppress("DEPRECATION")
+            val previousOwner = lastCustomNonConfigurationInstance as? DeepLinkRouter.LaunchOwner
+            deepLinkRouter.transferPendingToRestoredActivity(
+                previousOwner,
+                deepLinkLaunchOwner,
+                RestoredTaskIngress.uniqueSavedDeliveryIdentity(savedInstanceState),
+                intent,
+            )
+        }
         // The auth graph may never mount after a failed cold restoration.
         // Observe its terminal boundary here so the pending tap cannot be
         // claimed if the same stored login ticket appears on a later attempt.
         // Start before dispatchStartup to observe the current status in order.
         lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
             authRepository.sessionState.collect { session ->
-                if (session == AuthSession.SignedOut) {
-                    deepLinkRouter.retireStartupForTerminalSession(deepLinkLaunchOwner)
+                when (session) {
+                    AuthSession.SignedOut ->
+                        deepLinkRouter.retireStartupForTerminalSession(deepLinkLaunchOwner)
+                    is AuthSession.SignedIn ->
+                        deepLinkRouter.observeAuthenticatedSession(
+                            deepLinkLaunchOwner, session.userId,
+                        )
+                    AuthSession.Unknown -> Unit
                 }
             }
         }
@@ -140,8 +160,15 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         RestoredTaskIngress.record(outState, intent)
     }
 
+    @Deprecated("Android's in-process configuration retention is needed for one pending tap")
+    override fun onRetainCustomNonConfigurationInstance(): Any = deepLinkLaunchOwner
+
     override fun onDestroy() {
-        deepLinkRouter.endActivity(deepLinkLaunchOwner)
+        if (isChangingConfigurations) {
+            deepLinkRouter.endActivityForRecreation(deepLinkLaunchOwner)
+        } else {
+            deepLinkRouter.endActivity(deepLinkLaunchOwner)
+        }
         super.onDestroy()
     }
 
