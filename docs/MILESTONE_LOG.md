@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 stale notification recipient targeted GREEN, still WIP
+
+- Behavior-preserving Intent extraction plus new recipient assertions at `aba05c55` reproduced **14 tests / 4 assertion failures / 0 errors/skips**, Gradle exit 1 (`outputs/a3-02-recipient-red-20260927.log`). The fix `b73001ad` carries sender `user_id` into notification tap Intents with a route and requires it to equal the current SDK ticket UID before admitting an extra or safe-inbox fallback; independent HTTPS App Links remain eligible. First focused run was **64/1** due a digits-only UUID fixture whose uppercase form was identical; the fixture now includes a hex letter and retains all assertions. Identical six-class rerun **64/0**, Gradle exit 0 (`outputs/a3-02-recipient-green-retry-20260927.log`). This is stale-tray filtering only; the exported extra is forgeable. Full checks, independent reviews, CI, device and main integration remain open. Pre-freeze review identified untested malformed Bundle ingress and PendingIntent identity collisions as next test-first checks.
+
 ## 2026-09-27 — A3-02 buffered replay expected RED, no production fix
 
 - Isolated branch `codex/deeplink-replay-fence-20260927` from fetched main `06a4f9f8` added a new synthetic/offline `DeepLinkHostReplayIsolationTest`. Unchanged-production targeted run **6 tests / 5 expected assertion failures / 0 errors / 0 skips**, Gradle exit 1; the same-login once-only control passed. The five failures cover pre-host A→B, host-queued A→B, A→signed-out→A, Unknown→A and signed-out ingress→later A. `outputs/a3-02-replay-red-20260927.log` lives outside Git. These tests are intentionally kept failing in a labeled WIP commit until the queue-ownership fix; no acceptance or CI claim. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
@@ -13,6 +17,11 @@ Append dated results. Keep design, implementation, main integration and release 
 ## 2026-09-27 — A3-02 active-host/ticket fence targeted GREEN, still WIP
 
 - WIP source/test commit `2cce4e57` replaces the router buffer with a synchronous registered sink, stamps the current SDK ticket and observed login generation, filters stale host events, and checks again immediately before navigation. The six original replay tests plus three new owner-boundary cases are now **9/0**; five targeted classes total **58/0**, Gradle exit 0 (`outputs/a3-02-combined-targeted-20260927.log`). No full unit/lint/debug/unsigned release, independent review or CI yet. Cold-start taps with no mounted host are intentionally dropped. The next test-first scope is notification-recipient continuity; an exported intent extra can filter a stale tray tap, but cannot prove FCM origin or replace server authorization.
+
+## 2026-09-27 — A10 engineer-status isolation merged main; A3-02 remains RED WIP
+
+- [PR1894](https://github.com/ganeshnaik166/equipseva-android/pull/1894) head `5e675602d88e3be04be95962a6ce26d25943affe` passed both hosted Android `build (debug + release R8)` checks, `verify goldens`, and both Gitleaks checks; `record goldens (Linux)` was skipped. It merged to main **`2639d480c394ddffd2b160124b4a495bd7686789`**. The bounded A10 source is `DeepLinkHost.kt` engineer-status observed-owner/refresh handling plus its new focused test. Exact Welcome-integrated local source `1606220557d37f48ba9d1747d2087cc2592ac472` passed targeted **23/0**, full **2,959/0** across 348 suites, lint **0 errors / 87 warnings / 2 hints**, design ratchet, debug and **unsigned** release R8. Independent exact-tree critic and QA each scored **9.6/10 for A10 only**. Repository-unobserved identity, buffered/recipient route ownership, device/TalkBack, real-provider and signed-release gates remain open; [handoff](HANDOFF_ENGINEER_STATUS_INTEGRATION_2026-09-27.md).
+- Separate A3-02 branch `codex/deeplink-replay-fence-20260927` at `abec5d7bbb1f96cf824c3215f67b9220a3cf1a86` preserves test-first **6/5 RED** against unchanged production. No A3-02 production fix, critic/QA acceptance, hosted CI or main merge follows from that WIP. Fetch its `docs/HANDOFF_A3_02_REPLAY_2026-09-27.md` and integrate current main/A10 before editing the overlapping host.
 
 ## 2026-09-27 — Welcome typography merged main; A10 targeted integration
 
