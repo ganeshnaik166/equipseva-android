@@ -76,6 +76,9 @@ class DeepLinkRouter @Inject constructor(
 
     companion object {
         const val EXTRA_ROUTE = "com.equipseva.app.deeplink.ROUTE"
+        // A local stale-tray filter only. MainActivity is exported, so this
+        // caller-supplied value never proves push origin or server access.
+        const val EXTRA_RECIPIENT_USER_ID = "com.equipseva.app.deeplink.RECIPIENT_USER_ID"
 
         private val APP_LINK_HOSTS = setOf("equipseva.com", "www.equipseva.com")
 

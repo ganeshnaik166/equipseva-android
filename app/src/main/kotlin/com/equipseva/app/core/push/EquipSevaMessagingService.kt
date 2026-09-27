@@ -3,6 +3,7 @@ package com.equipseva.app.core.push
 import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -83,11 +84,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // attached. Unknown / missing kinds fall through to MainActivity's
         // default landing — the user will see the inbox via normal app flow.
         val route = NotificationDeepLink.routeFor(data["kind"], data)
-        val launchIntent = Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .apply {
-                if (route != null) putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
-            }
+        val launchIntent = notificationTapIntent(this, route, data)
         val pendingIntent = PendingIntent.getActivity(
             this,
             // Distinct request codes per message keep extras from being
@@ -137,6 +134,17 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
     }
 
 }
+
+/** Builds the activity intent carried by a notification tap. */
+internal fun notificationTapIntent(
+    context: Context,
+    route: String?,
+    data: Map<String, String>,
+): Intent = Intent(context, MainActivity::class.java)
+    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    .apply {
+        if (route != null) putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+    }
 
 // Caps for push notification title/body lengths. Defends against
 // malformed server payloads — the full string rides in the Bundle

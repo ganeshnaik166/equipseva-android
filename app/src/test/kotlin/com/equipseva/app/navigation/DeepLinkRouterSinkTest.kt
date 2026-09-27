@@ -51,7 +51,7 @@ class DeepLinkRouterSinkTest {
 
         every { tickets.currentTicket() } returns ticketB
         assertTrue(received.isEmpty())
-        router.dispatch(routeIntent(Routes.PROFILE))
+        router.dispatch(routeIntent(Routes.PROFILE, ticketB.userId))
         assertEquals(listOf(DeepLinkRouter.Event.OpenRoute(Routes.PROFILE, ticketB)), received)
     }
 
@@ -137,10 +137,54 @@ class DeepLinkRouterSinkTest {
         assertEquals(listOf(DeepLinkRouter.Event.OpenRoute(Routes.HOME, ticketA)), received)
     }
 
+    @Test fun A_targeted_tray_tap_under_B_does_not_adopt_B_ticket() {
+        val router = DeepLinkRouter(ticketSource(ticketB))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+
+        router.dispatch(routeIntent(Routes.HOME, ticketA.userId))
+
+        assertTrue("A-targeted push navigated under B", received.isEmpty())
+        router.dispatch(routeIntent(Routes.HOME, ticketB.userId))
+        assertEquals(listOf(DeepLinkRouter.Event.OpenRoute(Routes.HOME, ticketB)), received)
+    }
+
+    @Test fun notification_route_without_a_matching_canonical_recipient_is_dropped() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+
+        listOf(null, "", " ${ticketA.userId}", ticketA.userId.uppercase(), "not-a-uuid",
+            "00000000-0000-0000-0000-000000000000").forEach { recipient ->
+            router.dispatch(routeIntent(Routes.HOME, recipient))
+        }
+
+        assertTrue("Missing or malformed recipient reached the host", received.isEmpty())
+    }
+
+    @Test fun stale_recipient_drops_inbox_fallback_but_valid_app_link_remains_independent() {
+        val router = DeepLinkRouter(ticketSource(ticketB))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+
+        router.dispatch(routeIntent(Routes.FOUNDER_CASH_SUSPENDED, ticketA.userId))
+        assertTrue("Stale notification reached the inbox under B", received.isEmpty())
+
+        router.dispatch(routeIntent(Routes.HOME, ticketA.userId).apply {
+            data = Uri.parse("https://equipseva.com/notifications")
+        })
+        assertEquals(
+            listOf(DeepLinkRouter.Event.OpenRoute(Routes.NOTIFICATIONS, ticketB)),
+            received,
+        )
+    }
+
     private fun ticketSource(ticket: LoginTicketSnapshot?): LoginTicketSource = mockk {
         every { currentTicket() } returns ticket
     }
 
-    private fun routeIntent(route: String): Intent =
-        Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+    private fun routeIntent(route: String, recipient: String? = ticketA.userId): Intent =
+        Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route).apply {
+            if (recipient != null) putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)
+        }
 }

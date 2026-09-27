@@ -129,7 +129,9 @@ class DeepLinkRouterExternalIntentTest {
         )
     }
 
-    private fun intentWithRoute(route: String): Intent = Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+    private fun intentWithRoute(route: String): Intent = Intent()
+        .putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+        .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, "11111111-1111-4111-8111-111111111111")
 
     private data class CapturedRouter(
         val router: DeepLinkRouter,

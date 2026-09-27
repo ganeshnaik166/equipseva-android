@@ -159,7 +159,7 @@ class DeepLinkHostReplayIsolationTest {
         val host = host(tickets, auth)
         advanceUntilIdle()
 
-        tickets.router.dispatch(routeIntent(accountBRoute))
+        tickets.router.dispatch(routeIntent(accountBRoute, userB))
         advanceUntilIdle()
 
         assertEquals(accountBRoute, host.nextRouteOrNull())
@@ -209,8 +209,10 @@ class DeepLinkHostReplayIsolationTest {
         assertEquals(accountARoute, host.nextRouteOrNull())
     }
 
-    private fun routeIntent(route: String): Intent =
-        Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+    private fun routeIntent(route: String, recipient: String? = userA): Intent =
+        Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route).apply {
+            if (recipient != null) putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)
+        }
 
     private fun host(tickets: TicketHarness, auth: FakeAuthRepository): DeepLinkHost {
         val prefs = mockk<UserPrefs> {
