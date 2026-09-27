@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 SDK event-cache inspection, still RED
+
+- Read-only inspection of installed auth-kt 3.6.0 confirms separate status and `tryEmit` calls; a replay-1 event cache is not a lossless mutation epoch. No app/test change or new build. Preserve the three failing replay targets and draft PR1897; see [handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md). No critic/QA acceptance or main merge.
+
 ## 2026-09-27 — A3-02 reviewer blocker reproduced, intentional RED WIP
 
 - Test-only `0fbafc26f56d2d8f71b51f2e04216a7acd5752aa` adds observed-B/unobserved-A and mirrored late-terminal races plus missed-terminal same-ticket recovery; no production change. Focused `:app:testDebugUnitTest --tests com.equipseva.app.navigation.DeepLinkSameTicketRefreshFailureRaceTest` with `PRECHECK_LOOSE=1` ran **8 tests / 3 failed**, Gradle exit **1**. All three new stale-tap targets failed; five existing cases passed. Log `outputs/a3-02-sdk-epoch-red-targeted-20260927.log`. Slot released 13:06:45 UTC. This RED tree has no full suite, new independent review or hosted success at this checkpoint. Previous green CI on `b2e2002f` does not accept it. Keep failing tests; draft [PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) stays blocked until an SDK-authored epoch or reviewed fail-closed policy, exact-source verification and critic/QA each at least 9.5. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
