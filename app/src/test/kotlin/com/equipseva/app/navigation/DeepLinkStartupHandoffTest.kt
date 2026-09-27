@@ -333,6 +333,78 @@ class DeepLinkStartupHandoffTest {
         assertNull("Destroyed Activity still navigated a queued route", host.nextRouteOrNull())
     }
 
+    @Test fun old_A_hosts_Unknown_does_not_retire_new_B_Activity_tap() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
+        val oldAuth = FakeAuthRepository(accountA)
+        val oldHost = host(tickets, oldAuth)
+        advanceUntilIdle()
+        register(oldHost, oldOwner)
+
+        tickets.current = loginB
+        tickets.router.beginActivity(newOwner)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userB), newOwner)
+        oldAuth.setSession(AuthSession.Unknown)
+        advanceUntilIdle()
+
+        val newHost = host(tickets, FakeAuthRepository(accountB))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        assertNull(oldHost.nextRouteOrNull())
+        assertEquals(routeOne, newHost.nextRouteOrNull())
+        assertNull(newHost.nextRouteOrNull())
+    }
+
+    @Test fun old_A_hosts_SignedOut_does_not_retire_new_B_Activity_tap() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
+        val oldAuth = FakeAuthRepository(accountA)
+        val oldHost = host(tickets, oldAuth)
+        advanceUntilIdle()
+        register(oldHost, oldOwner)
+
+        tickets.current = loginB
+        tickets.router.beginActivity(newOwner)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userB), newOwner)
+        oldAuth.setSession(AuthSession.SignedOut)
+        advanceUntilIdle()
+
+        val newHost = host(tickets, FakeAuthRepository(accountB))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        assertNull(oldHost.nextRouteOrNull())
+        assertEquals(routeOne, newHost.nextRouteOrNull())
+        assertNull(newHost.nextRouteOrNull())
+    }
+
+    @Test fun real_SDK_ticket_loss_retires_new_B_tap_even_when_old_A_host_observes_it() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
+        val oldAuth = FakeAuthRepository(accountA)
+        val oldHost = host(tickets, oldAuth)
+        advanceUntilIdle()
+        register(oldHost, oldOwner)
+
+        tickets.current = loginB
+        tickets.router.beginActivity(newOwner)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userB), newOwner)
+        tickets.current = null
+        oldAuth.setSession(AuthSession.SignedOut)
+        advanceUntilIdle()
+        tickets.current = loginB
+
+        val newHost = host(tickets, FakeAuthRepository(accountB))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        assertNull("SDK ticket loss left a startup tap for later login", newHost.nextRouteOrNull())
+    }
+
     private fun pushIntent(route: String, recipient: String): Intent =
         Intent().putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
             .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)

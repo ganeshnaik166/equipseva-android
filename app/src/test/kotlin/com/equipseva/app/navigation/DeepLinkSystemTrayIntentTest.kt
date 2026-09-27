@@ -93,6 +93,16 @@ class DeepLinkSystemTrayIntentTest {
         assertEquals(listOf(Routes.NOTIFICATIONS), received)
     }
 
+    @Test fun valid_https_app_link_beats_a_valid_matching_raw_job_route() {
+        val (router, received) = mounted(ticketA)
+        router.dispatch(rawPush(NotificationDeepLink.KIND_REPAIR_BID_ACCEPTED, accountA,
+            "repair_job_id" to "RPR-00027").apply {
+            data = Uri.parse("https://equipseva.com/notifications")
+        })
+
+        assertEquals(listOf(Routes.NOTIFICATIONS), received)
+    }
+
     @Test fun conflicting_custom_and_raw_push_sources_are_rejected_but_app_link_survives() {
         val (router, received) = mounted(ticketA)
         val conflicting = rawPush(NotificationDeepLink.KIND_CHAT_MESSAGE_NEW, accountA,
