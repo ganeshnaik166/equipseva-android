@@ -17,6 +17,7 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.util.QuietHours
 import com.equipseva.app.navigation.DeepLinkRouter
 import com.equipseva.app.navigation.NotificationDeepLink
+import com.equipseva.app.navigation.Routes
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -85,7 +86,7 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
         // Resolve a deep-link route from the (kind, data) tuple the server
         // attached. Unknown / missing kinds fall through to MainActivity's
         // default landing — the user will see the inbox via normal app flow.
-        val route = NotificationDeepLink.routeFor(data["kind"], data)
+        val route = notificationRouteForTap(data)
         val launchIntent = notificationTapIntent(this, route, data)
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -136,6 +137,10 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
     }
 
 }
+
+// WIP fallback API stub for the test-first foreground-tap contract.
+internal fun notificationRouteForTap(data: Map<String, String>): String =
+    NotificationDeepLink.routeFor(data["kind"], data) ?: Routes.HOME
 
 /** Builds the activity intent carried by a notification tap. */
 internal fun notificationTapIntent(
