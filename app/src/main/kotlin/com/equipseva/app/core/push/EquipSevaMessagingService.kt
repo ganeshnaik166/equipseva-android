@@ -83,9 +83,9 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             fallbackTitle = getString(R.string.app_name),
         ) ?: return
 
-        // Resolve a deep-link route from the (kind, data) tuple the server
-        // attached. Unknown / missing kinds fall through to MainActivity's
-        // default landing — the user will see the inbox via normal app flow.
+        // Unknown or malformed kinds still open the safe inbox when the
+        // recipient matches the current login; the router rejects stale or
+        // missing recipients before any navigation.
         val route = notificationRouteForTap(data)
         val launchIntent = notificationTapIntent(this, route, data)
         val pendingIntent = PendingIntent.getActivity(
@@ -138,9 +138,9 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
 
 }
 
-// WIP fallback API stub for the test-first foreground-tap contract.
+/** Keep foreground FCM tap behavior aligned with raw background tray taps. */
 internal fun notificationRouteForTap(data: Map<String, String>): String =
-    NotificationDeepLink.routeFor(data["kind"], data) ?: Routes.HOME
+    NotificationDeepLink.routeFor(data["kind"], data) ?: Routes.NOTIFICATIONS
 
 /** Builds the activity intent carried by a notification tap. */
 internal fun notificationTapIntent(
