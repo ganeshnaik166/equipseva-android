@@ -256,6 +256,13 @@ class DeepLinkRouter @Inject constructor(
             val pending = pendingStartup ?: return@synchronized null
             if (pending.owner !== owner || owner !in activeOwners) return@synchronized null
             val witness = readTicketWitness()
+            if (witness?.ticket == pending.event.ticket &&
+                pending.event.ticket.userId != userId
+            ) {
+                // A delayed mapped SignedIn for another user cannot consume
+                // this Activity's newer exact SDK or restoring ticket.
+                return@synchronized null
+            }
             if (pending.event.restoring && witness?.restoring == true &&
                 witness.ticket == pending.event.ticket
             ) {
@@ -317,8 +324,9 @@ class DeepLinkRouter @Inject constructor(
 
     /**
      * The root Activity observes auth even when role/onboarding has no host.
-     * A delayed callback is ignored unless it names the SDK's current user;
-     * an exact new login ticket (including same-UID relogin) retires the tap.
+     * A delayed callback cannot erase an exact live pending ticket. If the
+     * witness is missing or changed, no later return to this ticket may
+     * reclaim the old tap, even when the new SDK ticket is not yet readable.
      */
     internal fun observeAuthenticatedSession(owner: LaunchOwner, observedUserId: String) =
         synchronized(sinkLock) {
@@ -327,10 +335,7 @@ class DeepLinkRouter @Inject constructor(
                 observedUserId.isBlank()
             ) return@synchronized
             val witness = readTicketWitness()
-            if (witness?.restoring == false &&
-                witness.ticket.userId == observedUserId &&
-                witness.ticket != pending.event.ticket
-            ) {
+            if (witness?.ticket != pending.event.ticket) {
                 pendingStartup = null
             }
         }

@@ -141,6 +141,13 @@ class DeepLinkHost @Inject constructor(
                 // A null ticket remains a duplicate of another null ticket;
                 // engineer-status callers do not require a navigation ticket.
                 val ticket = loginTicketSource.currentTicket()
+                if (ticket != null && ticket.userId != userId) {
+                    // The mapped callback was emitted for an older account
+                    // after the SDK already switched. Do not create an
+                    // impossible (A user, B ticket) navigation/status owner or
+                    // ask the router to claim B's pending tap for A.
+                    return
+                }
                 val suspended = suspendedNavigation
                 suspendedNavigation = null
                 val owner = activeSession?.takeIf { it.userId == userId && it.ticket == ticket }
