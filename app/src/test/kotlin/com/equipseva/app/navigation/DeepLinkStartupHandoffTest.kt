@@ -257,18 +257,80 @@ class DeepLinkStartupHandoffTest {
 
     @Test fun new_Activity_launch_waits_for_its_own_host_instead_of_the_old_Activity_sink() = runTest {
         val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
         val oldHost = host(tickets, FakeAuthRepository(accountA))
         advanceUntilIdle()
-        register(oldHost)
+        register(oldHost, oldOwner)
 
-        tickets.router.dispatchStartup(pushIntent(routeOne, userA))
+        tickets.router.beginActivity(newOwner)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userA), newOwner)
         assertNull("Older Activity consumed the new launch", oldHost.nextRouteOrNull())
 
         val newHost = host(tickets, FakeAuthRepository(accountA))
         advanceUntilIdle()
-        register(newHost)
+        register(newHost, newOwner)
         assertEquals(routeOne, newHost.nextRouteOrNull())
         assertNull(newHost.nextRouteOrNull())
+    }
+
+    @Test fun old_host_reregistration_and_close_cannot_steal_or_retire_new_launch() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
+        val oldHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        val firstOldRegistration = register(oldHost, oldOwner)
+
+        tickets.router.beginActivity(newOwner)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userA), newOwner)
+        firstOldRegistration.close()
+        register(oldHost, oldOwner) // Old Compose host remounts before the new graph.
+        tickets.router.endActivity(oldOwner)
+        assertNull("Old host stole the newer Activity tap", oldHost.nextRouteOrNull())
+
+        val newHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        assertEquals(routeOne, newHost.nextRouteOrNull())
+        assertNull(newHost.nextRouteOrNull())
+    }
+
+    @Test fun ordinary_intents_are_delivered_only_to_their_own_Activity() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(oldOwner)
+        val oldHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(oldHost, oldOwner)
+
+        tickets.router.beginActivity(newOwner)
+        val newHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        tickets.router.dispatch(pushIntent(routeOne, userA), newOwner)
+        assertNull("New Activity intent entered old graph", oldHost.nextRouteOrNull())
+        assertEquals(routeOne, newHost.nextRouteOrNull())
+
+        tickets.router.dispatch(pushIntent(routeTwo, userA), oldOwner)
+        assertEquals(routeTwo, oldHost.nextRouteOrNull())
+        assertNull("Old Activity intent entered new graph", newHost.nextRouteOrNull())
+    }
+
+    @Test fun destroyed_Activity_cannot_navigate_its_previously_queued_route() = runTest {
+        val tickets = TicketHarness(loginA)
+        val owner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(owner)
+        val host = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(host, owner)
+        tickets.router.dispatch(pushIntent(routeOne, userA), owner)
+
+        tickets.router.endActivity(owner)
+        assertNull("Destroyed Activity still navigated a queued route", host.nextRouteOrNull())
     }
 
     private fun pushIntent(route: String, recipient: String): Intent =
@@ -288,7 +350,10 @@ class DeepLinkStartupHandoffTest {
         }
     }
 
-    private fun register(host: DeepLinkHost): AutoCloseable = host.registerRouterSink().also {
+    private fun register(
+        host: DeepLinkHost,
+        owner: DeepLinkRouter.LaunchOwner = DeepLinkRouter.DEFAULT_OWNER,
+    ): AutoCloseable = host.registerRouterSink(owner).also {
         registrations += it
     }
 
