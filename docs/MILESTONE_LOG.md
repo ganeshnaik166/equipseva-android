@@ -2,6 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3 RED and migration/default-grant follow-up, status only
+
+- A3-02 [draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) branch `da45af88` retains test-only `0fbafc26`: focused class **8/3 failed**, Gradle exit **1**, with observed-B/unobserved-A, mirrored A/B and missed-terminal same-ticket security targets. Five prior cases passed; no production/SDK fix or full gate followed. Earlier pre-RED hosted green does not apply to this head, and exact-code critic **8.8/10** / QA **8.9/10** block it. [Branch handoff](https://github.com/ganeshnaik166/equipseva-android/blob/da45af888f43e896442a471693e979ad814207e7/docs/HANDOFF_A3_02_REPLAY_2026-09-27.md).
+- Historical round3824/3825 sync branch `a1d67a07` has a probe-only round3825 clean-replay repair. The original disposable fixture failed unseeded `23503`; the repaired focused PGlite suite passed **3/3**, bounded critic and QA each **9.6/10**. Full clean Supabase replay and hosted SQL checks remain absent; no main merge or production SQL write. [Branch handoff](https://github.com/ganeshnaik166/equipseva-android/blob/a1d67a07/docs/HANDOFF_MIGRATION_HISTORY_SYNC_2026-09-27.md).
+- Read-only production audit found future `postgres/public` function defaults still grant `anon`/`authenticated` plus implicit `PUBLIC EXECUTE`; `supabase_admin/public` has a separate direct-client default. Round3828 closed nine existing functions only. A separate test-first forward policy, explicit client-RPC grants, provider-owner limitation and staging replay are required before a default-privilege migration can be accepted. No new default-grant source or review score is claimed here.
+
 ## 2026-09-27 — S3a nine money-RPC client grants revoked in production
 
 - [PR1896](https://github.com/ganeshnaik166/equipseva-android/pull/1896) source/test head `9b1d57bb3dbf7cf94ed35425074878ae357ec457` passed hosted Android, SQL and secret-scan on that exact head, plus bounded critic **9.7/10** and QA **9.6/10**. It merged main at **`f3fbc5632ae994b1b37e5b50664c10e6d2ed7ecc`**. Exact-merge main-push Android run `36317115916`, SQL and secret-scan completed **success**. Offline PGlite **11/11** new properties, **27/27** preconditions, **6/6** expected legacy-failing controls and **4/4** legitimate paths passed. No Android source or blocked S1/S2 migration was merged.
