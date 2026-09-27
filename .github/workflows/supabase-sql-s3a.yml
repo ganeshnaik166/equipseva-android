@@ -1,0 +1,57 @@
+name: supabase-sql-s3a
+
+# Offline, synthetic PGlite proof for the round3828 service-only grants.
+# No linked Supabase project or provider credentials are used.
+on:
+  pull_request:
+    paths:
+      - "supabase/tests/**"
+      - "supabase/migrations/20260723000000_round471_razorpay_webhook_events.sql"
+      - "supabase/migrations/20260724000000_round472_payment_verify_events.sql"
+      - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
+      - ".github/workflows/supabase-sql-s3a.yml"
+  push:
+    branches: [main, "codex/**"]
+    paths:
+      - "supabase/tests/**"
+      - "supabase/migrations/20260723000000_round471_razorpay_webhook_events.sql"
+      - "supabase/migrations/20260724000000_round472_payment_verify_events.sql"
+      - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
+      - ".github/workflows/supabase-sql-s3a.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-sql-s3a-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pglite:
+    name: round3828 PGlite control and regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: supabase/tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+        with:
+          version: 11.25.0
+          run_install: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: supabase/tests/pnpm-lock.yaml
+      - name: Install locked PGlite
+        run: pnpm install --frozen-lockfile
+      - name: Verify service-only money RPC grants
+        run: pnpm run test:s3a
