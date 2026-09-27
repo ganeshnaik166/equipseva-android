@@ -80,6 +80,10 @@ class DeepLinkRouter @Inject constructor(
         }
     }
 
+    // WIP API stub: cold-launch ownership tests are intentionally RED until
+    // a ticket-bound, one-shot handoff is implemented.
+    fun dispatchStartup(intent: Intent?) = dispatch(intent)
+
     private fun resolveEvent(intent: Intent): Event.OpenRoute? {
         val hasCustomRoute = intent.hasExtra(EXTRA_ROUTE)
         // FCM notification+data messages received in the background bypass
