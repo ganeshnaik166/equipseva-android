@@ -1,4 +1,4 @@
-# A3-01 external deep-link route boundary — WIP, 26 September 2026
+# A3-01 external deep-link route boundary — local scoped acceptance, 27 September 2026
 
 ## Scope and base
 
@@ -14,9 +14,13 @@
 
 ## Candidate and remaining gates
 
-### 27 September targeted update
+### 27 September merged-head verification
 
-Claude released the slot at 15:59:12 UTC on 26 September; Codex rechecked it and reserved it for A3. Test commit `2948ff16` bounds absent-event waits. On the initial allow-list the 7-test focused class failed exactly the founder and role-specific safe-inbox targets (**7/2**, log `outputs/deeplink-fallback-red-20260927.log`). After removing direct `KYC` and engineer AMC visit admission and adding an exact five-route inbox fallback after valid App Link precedence, the unchanged class passed **7/0**, log `outputs/deeplink-fallback-green-20260927.log`. Both runs used `PRECHECK_LOOSE=1 .\\gradlew.bat :app:testDebugUnitTest --tests com.equipseva.app.navigation.DeepLinkRouterExternalIntentTest --no-daemon --console=plain`; design ratchet passed. This is targeted local evidence only. Full checks, final critic/QA, latest-main reconciliation and hosted CI remain open; no A3 acceptance or main merge.
+Claude released the slot at 15:59:12 UTC on 26 September; Codex rechecked it and reserved it for A3. Test commit `2948ff16` bounds absent-event waits. On the initial allow-list the 7-test focused class failed exactly the founder and role-specific safe-inbox targets (**7/2**, log `outputs/deeplink-fallback-red-20260927.log`). After removing direct `KYC` and engineer AMC visit admission and adding an exact five-route inbox fallback after valid App Link precedence, the unchanged class passed **7/0**, log `outputs/deeplink-fallback-green-20260927.log`. Both runs used `PRECHECK_LOOSE=1 .\\gradlew.bat :app:testDebugUnitTest --tests com.equipseva.app.navigation.DeepLinkRouterExternalIntentTest --no-daemon --console=plain`; design ratchet passed.
+
+Current main `133720a69b164c51d18d0bcf104a9bd3e3b51c36` was merged into the A3 branch without A3 source overlap. Frozen tested code head `cd13a272b91781983f02185c060d646c2e38997c`. Six merged-head deep-link/notification suites passed **72/0** (`outputs/deeplink-combined-targeted-20260927.log`). The full `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --continue` run at that same source completed **2,927 unit tests / 345 suites / 0 failures, errors or skips**, lint **0 errors / 87 warnings / 2 hints**, and debug assembly; its overall exit 1 came solely from `:app:preReleaseCheck` failing to launch `bash` because Git Bash was absent from PowerShell PATH (`outputs/deeplink-combined-full-20260927.log`). No app code or release guard was changed to address this environment failure. A separate same-source retry with Git Bash on PATH and `PRECHECK_LOOSE=1` passed `:app:preReleaseCheck :app:assembleRelease`, including R8, **Gradle exit 0** (`outputs/deeplink-release-precheck-retry-20260927.log`). `PRECHECK_LOOSE=1` permits missing signing configuration; the resulting assembly is unsigned/debug-signed test output, not a shippable release.
+
+Independent final [critic](helper-reviews/codex-20260927/a3-01-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260927/a3-01-qa.md) **9.6/10** found no blocker for the exported-extra syntax/fallback slice. Neither score accepts the wider deep-link or security program. Branch CI, main integration, device behavior and signed release remain unverified.
 
 At the 26 September checkpoint, Claude's `claudedev-build-20260923` audit held the shared build slot, and the newer fallback-target tests were unrun. The 27 September update above supersedes that hold and records their RED/GREEN results.
 
@@ -24,8 +28,8 @@ At the 26 September checkpoint, Claude's `claudedev-build-20260923` audit held t
 
 Independent initial WIP critique found that simply dropping three real founder queue push routes stranded their notification taps on the default screen. It also identified `KYC` and `ENGINEER_AMC_VISITS` as role-specific destinations without a per-route UI role gate. Test-only commits `a831cd85` and `b2985f7d` specified an inbox landing for those five actual notification destinations and valid-App-Link precedence. The 27 September targeted update above records their RED/GREEN.
 
-**Implementation is not yet fully verified or accepted.** Focused RED/GREEN and design ratchet are done. Run appropriate full unit/lint/debug/unsigned-R8 checks after latest-main reconciliation; obtain independent critic and QA ≥9.5 on the frozen diff; then hosted CI before main. No device, release signing or real account was used.
+**Local A3-01 slice accepted; hosted integration remains pending.** Test-first RED/GREEN, current-main reconciliation, merged-head unit/lint/debug/unsigned-R8 checks and separate independent critic/QA ≥9.5 are complete. Run hosted CI on the pushed candidate before main. No device, signed release or real account was used.
 
 Separate HIGH A3-02 remains: `DeepLinkRouter` and `DeepLinkHost` buffer routes across login boundaries, so an A push/link can replay into B. Also open: A3-03 activity recreation redelivery, recipient binding, founder-only in-app gates, and server object authorization. Do not claim the entire deep-link/security program closed from this policy slice.
 
-An independent read-only [A3-02 owner-replay plan](helper-reviews/codex-20260926/a3-02-owner-replay-plan.md) records source seams, synthetic test cases and merge ownership. It does not change the A3-01 implementation or satisfy its missing GREEN/review gates.
+An independent read-only [A3-02 owner-replay plan](helper-reviews/codex-20260926/a3-02-owner-replay-plan.md) records source seams, synthetic test cases and merge ownership. It does not change the A3-01 implementation or close the separate replay gate.
