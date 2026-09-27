@@ -1,6 +1,6 @@
-name: supabase-sql-s3a
+name: supabase-sql-grants
 
-# Offline, synthetic PGlite proof for the round3828 service-only grants.
+# Offline, synthetic PGlite proofs for the round3828 and round3829 grants.
 # No linked Supabase project or provider credentials are used.
 on:
   pull_request:
@@ -9,6 +9,7 @@ on:
       - "supabase/migrations/20260723000000_round471_razorpay_webhook_events.sql"
       - "supabase/migrations/20260724000000_round472_payment_verify_events.sql"
       - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
+      - "supabase/migrations/20263906000000_round3829_restrict_future_function_execute.sql"
       - ".github/workflows/supabase-sql-s3a.yml"
   push:
     branches: [main, "codex/**"]
@@ -17,6 +18,7 @@ on:
       - "supabase/migrations/20260723000000_round471_razorpay_webhook_events.sql"
       - "supabase/migrations/20260724000000_round472_payment_verify_events.sql"
       - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
+      - "supabase/migrations/20263906000000_round3829_restrict_future_function_execute.sql"
       - ".github/workflows/supabase-sql-s3a.yml"
   workflow_dispatch:
 
@@ -24,12 +26,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: supabase-sql-s3a-${{ github.workflow }}-${{ github.ref }}
+  group: supabase-sql-grants-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   pglite:
-    name: round3828 PGlite control and regression
+    name: round3828 and round3829 PGlite controls and regressions
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -55,3 +57,5 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify service-only money RPC grants
         run: pnpm run test:s3a
+      - name: Verify future function EXECUTE defaults
+        run: pnpm run test:default-grants
