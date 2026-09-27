@@ -187,8 +187,15 @@ await check('catalog gate rejects reintroduced global PUBLIC EXECUTE', async () 
   const { db } = await build();
   // PostgreSQL may collapse the restored built-in ACL to "no override";
   // either representation must fail the gate.
-  await assert.rejects(() => db.exec(tampered), /round3829: postgres global (function default override missing|PUBLIC function EXECUTE remains)/);
+  await assert.rejects(() => db.exec(tampered), /round3829: postgres global (function default override missing|client or PUBLIC function EXECUTE remains)/);
+});
+await check('catalog gate rejects unexpected global authenticated EXECUTE', async () => {
+  const tampered = migration.replace('DO $gate$', `ALTER DEFAULT PRIVILEGES FOR ROLE postgres
+    GRANT EXECUTE ON FUNCTIONS TO authenticated;\nDO $gate$`);
+  assert.notEqual(tampered, migration, 'catalog gate is missing');
+  const { db } = await build();
+  await assert.rejects(() => db.exec(tampered), /round3829: postgres global client or PUBLIC function EXECUTE remains/);
 });
 
-console.log(`\ndefault-function-grants: ${passed}/13 checks passed; ${failures.length} failed`);
+console.log(`\ndefault-function-grants: ${passed}/14 checks passed; ${failures.length} failed`);
 if (failures.length) { console.log(failures.join('\n')); process.exitCode = 1; }

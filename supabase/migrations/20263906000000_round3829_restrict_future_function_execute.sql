@@ -51,10 +51,10 @@ BEGIN
      WHERE d.defaclrole = 'postgres'::regrole
        AND d.defaclnamespace = 0
        AND d.defaclobjtype = 'f'
-       AND a.grantee = 0
+       AND a.grantee IN (0, 'anon'::regrole, 'authenticated'::regrole)
        AND a.privilege_type = 'EXECUTE'
   ) THEN
-    RAISE EXCEPTION 'round3829: postgres global PUBLIC function EXECUTE remains';
+    RAISE EXCEPTION 'round3829: postgres global client or PUBLIC function EXECUTE remains';
   END IF;
 
   IF EXISTS (
