@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 reviewer blocker reproduced, intentional RED WIP
+
+- Test-only `0fbafc26f56d2d8f71b51f2e04216a7acd5752aa` adds observed-B/unobserved-A and mirrored late-terminal races plus missed-terminal same-ticket recovery; no production change. Focused `:app:testDebugUnitTest --tests com.equipseva.app.navigation.DeepLinkSameTicketRefreshFailureRaceTest` with `PRECHECK_LOOSE=1` ran **8 tests / 3 failed**, Gradle exit **1**. All three new stale-tap targets failed; five existing cases passed. Log `outputs/a3-02-sdk-epoch-red-targeted-20260927.log`. Slot released 13:06:45 UTC. This RED tree has no full suite, new independent review or hosted success at this checkpoint. Previous green CI on `b2e2002f` does not accept it. Keep failing tests; draft [PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) stays blocked until an SDK-authored epoch or reviewed fail-closed policy, exact-source verification and critic/QA each at least 9.5. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 ## 2026-09-27 — A3-02 hosted green, SDK identity design still blocked
 
 - [Draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) branch head `b2e2002f` passed hosted Android, Roborazzi and secret-scan. This does not supersede app/test `68ec227b` critic **8.8/10** and QA **8.9/10** blocks. Read-only SDK inspection found ticketless mapped `SignedOut` and a conflating auth status `StateFlow`; rapid failure/recovery can omit a terminal observer callback. A callback-only terminal ticket cannot guarantee safe replay. Next test-first implementation must obtain an SDK-authored atomic auth epoch or explicitly accept a reviewed fail-closed tap-drop policy. No code or tests changed for this design finding; device FCM, process death, recipient/server authorization, signed release and main integration remain open. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
