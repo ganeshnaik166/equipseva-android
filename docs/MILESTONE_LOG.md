@@ -2,6 +2,18 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 stale-auth/missing-witness WIP, full recheck open
+
+- Current code/test SHA `f08e0fe71a46f0f326a6b425e763076a79e6b73d`. Preceding `1b687aa5` full command ran unit **3,106/0 across 364 suites**, lint **0 errors / 88 warnings / 2 hints**, `assembleDebug` and `packageRelease`, but **Gradle exited 1** at `preReleaseCheck` because `bash` was absent from PATH; `assembleRelease` did not pass (`outputs/a3-02-full-1b687aa5-20260927.log`). Independent critic and QA scored that preceding source **8.7/10 each, blocked**.
+- Stale `SignedIn`/missing-witness tests first failed **23/2** (`outputs/a3-02-stale-signin-null-witness-red-20260927.log`); `f08e0fe7` eight-suite focused retry passed **100/0** (`outputs/a3-02-stale-signin-null-witness-green-retry-20260927.log`). Independent reviewers judged the A10 explicit-null fixture correction legitimate. No exact-`f08e0fe7` full result or new critic/QA score yet.
+- Warm acknowledged tap across configuration change and saved-marker/new-Intent process-death race remain blockers. No attached physical device, hosted CI, real FCM/restart, signed release or main merge. Next: test/fix those paths, run exact-source full checks and separate critic/QA each at least 9.5; [handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
+## 2026-09-27 — A3-02 restoration/auth/recreation WIP; 1b687 checks and reviews now recorded above
+
+- Exact frozen app/test source `1b687aa59e7451c3e5bd332a3fcd7af26c92a452` on `codex/deeplink-replay-fence-20260927` adds SDK-Initializing persisted-ticket witness, exact Activity/login ownership, observed auth-boundary retirement and bounded Activity-recreation transfer. A prior intermediate `3a908bd3` full unit check failed **3,091 tests / 13 failures** (`outputs/a3-02-restoration-full-3a908bd3-20260927.log`); independent critic **8.9/10** and QA **8.6/10** both blocked that source. Their scores do not apply to `1b687aa5`.
+- New no-host/recreation tests were first compile RED on missing APIs (`outputs/a3-02-auth-recreation-compile-red-20260927.log`, exit 1). Focused evidence at `1b687aa5`: eight suites **97/0**, restoration class **17/0**, and design ratchet passed (`outputs/a3-02-design-ratchet-1b687aa5-20260927.log`). The subsequent full/check/review outcome is in the newer entry above; no hosted CI, device FCM/process-restart, signed release or main integration.
+- Process death after a later `onNewIntent` but before its next saved-state marker remains a possible Intent/marker identity race; no physical device is attached. Next: capture exact full result, fix any failures, independently re-review the frozen tree, then address recovery and real-device gates before main. [Detailed handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 ## 2026-09-27 — A3-02 Activity-owned ingress and full local check; restoration QA blocker
 
 - Frozen WIP source `e8e80d4a` on `codex/deeplink-replay-fence-20260927` adds opaque Activity ownership across the router/host/nav handoff, scoped auth retirement, foreground unknown-notification inbox fallback and verified App Link preservation when push extras are malformed. Test-first RED was multi-Activity **14/1**, cross-owner auth **20/2**, direct A→B→A plus foreground fallback **24/3**, and malformed-extras **19/2**; focused GREEN progressed to **94/0** across eight actual suites, plus router **19/0**. Tests are preserved in separate commits; exact logs are in `outputs/a3-02-*20260927.log` outside Git.
