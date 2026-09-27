@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -178,6 +179,13 @@ fun MainNavGraph(
         scope.launch { snackbarHost.showSnackbar(msg) }
     }
 
+    // Intent ingress exists only while this authenticated main graph is
+    // mounted. Closing the exact registration cannot unregister a newer host.
+    DisposableEffect(deepLinkHost) {
+        val registration = deepLinkHost.registerRouterSink()
+        onDispose { registration.close() }
+    }
+
     // First-run tour: if user hasn't seen it yet, push it on top of HOME.
     // Tour pops itself on finish/skip, leaving HOME as the root.
     LaunchedEffect(showTour) {
@@ -219,6 +227,10 @@ fun MainNavGraph(
         deepLinkHost.events.collect { event ->
             when (event) {
                 is DeepLinkHost.VerifiedEvent.OpenRoute -> {
+                    // Event collection can resume after a session boundary.
+                    // Recheck the SDK ticket and observed login immediately
+                    // before Navigation consumes the route.
+                    if (!deepLinkHost.isCurrent(event)) return@collect
                     // Route comes pre-resolved from NotificationDeepLink; the
                     // server-emitted (kind, data) was mapped to a known
                     // Routes helper before the PendingIntent fired. We still

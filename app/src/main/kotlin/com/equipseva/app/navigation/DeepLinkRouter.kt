@@ -2,15 +2,17 @@ package com.equipseva.app.navigation
 
 import android.content.Intent
 import android.net.Uri
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
+import com.equipseva.app.core.auth.LoginTicketSnapshot
+import com.equipseva.app.core.auth.LoginTicketSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Bridge between [android.app.Activity.onNewIntent] / launch intents and the
- * Compose nav graph. The activity calls [dispatch] on each intent; the main
- * nav graph collects [events] and navigates accordingly.
+ * Compose nav graph. The activity calls [dispatch] on each intent; an active
+ * host receives the route synchronously with the current SDK login ticket.
+ * With no host or no authenticated ticket, ingress is discarded rather than
+ * replayed to a future account.
  *
  * Two entry points handled, in priority order:
  *  1. [EXTRA_ROUTE] string extra — stamped by the FCM service after running
@@ -22,7 +24,9 @@ import javax.inject.Singleton
  *     app falls back to its default landing screen.
  */
 @Singleton
-class DeepLinkRouter @Inject constructor() {
+class DeepLinkRouter @Inject constructor(
+    private val ticketSource: LoginTicketSource,
+) {
 
     sealed interface Event {
         /**
@@ -30,11 +34,30 @@ class DeepLinkRouter @Inject constructor() {
          * Emitted for admitted EXTRA_ROUTE values, safe inbox fallbacks, and
          * recognized App Link URIs.
          */
-        data class OpenRoute(val route: String) : Event
+        data class OpenRoute(
+            val route: String,
+            val ticket: LoginTicketSnapshot,
+        ) : Event
     }
 
-    private val channel = Channel<Event>(Channel.BUFFERED)
-    val events = channel.receiveAsFlow()
+    private class SinkRegistration(val sink: (Event.OpenRoute) -> Unit)
+
+    private val sinkLock = Any()
+    private var activeSink: SinkRegistration? = null
+
+    /**
+     * Replaces the current host. Closing a superseded registration cannot
+     * unregister the replacement.
+     */
+    fun registerSink(sink: (Event.OpenRoute) -> Unit): AutoCloseable {
+        val registration = SinkRegistration(sink)
+        synchronized(sinkLock) { activeSink = registration }
+        return AutoCloseable {
+            synchronized(sinkLock) {
+                if (activeSink === registration) activeSink = null
+            }
+        }
+    }
 
     fun dispatch(intent: Intent?) {
         if (intent == null) return
@@ -43,7 +66,12 @@ class DeepLinkRouter @Inject constructor() {
             ?.takeIf(DeepLinkPolicy::allows)
             ?: routeFor(intent.data)
             ?: DeepLinkPolicy.inboxFallback(externalRoute)
-        route?.let { channel.trySend(Event.OpenRoute(it)) }
+        if (!DeepLinkPolicy.allows(route)) return
+        val ticket = ticketSource.currentTicket() ?: return
+        val event = Event.OpenRoute(requireNotNull(route), ticket)
+        synchronized(sinkLock) {
+            activeSink?.sink?.invoke(event)
+        }
     }
 
     companion object {

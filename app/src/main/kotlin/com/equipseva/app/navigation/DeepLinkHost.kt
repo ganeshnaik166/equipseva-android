@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.LoginTicketSnapshot
+import com.equipseva.app.core.auth.LoginTicketSource
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
 import com.equipseva.app.core.data.prefs.UserPrefs
@@ -17,14 +19,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * Owns the decision of whether a deep-link event should actually navigate.
- * The [DeepLinkRouter] produces raw events straight from the intent; this host
- * forwards them through the events SharedFlow to MainNavGraph.
+ * The [DeepLinkRouter] delivers an intent only to the currently mounted main
+ * graph. This host stamps the observed login generation before queuing it.
  *
  * Marketplace order verification was stripped along with the marketplace
  * surface in the v1 cleanup. Today only push-notification kind→route events
@@ -33,10 +36,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class DeepLinkHost @Inject constructor(
-    router: DeepLinkRouter,
+    private val router: DeepLinkRouter,
     private val userPrefs: UserPrefs,
     private val authRepository: AuthRepository,
     private val engineerRepository: EngineerRepository,
+    private val loginTicketSource: LoginTicketSource,
 ) : ViewModel() {
 
     private data class LoginSession(val userId: String, val generation: Long)
@@ -153,30 +157,44 @@ class DeepLinkHost @Inject constructor(
 
     sealed interface VerifiedEvent {
         /**
-         * Pre-resolved in-app route from a notification tap. Forwarded as-is
-         * — the FCM service already mapped the (kind, data) payload, and a
-         * malformed kind is filtered out before we ever see it here.
+         * Pre-resolved route plus the exact SDK login ticket and observed
+         * generation at ingress. These are local navigation provenance, not
+         * permission to read the destination object from the server.
          */
-        data class OpenRoute(val route: String) : VerifiedEvent
+        data class OpenRoute(
+            val route: String,
+            internal val ticket: LoginTicketSnapshot,
+            internal val observedGeneration: Long,
+        ) : VerifiedEvent
     }
 
-    // Channel + receiveAsFlow gives one-shot, buffered delivery so a deep
-    // link emitted from MainActivity.onCreate() before MainNavGraph has
-    // started collecting still reaches the nav graph. The previous
-    // SharedFlow(replay=0) dropped any event emitted in that cold-start
-    // window — push notifications taps that booted the app from a killed
-    // state would land the user on the home screen instead of the deep
-    // link. Buffered channel parks the event until first collection.
+    // Only an event captured by a mounted main graph may enter this queue.
+    // The queue survives a collector delay, but its ownership is checked on
+    // emission AND again immediately before navigation. A cold-start tap
+    // before the graph mounts is intentionally dropped rather than replayed
+    // into whichever account becomes active later.
     private val _events = Channel<VerifiedEvent>(Channel.BUFFERED)
-    val events: Flow<VerifiedEvent> = _events.receiveAsFlow()
+    val events: Flow<VerifiedEvent> = _events.receiveAsFlow().filter(::isCurrent)
 
-    init {
-        viewModelScope.launch {
-            router.events.collect { raw ->
-                when (raw) {
-                    is DeepLinkRouter.Event.OpenRoute -> _events.trySend(VerifiedEvent.OpenRoute(raw.route))
-                }
-            }
+    /** Called only while MainNavGraph is in composition; close on disposal. */
+    @MainThread
+    fun registerRouterSink(): AutoCloseable = router.registerSink(::acceptRoute)
+
+    @MainThread
+    private fun acceptRoute(raw: DeepLinkRouter.Event.OpenRoute) {
+        val owner = activeSession ?: return
+        if (owner.userId != raw.ticket.userId || loginTicketSource.currentTicket() != raw.ticket) return
+        _events.trySend(VerifiedEvent.OpenRoute(raw.route, raw.ticket, owner.generation))
+    }
+
+    /** Recheck at the final navigation boundary; the collector can resume after logout. */
+    @MainThread
+    fun isCurrent(event: VerifiedEvent): Boolean = when (event) {
+        is VerifiedEvent.OpenRoute -> {
+            val owner = activeSession
+            owner != null && owner.userId == event.ticket.userId &&
+                owner.generation == event.observedGeneration &&
+                loginTicketSource.currentTicket() == event.ticket
         }
     }
 }

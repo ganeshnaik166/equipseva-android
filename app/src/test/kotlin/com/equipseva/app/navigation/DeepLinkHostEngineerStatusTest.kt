@@ -2,6 +2,7 @@ package com.equipseva.app.navigation
 
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.LoginTicketSource
 import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
@@ -91,6 +92,7 @@ class DeepLinkHostEngineerStatusTest {
                 override val sessionState: Flow<AuthSession> = checkNotNull(sessionFlow)
             },
             engineerRepository = engineerRepository,
+            loginTicketSource = mockk<LoginTicketSource>(relaxed = true),
         )
 
         fun session(session: AuthSession) {
