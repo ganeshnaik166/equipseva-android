@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -48,6 +50,7 @@ import com.equipseva.app.designsystem.theme.SevaInk400
 import com.equipseva.app.designsystem.theme.SevaInk500
 import com.equipseva.app.designsystem.theme.SevaInk600
 import com.equipseva.app.designsystem.theme.SevaInk900
+import com.equipseva.app.designsystem.theme.Spacing
 import androidx.compose.ui.unit.sp
 import com.equipseva.app.features.auth.state.AuthEffect
 
@@ -127,12 +130,22 @@ fun SignInScreen(
                 )
                 // Forgot link, right-aligned.
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
-                    Text(
-                        text = stringResource(R.string.sign_in_forgot_password),
-                        style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
-                        color = SevaGreen700,
-                        modifier = Modifier.clickable(enabled = !state.form.submitting, onClick = onForgotPassword),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = Spacing.MinTouchTarget)
+                            .clickable(
+                                enabled = !state.form.submitting,
+                                role = Role.Button,
+                                onClick = onForgotPassword,
+                            ),
+                        contentAlignment = Alignment.CenterEnd,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.sign_in_forgot_password),
+                            style = EsType.Caption.copy(fontWeight = FontWeight.SemiBold),
+                            color = SevaGreen700,
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(24.dp))
