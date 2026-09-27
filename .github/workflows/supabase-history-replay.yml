@@ -1,0 +1,55 @@
+name: supabase-history-replay
+
+# Focused, offline proof for round3825's data-independent migration probe.
+# This does not replay the full Supabase migration chain or contact production.
+on:
+  pull_request:
+    paths:
+      - "supabase/replay-tests/**"
+      - "supabase/migrations/20260806000000_round487_founder_audit_triggers.sql"
+      - "supabase/migrations/20263902000000_round3825_founder_audit_trigger_row_cast.sql"
+      - ".github/workflows/supabase-history-replay.yml"
+  push:
+    branches: [main, "codex/**"]
+    paths:
+      - "supabase/replay-tests/**"
+      - "supabase/migrations/20260806000000_round487_founder_audit_triggers.sql"
+      - "supabase/migrations/20263902000000_round3825_founder_audit_trigger_row_cast.sql"
+      - ".github/workflows/supabase-history-replay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-history-replay-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pglite:
+    name: round3825 focused PGlite replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: supabase/replay-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+        with:
+          version: 11.25.0
+          run_install: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: supabase/replay-tests/pnpm-lock.yaml
+      - name: Install locked PGlite
+        run: pnpm install --frozen-lockfile
+      - name: Verify round3825 replay probe
+        run: pnpm test
