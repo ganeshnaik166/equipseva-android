@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 buffered replay expected RED, no production fix
+
+- Isolated branch `codex/deeplink-replay-fence-20260927` from fetched main `06a4f9f8` added a new synthetic/offline `DeepLinkHostReplayIsolationTest`. Unchanged-production targeted run **6 tests / 5 expected assertion failures / 0 errors / 0 skips**, Gradle exit 1; the same-login once-only control passed. The five failures cover pre-host A→B, host-queued A→B, A→signed-out→A, Unknown→A and signed-out ingress→later A. `outputs/a3-02-replay-red-20260927.log` lives outside Git. These tests are intentionally kept failing in a labeled WIP commit until the queue-ownership fix; no acceptance or CI claim. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 ## 2026-09-27 — SignUp footer merged main; Welcome typography local screen review
 
 - [SignUp PR1892](https://github.com/ganeshnaik166/equipseva-android/pull/1892) passed both hosted Android builds, Roborazzi verify and both secret scans, then merged main `11ac01c1d9e55439eb0673036e5589a07677e629`. Main push Android, Roborazzi, secret scan, web build and Pages checks also passed. The footer's UI critic/QA 9.6/9.6 do not accept the separate live-session `addRole` race; device verification remains open.
