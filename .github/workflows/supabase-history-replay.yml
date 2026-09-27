@@ -7,6 +7,7 @@ on:
     paths:
       - "supabase/replay-tests/**"
       - "supabase/migrations/20260806000000_round487_founder_audit_triggers.sql"
+      - "supabase/migrations/20263901000000_round3824_founder_console_execute_grants.sql"
       - "supabase/migrations/20263902000000_round3825_founder_audit_trigger_row_cast.sql"
       - ".github/workflows/supabase-history-replay.yml"
   push:
@@ -14,6 +15,7 @@ on:
     paths:
       - "supabase/replay-tests/**"
       - "supabase/migrations/20260806000000_round487_founder_audit_triggers.sql"
+      - "supabase/migrations/20263901000000_round3824_founder_console_execute_grants.sql"
       - "supabase/migrations/20263902000000_round3825_founder_audit_trigger_row_cast.sql"
       - ".github/workflows/supabase-history-replay.yml"
   workflow_dispatch:
