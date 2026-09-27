@@ -438,6 +438,30 @@ class DeepLinkInitializingRestoreEscrowTest {
         assertNull(host.nextRouteOrNull())
     }
 
+    @Test fun delayed_A_signed_in_with_current_B_ticket_does_not_consume_B_tap() = runTest {
+        saveStoredSession(ticketB)
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        val auth = FakeAuthRepository(AuthSession.Unknown)
+        val host = host(h, auth)
+        register(host, owner)
+        advanceUntilIdle()
+
+        h.router.dispatch(push(routeOne, userB), owner)
+        h.sdkTicket = ticketB
+        h.sdkInitializing = false
+        auth.setSession(accountA) // Delayed A callback after the SDK moved to B.
+        advanceUntilIdle()
+        assertNull("A's delayed callback navigated B's tap", host.nextRouteOrNull())
+
+        auth.setSession(accountB)
+        advanceUntilIdle()
+        assertEquals("A's delayed callback consumed B's exact pending tap",
+            routeOne, host.nextRouteOrNull())
+        assertNull("B's tap navigated twice", host.nextRouteOrNull())
+    }
+
     @Test fun a_newer_tap_replaces_the_older_restoring_tap() = runTest {
         saveStoredSession(ticketA)
         val h = Harness()

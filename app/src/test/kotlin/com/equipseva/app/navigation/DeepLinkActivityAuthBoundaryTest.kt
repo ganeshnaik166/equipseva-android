@@ -54,6 +54,21 @@ class DeepLinkActivityAuthBoundaryTest {
         assertNull(tickets.router.takeStartupFor(owner, userA))
     }
 
+    @Test fun observed_B_with_no_current_ticket_retires_A_before_A_can_return() {
+        val tickets = Tickets(provisional = loginA1)
+        val owner = DeepLinkRouter.LaunchOwner()
+        tickets.router.beginActivity(owner)
+        tickets.router.dispatchStartup(push(routeOne, userA), owner)
+
+        // The mapped B callback is observed after the SDK has left A's
+        // restoration state but before a parseable B ticket is available.
+        tickets.provisional = null
+        tickets.router.observeAuthenticatedSession(owner, userB)
+        tickets.sdk = loginA1
+        assertNull("A reclaimed a pre-B tap after the observed boundary",
+            tickets.router.takeStartupFor(owner, userA))
+    }
+
     @Test fun delayed_old_signed_in_callback_cannot_erase_a_newer_exact_restoring_ticket() {
         val tickets = Tickets(provisional = loginB)
         val owner = DeepLinkRouter.LaunchOwner()
