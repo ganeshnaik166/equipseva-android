@@ -74,6 +74,22 @@ async function as(db, role, sql, params = []) {
 async function denied(action) {
   await assert.rejects(action, (e) => { assert.equal(e.code, '42501', `expected 42501, got ${e.code}: ${e.message}`); return true; });
 }
+// Exercise every role/call before comparing outcomes. A legacy control must
+// not stop at the first permitted RPC and hide later grant regressions.
+async function clientCallCodes(db, calls) {
+  const outcomes = [];
+  for (const role of ['anon', 'authenticated']) {
+    for (const call of calls) {
+      try { await as(db, role, call); outcomes.push(`${role}:allowed`); }
+      catch (e) { outcomes.push(`${role}:${e.code ?? 'unknown_error'}`); }
+    }
+  }
+  return outcomes;
+}
+function assertAllClientCallsDenied(outcomes, calls) {
+  const expected = ['anon', 'authenticated'].flatMap((role) => calls.map(() => `${role}:42501`));
+  assert.deepEqual(outcomes, expected);
+}
 const escrow = async (db, order) => (await db.query('SELECT status FROM public.repair_job_escrow WHERE razorpay_order_id = $1', [order])).rows[0].status;
 
 const CAPTURE = "SELECT public.record_razorpay_payment_captured($1, 'payment.captured', $2, 'pay_forged', 100, 'INR', NULL) AS r";
@@ -95,15 +111,17 @@ const PROPERTIES = [
     assert.equal(await escrow(db, 'order_ESC2'), 'held');
   } },
   { kind: 'control', name: 'clients cannot write real round472 payment-verify telemetry', run: async (db) => {
-    for (const role of ['anon', 'authenticated']) await denied(() => as(db, role, TELEMETRY));
+    const outcomes = await clientCallCodes(db, [TELEMETRY]);
     assert.equal(await telemetryCount(db), 0);
+    assertAllClientCallsDenied(outcomes, [TELEMETRY]);
   } },
   { kind: 'control', name: 'clients cannot invoke the AMC-credit, payout-worker, reaper or escrow-release functions', run: async (db) => {
-    for (const role of ['anon', 'authenticated']) {
-      for (const call of STAND_IN_CALLS) await denied(() => as(db, role, call));
-    }
-    const leaked = (await db.query("SELECT count(*)::int AS n FROM public.service_rpc_canary WHERE called_by IN ('anon','authenticated')")).rows[0].n;
-    assert.equal(leaked, 0);
+    const outcomes = await clientCallCodes(db, STAND_IN_CALLS);
+    // SECURITY DEFINER makes current_user the owner inside the canary;
+    // count all rows, rather than filtering by the client role.
+    const calls = (await db.query('SELECT count(*)::int AS n FROM public.service_rpc_canary')).rows[0].n;
+    assert.equal(calls, 0);
+    assertAllClientCallsDenied(outcomes, STAND_IN_CALLS);
   } },
   { kind: 'control', name: 'catalog: none of the nine is executable by anon or authenticated; service_role keeps EXECUTE', run: async (db) => {
     for (const sig of NINE) {
@@ -166,6 +184,14 @@ async function build(withNew) {
 
 const legacy = await build(false);
 const fresh = await build(true);
+let legacyGrantChecks = 0;
+for (const sig of NINE) {
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    const granted = (await legacy.query("SELECT has_function_privilege($1, $2, 'EXECUTE') AS ok", [role, sig])).rows[0].ok;
+    assert.equal(granted, true, `legacy precondition: ${role} cannot execute ${sig}`);
+    legacyGrantChecks++;
+  }
+}
 const problems = [];
 let newPass = 0, controlsFailed = 0, legacyRegressions = 0;
 for (const p of PROPERTIES) {
@@ -186,6 +212,7 @@ const forged = (await legacy.query("SELECT razorpay_order_id, status FROM public
 const count = (k) => PROPERTIES.filter((p) => p.kind === k).length;
 console.log('\n==== summary ====');
 console.log(`new:                 ${newPass}/${PROPERTIES.length} properties pass`);
+console.log(`legacy grants:       ${legacyGrantChecks}/${NINE.length * 3} role/function preconditions granted`);
 console.log(`negative controls:   ${controlsFailed}/${count('control')} fail on the legacy grants (expected all)`);
 console.log(`legacy regressions:  ${legacyRegressions}/${count('regression')} legitimate paths pass on legacy too (expected all)`);
 console.log(`legacy escrow state after the forged anon calls: ${forged.map((r) => `${r.razorpay_order_id}=${r.status}`).join(', ')}`);
