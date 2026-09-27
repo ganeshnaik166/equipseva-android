@@ -1,5 +1,9 @@
 # EquipSeva — current work and resume point
 
+## Isolated A3-02 cross-account deep-link replay RED — 27 September 2026
+
+Worktree `C:/Users/lokes/Documents/Codex/2026-09-07/im/work/equipseva-deeplink-replay-20260927`, branch `codex/deeplink-replay-fence-20260927`, starts from fetched accepted main `06a4f9f85c82e1834eb74e55dd8f5776c4a36b70`. This new test-first slice owns only cross-account navigation delivery through `DeepLinkRouter`, `DeepLinkHost`'s event channel, Activity intent ingress and focused tests. The separate A10 engineer-status PR1894 is under hosted CI and must be integrated before A3 production edits in the same host; do not edit its status block. First prove stale router/host queues on A→B, A→signed-out→A, Unknown and late delivery are RED, with a same-login positive control. A route received without a verified login owner is dropped, not saved for whichever user signs in next. FCM recipient and server object authorization require separate explicit checks; an intent extra alone is untrusted. No app changes, test results, critic/QA score, CI or main integration are claimed by this scope record. Preserve the other worktrees and recheck the shared Gradle slot before any run.
+
 ## Main through SignUp PR1892; parallel Welcome typography — 27 September 2026
 
 [PR1892](https://github.com/ganeshnaik166/equipseva-android/pull/1892) merged the bounded SignUp footer UI at main `11ac01c1d9e55439eb0673036e5589a07677e629` after both Android builds, Roborazzi verify and both secret scans passed; record-goldens was skipped. Main push Android, Roborazzi, secret scan, web build and Pages checks also passed. Exact pre-merge app tree passed 2,930/0 full unit, lint/debug/unsigned release, with scoped critic and QA each 9.6/10. The pre-existing in-flight SignUp → SignIn → late live-session `addRole` race is **not** security-accepted by that UI result. Device/TalkBack, signed release and that auth mutation fence remain open.
