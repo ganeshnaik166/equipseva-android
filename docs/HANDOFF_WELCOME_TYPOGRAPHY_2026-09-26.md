@@ -1,8 +1,8 @@
 # Welcome typography candidate — 26 September 2026
 
-Status: **test-first RED checkpoint with unverified production implementation; GREEN, visual review and independent reviews pending**.
+Status on 27 September: **Welcome-only local typography and visual review accepted; latest-main integration, full build, hosted CI and device review pending**.
 
-First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585f698913`, verified equal to local HEAD after fetch/push; worktree clean. The RED commit is `20be747a`, unverified source `6ad6e3b3`, and bundled-license whitespace correction `bb867c86`. This branch is intentionally behind newer main and has no PR; reconcile current main before integration. The shared Gradle slot is held by Claude; do not start another build until Claude writes `FREE - released by Claude`.
+First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585f698913`, verified equal to local HEAD after fetch/push. The RED commit is `20be747a`, implementation `6ad6e3b3`, and bundled-license whitespace correction `bb867c86`. Current tested source tip `fc82310cedf0908e28adef3a6334d1f4236c09f6` is intentionally behind newer main and has no PR. The shared Gradle slot was released by Codex at 02:35:44 UTC after the scoped checks; re-read the slot before another build.
 
 ## Ownership and starting point
 
@@ -10,8 +10,14 @@ First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585
 - Branch: `codex/welcome-typography-20260926`, fetched `origin/main` base `afe2bd33cdc37ca842b921c9817d75cdc645fc74` (accepted Welcome PR1888).
 - Own only Welcome font resources/styles, a backward-compatible `EsBtn` label-style override used only by Welcome, focused tests and continuity docs. Leave global `EsFontFamily`, Material typography, colours, navigation, signup and session identity untouched.
 - Focused unchanged-production `WelcomeTypographyTest` command: `./gradlew :app:testDebugUnitTest --tests 'com.equipseva.app.features.auth.WelcomeTypographyTest' --console=plain`, using CI placeholder local config. **6 tests / 5 failures / 1 passing default-button control**, Gradle exit 1 in 2m22s; failures are the new font/style/resource assertions, not a compile or fixture failure. Output: `outputs/welcome-typography-red-20260926.log` outside Git. The shared slot was released after the run.
-- Implementation WIP uses two explicit font-family tokens for Welcome only, bundles the exact pinned binaries/notices below, changes its brand to Space Grotesk 28/34sp weight 600, body/legal/actions to Inter, and adds an optional `EsBtn.labelStyle` whose default remains the existing style. No global type/palette/auth/navigation change. This source has not yet compiled or passed its tests.
+- Implementation uses two explicit font-family tokens for Welcome only, bundles the exact pinned binaries/notices below, changes its brand to Space Grotesk 28/34sp weight 600, body/legal/actions to Inter, and adds an optional `EsBtn.labelStyle` whose default remains the existing style. No global type/palette/auth/navigation change. Focused `WelcomeTypographyTest` and existing `WelcomeScreenUiTest` passed **11 tests / 2 suites / 0 failures** on this source; `outputs/welcome-typography-green-20260927.log` records `BUILD SUCCESSFUL in 3m22s`.
 - Static design lint exits 0 with no negative signal over baseline; `git diff --check origin/main` exits 0 after normalizing upstream licence-file trailing spaces. Neither check substitutes for GREEN or visual evidence.
+
+## Local visual and independent review evidence, 27 September
+
+- Temporary Robolectric/Roborazzi probe ran **4/4** (log `outputs/welcome-typography-visual-scroll-20260927.log`) with normal Pixel 5 and 320×420dp at 200% font scale; six PNGs are outside Git under `outputs/welcome-typography-*.png`. The first bottom probe scrolled to Privacy, which was already visible, so its top/bottom images were identical. The corrected probe scrolls to the full tagline; compact top SHA-256 starts `42c734ba`, bottom starts `8e96c21f`. Direct inspection finds both CTAs and legal links readable at the top and the full tagline legible at the bottom. The temporary test source was removed after the run and is not committed.
+- Light/dark screenshots are identical because Welcome intentionally pins its branded forest/white/lime palette instead of reading the system colour scheme. This does not establish a separate adaptive dark treatment. Source contrast checks by the independent critic: white/forest 14.62:1, 75%-white/forest 8.80:1, lime/dark button 8.31:1.
+- Independent critic **9.6/10** and QA **9.6/10** for this bounded Welcome-only local slice after the corrected scroll proof. They did not accept the whole app or release. Device TalkBack, latest-main full checks and hosted CI remain open.
 
 ## Font provenance and licensing
 
@@ -28,7 +34,6 @@ The two TTF binaries are byte-for-byte identical to the pinned downloads. The co
 
 ## Gates to complete
 
-1. Wait for Claude's explicit shared-slot release, then restore the temporary local probe from `outputs/welcome-typography-visual-probe-20260926.kt` if needed. Run focused `WelcomeTypographyTest` and the existing `WelcomeScreenUiTest`; fix any implementation or fixture failure honestly.
-2. Visually inspect normal and 320×420dp/200%-font states in light and dark app themes; verify CTAs/legal remain readable and reachable. Remove the temporary probe before final commit/full verification; keep generated PNGs outside Git.
-3. Reconcile latest `main`, then run design lint, full unit, lintDebug, assembleDebug and unsigned assembleRelease on the combined source using the shared slot. Record actual counts/failures; unsigned assembly is not release approval.
-4. Freeze source, request independent critic and QA review, then integrate only after their scoped acceptance and hosted CI. Three-choice registration is separate and still depends on the P2 authority contract.
+1. Reconcile latest `main` after SignUp PR1892's hosted CI/merge; preserve separate SignUp and A3 acceptance records. The scoped Welcome source is frozen at `fc82310` before this integration.
+2. Run design lint, full unit, lintDebug, assembleDebug and unsigned assembleRelease on the combined source using a fresh shared-slot reservation. Record actual counts/failures; unsigned assembly is not release approval.
+3. Review the exact combined tree for regression, open a PR, require applicable hosted CI before main merge. Device/TalkBack verification remains a later acceptance gate. Three-choice registration is separate and still depends on the P2 authority contract.

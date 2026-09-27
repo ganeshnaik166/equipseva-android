@@ -2,6 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — Welcome typography local screen review
+
+- Welcome-only frozen source `fc82310` uses pinned Space Grotesk headings and Inter body/actions, with bundled OFL notices; global typography and auth/navigation are unchanged. Original unchanged-production RED was 6 tests/5 expected failures and one control pass.
+- Focused typography plus existing Welcome tests passed 11/11. A temporary visual probe passed 4/4; corrected 320×420dp at 200% text scrolled to a fully visible tagline, and top capture showed both CTAs/legal. PNGs/logs remain outside Git and the probe source was removed. Independent critic and QA each scored this bounded local screen 9.6/10.
+- Full latest-main unit/lint/debug/unsigned-release, hosted CI, device/TalkBack and main integration remain open. See [Welcome typography handoff](HANDOFF_WELCOME_TYPOGRAPHY_2026-09-26.md).
+
 ## 2026-09-19 — P0 product plan published
 
 - Main: `24e0199937c09c137e8045aa7664dcd4f746dbb1`; content: `5541df8f43d656951bf53197f74da5a7b0291768`; PR1879 merged.
