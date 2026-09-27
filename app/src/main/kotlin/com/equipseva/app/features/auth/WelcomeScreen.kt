@@ -116,6 +116,7 @@ internal fun WelcomeContent(
                         kind = EsBtnKind.Lime,
                         size = EsBtnSize.Lg,
                         full = true,
+                        labelStyle = EsType.WelcomeAction,
                     )
                     Spacer(Modifier.height(10.dp))
                     Box(

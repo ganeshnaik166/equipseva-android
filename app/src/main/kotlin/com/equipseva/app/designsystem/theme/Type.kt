@@ -12,7 +12,8 @@ import androidx.compose.ui.unit.sp
 // Helvetica, Arial, sans-serif". Helvetica Neue is proprietary (Linotype)
 // and can't be redistributed without a license, so we default to
 // FontFamily.SansSerif (Android maps to Roboto, the closest free
-// Helvetica-substitute on the platform).
+// Helvetica-substitute on the platform). Welcome's approved Space Grotesk/
+// Inter pair is deliberately scoped in WelcomeFonts.kt.
 //
 // To swap in real Helvetica Neue: drop the .ttf files into
 // app/src/main/res/font/ as `helvetica_neue_regular.ttf` /
@@ -41,29 +42,28 @@ object EsType {
     // Welcome's existing measured scale. Keep these paired with the compact
     // layout so large-text users see the primary actions before scrolling.
     val WelcomeBrand: TextStyle = TextStyle(
-        fontFamily = EsFontFamily,
-        fontSize = 36.sp,
-        fontWeight = FontWeight.Bold,
-        lineHeight = 38.sp,
+        fontFamily = WelcomeHeadingFontFamily,
+        fontSize = 28.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineHeight = 34.sp,
         letterSpacing = (-0.72).sp,
     )
-    val WelcomeBrandCompact: TextStyle = WelcomeBrand.copy(
-        fontSize = 28.sp,
-        lineHeight = 34.sp,
-    )
+    val WelcomeBrandCompact: TextStyle = WelcomeBrand
     val WelcomeAction: TextStyle = TextStyle(
-        fontFamily = EsFontFamily,
+        fontFamily = WelcomeBodyFontFamily,
         fontSize = EsTextSm,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
     )
     val WelcomeTagline: TextStyle = TextStyle(
-        fontFamily = EsFontFamily,
+        fontFamily = WelcomeBodyFontFamily,
         fontSize = EsTextMd,
-        lineHeight = 23.sp,
+        fontWeight = FontWeight.Normal,
+        lineHeight = 24.sp,
     )
     val WelcomeLegal: TextStyle = TextStyle(
-        fontFamily = EsFontFamily,
+        fontFamily = WelcomeBodyFontFamily,
         fontSize = EsTextXs,
+        fontWeight = FontWeight.Normal,
         lineHeight = 18.sp,
     )
 
