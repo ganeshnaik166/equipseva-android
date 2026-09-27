@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — migration-history integration draft PR and focused hosted check
+
+- Merged main's docs-only status head `ce3281a8` into the isolated branch as `e41c8559`; the two SQL files, four replay-test files and dedicated workflow remained byte-identical to independent review source `8e91e201`. Frozen offline install, PGlite **3/3**, Node syntax, actionlint v1.7.12 and diff whitespace check passed after that merge.
+- Opened [draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900). Dedicated read-only SQL workflow [push run 36322664445](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36322664445) and [PR run 36322714346](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36322714346) both completed **success** on `e41c8559`. These hosted checks cover focused round3825 behavior, not round3824 execution or the full chain. Full clean disposable Supabase replay, production-byte parity and main integration remain open; no production operation ran.
+
 ## 2026-09-27 — main-based migration-history replay integration, WIP
 
 - Branch `codex/migration-history-replay-integration-20260927` starts from fetched main `0ef2db99d0aa58a8c3cdc93b57335d3bfea4ca2b`. Frozen source head `8e91e2010538ee8c3674511f1e6f247c37b3630b` selectively ports round3824/3825 SQL and the focused `supabase/replay-tests` package from pushed WIP `a1d67a07` with exact file parity. Round3824 is source blob `a9777e2d`; round3825 is probe-only repair blob `43352752`, different from its original source blob `106636cb`. A new separate `supabase-history-replay.yml` workflow pins checkout/pnpm/Node actions by SHA, gives only read-only contents permission, filters both migration filenames and relevant test/workflow paths, and uses no secrets or linked project. Its assertions exercise round3825, not round3824. S3a SQL/CI, other migrations and Android code were not ported.
