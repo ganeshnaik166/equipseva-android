@@ -2,6 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 Activity-owned ingress and full local check; restoration QA blocker
+
+- Frozen WIP source `e8e80d4a` on `codex/deeplink-replay-fence-20260927` adds opaque Activity ownership across the router/host/nav handoff, scoped auth retirement, foreground unknown-notification inbox fallback and verified App Link preservation when push extras are malformed. Test-first RED was multi-Activity **14/1**, cross-owner auth **20/2**, direct A→B→A plus foreground fallback **24/3**, and malformed-extras **19/2**; focused GREEN progressed to **94/0** across eight actual suites, plus router **19/0**. Tests are preserved in separate commits; exact logs are in `outputs/a3-02-*20260927.log` outside Git.
+- Exact-source full unit **3,037 tests / 355 suites / 0 failures/errors/skips**, lint **0 errors / 88 warnings / 2 hints**, debug and **unsigned** release R8 assembly, and design ratchet passed; full log `outputs/a3-02-full-activity-owner-20260927.log`. Release task uploaded a Crashlytics mapping file, but no app was signed or deployed. Gradle slot released 05:46 UTC.
+- Independent QA then identified an untested common tap-loss window: Supabase 3.6.0 returns no current session while its Android lifecycle restores from encrypted storage. Cold and warm notification taps can therefore be dropped. Final critic/QA scores, hosted CI, real FCM, restored-task and main integration are **on hold**. Next: test-first persisted-ticket witness with one Activity-owned escrow and exact authenticated SDK match; see [handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 ## 2026-09-27 — A3-02 background FCM launcher path targeted GREEN; cold start remains blocked
 
 - Prior source `81e06f45` passed full local unit **3,001/0 across 352 suites**, lint **0 errors / 88 warnings / 2 hints**, debug and unsigned release R8 assembly, design ratchet, Gradle exit 0 (`outputs/a3-02-full-20260927.log`). That exact tree was still unaccepted: independent provisional QA **8.2/10** found that fresh-process taps arrive before sink registration, and the deployed sender's combined notification+data payload bypasses `onMessageReceived` in background, leaving raw FCM launcher extras unmapped.

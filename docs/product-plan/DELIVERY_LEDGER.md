@@ -21,6 +21,8 @@ Source status is available in [the candidate handoff](https://github.com/ganeshn
 
 Statuses: **planned**, **partial** (some reusable implementation), **blocked** (known unmet gate), **verified scoped** (named evidence only). No row is marked accepted from design alone.
 
+**P1.2 latest A3-02 checkpoint (27 September, 05:46 UTC):** the older row below describes the earlier `a838cc99` stage. Frozen WIP `e8e80d4a` now includes Activity-owned startup routing, stale-login retirement, foreground inbox fallback and malformed-extra App Link preservation. Exact-source local full unit **3,037/0**, lint **0 errors**, debug and unsigned R8 assembly, and design ratchet passed. Independent QA found a remaining Supabase storage-restore window that drops notification taps while the SDK is `Initializing`; critic/QA acceptance, hosted CI, device FCM and main merge remain **blocked**. See [current handoff](../HANDOFF_A3_02_REPLAY_2026-09-27.md). This is no change to P1.2's overall partial status.
+
 | ID | Outcome | Design | Implementation | Main integration | Required release evidence |
 |---|---|---|---|---|---|
 | P0 | Governing plan and 98-page carry-forward/new-page tree | Critic 9.5 / QA 9.6, planning only | Documentation and seven-page PDF | PR1879 merged at `24e01999`; portable continuity PR1880 merged at `62da836f` | Not an app-release gate |
