@@ -81,21 +81,54 @@ class DeepLinkRouter @Inject constructor(
     }
 
     private fun resolveEvent(intent: Intent): Event.OpenRoute? {
-        val externalRoute = intent.getStringExtra(EXTRA_ROUTE)
-        val directRoute = externalRoute?.takeIf(DeepLinkPolicy::allows)
+        val hasCustomRoute = intent.hasExtra(EXTRA_ROUTE)
+        // FCM notification+data messages received in the background bypass
+        // FirebaseMessagingService. Android puts these server data keys on
+        // MainActivity's launcher Intent instead of our custom route extra.
+        val hasRawPush = intent.hasExtra("notification_id") || intent.hasExtra("kind")
+        val externalRoute = if (hasCustomRoute) intent.getStringExtra(EXTRA_ROUTE) else null
         val appLinkRoute = routeFor(intent.data)
-        val inboxFallback = DeepLinkPolicy.inboxFallback(externalRoute)
-        if (directRoute == null && appLinkRoute == null && inboxFallback == null) return null
+        // A mixed custom/raw Intent is ambiguous and can be forged. Ignore
+        // both push selectors; an independent, valid HTTPS App Link may stand.
+        val mixedPushSources = hasCustomRoute && hasRawPush
+        val rawRoute = if (hasRawPush && !mixedPushSources) {
+            val kind = intent.getStringExtra("kind")
+            val selectors = buildMap {
+                RAW_PUSH_ID_KEYS.forEach { key ->
+                    intent.getStringExtra(key)?.let { put(key, it) }
+                }
+            }
+            NotificationDeepLink.routeFor(kind, selectors)
+        } else null
+        val customDirect = externalRoute?.takeIf(DeepLinkPolicy::allows)
+        val rawDirect = rawRoute?.takeIf(DeepLinkPolicy::allows)
+        val inboxFallback = when {
+            mixedPushSources -> null
+            hasCustomRoute -> DeepLinkPolicy.inboxFallback(externalRoute)
+            hasRawPush -> DeepLinkPolicy.inboxFallback(rawRoute) ?: Routes.NOTIFICATIONS
+            else -> null
+        }
+        if (customDirect == null && rawDirect == null && appLinkRoute == null && inboxFallback == null) {
+            return null
+        }
         val ticket = ticketSource.currentTicket() ?: return null
         // A push captured for account A must not inherit account B's live
         // ticket at tap time. The extra is forgeable on this exported Activity;
         // it filters stale notifications, while the allow-list and server RLS
         // remain the actual route/data authorization boundaries. App Links do
         // not have a push recipient and are evaluated independently.
-        val matchesPushRecipient = intent.getStringExtra(EXTRA_RECIPIENT_USER_ID) == ticket.userId
+        val recipient = when {
+            mixedPushSources -> null
+            hasCustomRoute -> intent.getStringExtra(EXTRA_RECIPIENT_USER_ID)
+            hasRawPush -> intent.getStringExtra("user_id")
+            else -> null
+        }
+        val matchesPushRecipient = recipient != null && recipient == ticket.userId
         val route = when {
-            directRoute != null && matchesPushRecipient -> directRoute
+            mixedPushSources -> appLinkRoute ?: return null
+            customDirect != null && matchesPushRecipient -> customDirect
             appLinkRoute != null -> appLinkRoute
+            rawDirect != null && matchesPushRecipient -> rawDirect
             inboxFallback != null && matchesPushRecipient -> inboxFallback
             else -> return null
         }
@@ -108,6 +141,12 @@ class DeepLinkRouter @Inject constructor(
         // A local stale-tray filter only. MainActivity is exported, so this
         // caller-supplied value never proves push origin or server access.
         const val EXTRA_RECIPIENT_USER_ID = "com.equipseva.app.deeplink.RECIPIENT_USER_ID"
+
+        // Read only selectors used by the pure mapper. In particular, never
+        // interpret arbitrary raw deep_link/route strings from exported extras.
+        private val RAW_PUSH_ID_KEYS = listOf(
+            "conversation_id", "repair_job_id", "engineer_id", "amc_contract_id",
+        )
 
         private val APP_LINK_HOSTS = setOf("equipseva.com", "www.equipseva.com")
 

@@ -187,6 +187,8 @@ class DeepLinkRouterSinkTest {
         val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
         router.registerSink { received += it }
         val intent = mockk<Intent> {
+            every { hasExtra(any()) } returns false
+            every { hasExtra(DeepLinkRouter.EXTRA_ROUTE) } returns true
             every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } throws
                 BadParcelableException("synthetic malformed route Bundle")
         }
@@ -202,6 +204,8 @@ class DeepLinkRouterSinkTest {
         val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
         router.registerSink { received += it }
         val intent = mockk<Intent> {
+            every { hasExtra(any()) } returns false
+            every { hasExtra(DeepLinkRouter.EXTRA_ROUTE) } returns true
             every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } returns Routes.HOME
             every { data } returns null
             every { getStringExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID) } throws
@@ -218,6 +222,7 @@ class DeepLinkRouterSinkTest {
         val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
         router.registerSink { received += it }
         val intent = mockk<Intent> {
+            every { hasExtra(any()) } returns false
             every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } returns null
             every { data } throws BadParcelableException("synthetic malformed data URI")
         }
