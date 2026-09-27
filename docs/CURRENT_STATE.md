@@ -2,6 +2,10 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## Round3829 draft integration — 27 September 2026, unmerged WIP
+
+[Draft PR1901](https://github.com/ganeshnaik166/equipseva-android/pull/1901) carries the round3829 future `postgres`-function default-grant migration. Frozen SQL/test/workflow source is `3abb9fd8`; after a docs-only main merge, branch head `7ae5e859` has identical source blobs. Offline PGlite **14/14** and independent exact-source critic **9.6/10** and QA **9.6/10** found no mandatory blocker for the bounded SQL/test scope. Hosted exact-head CI, real staging catalog/old-client/extension-caller checks, clean migration replay and production deployment remain open. `supabase_admin` defaults and additive storage grants remain outside round3829. Historical round3824/3825 [draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900) has focused hosted SQL success but cannot prove a blank Supabase replay yet: the first tracked migration assumes `public.spare_part_orders` exists, and no tracked migration creates it. Neither draft is on main or applied to production. See [round3829 handoff](HANDOFF_DEFAULT_RPC_GRANTS_2026-09-27.md).
+
 ## Future function EXECUTE defaults — isolated WIP, 27 September 2026
 
 `/root/default_rpc_grant_audit` owns only the new `codex/default-rpc-grants-20260927` branch in `work/equipseva-money-rpc-grants-20260927`, cut from fetched `origin/main` **`0ef2db99d0aa58a8c3cdc93b57335d3bfea4ca2b`**. Scope: synthetic test-first coverage and one forward migration changing future `postgres`-created function defaults: remove PostgreSQL's global `PUBLIC` EXECUTE and the explicit `anon`/`authenticated` grants for `public`; retain current function ACLs and the `service_role` default. This branch may update only its SQL test harness, SQL CI workflow, migration, and continuity records. It does not alter `supabase_admin` defaults or production. The former S3a receipt branch and commits remain preserved separately.

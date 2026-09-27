@@ -1,5 +1,11 @@
 # Future function EXECUTE defaults — isolated WIP, 27 September 2026
 
+## Newest integration checkpoint — draft PR1901, no production change
+
+[Draft PR1901](https://github.com/ganeshnaik166/equipseva-android/pull/1901) opened at branch head `7ae5e8590af9aeb46dc944749f2aaab1682cd2f2` after current main `ce3281a8` was merged into this branch. The merge resolved continuity-doc additions only; the four SQL/test/workflow blobs still exactly match frozen source `3abb9fd8`. Independent critic **9.6/10** and QA **9.6/10** each reviewed that exact source for the bounded `postgres` future-default change, with no mandatory source blocker; new PGlite **14/14** passed. This supersedes the older pending-critic/no-PR statements below. Hosted exact-head checks were not complete when this checkpoint was written. Keep the PR draft and unmerged until hosted CI, real staging/old-client/extension probes and migration-history reconciliation are assessed. No linked push or production SQL ran for round3829.
+
+The history import is separately [draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900), with focused hosted SQL success. A blank Supabase replay is blocked by a prehistory gap: the first tracked migration `20260419000000_razorpay_verification_rls.sql` changes `public.spare_part_orders`, but no tracked migration creates that table. The absence is a repository-source finding; no full CLI replay ran. Do not treat local focused SQL checks as a full replay or deploy round3829 by filling migration filenames without a reviewed baseline. `postgres` is not a member of `supabase_admin` (fresh read-only production role-membership query), so the provider-owned defaults remain a separate residual.
+
 ## Exact state and ownership
 
 `/root/default_rpc_grant_audit` owns `work/equipseva-money-rpc-grants-20260927` on new branch `codex/default-rpc-grants-20260927`, cut from fetched `origin/main` `0ef2db99d0aa58a8c3cdc93b57335d3bfea4ca2b`. The prior S3a deployment-receipt branch and commits remain separate. SQL/test/workflow source is frozen at `3abb9fd8d299da1e0169067aca8c68af27fa1f2e`. This is WIP: no PR, main merge, linked migration push, production SQL, Gradle or real provider call was made for round3829. Main advanced through PR1899 to `ce3281a8`; reconcile its overlapping continuity docs before integration.

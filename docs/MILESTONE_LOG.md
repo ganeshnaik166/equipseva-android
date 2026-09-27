@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — Round3829 draft PR, exact-source reviews complete
+
+- [Draft PR1901](https://github.com/ganeshnaik166/equipseva-android/pull/1901) opened from branch head `7ae5e859`. The reviewed SQL/test/workflow blobs are unchanged from `3abb9fd8`; docs-only main reconciliation is separate. Offline PGlite **14/14** and independent exact-source critic and QA **9.6/10 each** cover only the bounded postgres/public future-grant change. Exact-head hosted CI, staging caller/extension probes, the prehistory migration baseline, and production apply remain open. Round3824/3825 [draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900) has hosted focused SQL green but no blank replay because the first tracked migration references a table absent from tracked migrations. Neither draft is merged. [Handoff](HANDOFF_DEFAULT_RPC_GRANTS_2026-09-27.md).
+
 ## 2026-09-27 — future function EXECUTE defaults, isolated test-first WIP
 
 - Branch `codex/default-rpc-grants-20260927`, fetched main base `0ef2db99d0aa58a8c3cdc93b57335d3bfea4ca2b`, frozen SQL/test/workflow source **`3abb9fd8d299da1e0169067aca8c68af27fa1f2e`**. The former S3a receipt branch is preserved. Scope is the forward round3829 `postgres` default-function ACL change and synthetic offline tests; no existing function ACL, `supabase_admin` default, Android/web/Edge code or production object was changed.
