@@ -2,6 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — round3825 focused replay repair, WIP
+
+- Isolated `codex/migration-history-sync-20260927` code `cfdef45130dbefa7e242408cc5321d451f3b65f4` leaves round3824 at source blob `a9777e2d` and changes round3825 from imported blob `106636cb` to `43352752`. Only the data-dependent GREEN probe gains an exact id-and-email `auth.users` existence guard and honest skip/success notices; comments explain the conditional proof. The `CREATE OR REPLACE FUNCTION public.founder_audit_table_mutation()` block is text-identical to the source import. No function/grant/table/trigger DDL or app code changed, and no SQL was sent to production.
+- Test-first: `pnpm test` in `supabase/replay-tests` against the original imported round3825 exited 1 with **1/2 passed**; the unseeded disposable PGlite fixture failed at the GREEN audit insert with SQLSTATE `23503`, while the seeded case passed. The repaired exact code passed **3/3, 0 failures**: absent founder, same-id case-variant email, and matching founder with correct audit row plus non-founder early return. The suite asserts cast-free function body and no leaked probe row/temp table; `git diff --check` passed. Independent exact-code critic **9.6/10** and QA **9.6/10** accept only this focused SQL/fixture scope.
+- Full clean Supabase replay was not run; Supabase CLI and Docker were unavailable on this host's PATH. Hosted checks and PR remain pending, and the ordinary Android workflow does not execute the new SQL suite. Production migration-version presence still does not prove deployed SQL-byte parity. Keep the branch WIP and out of main; next run a disposable full migration replay and relevant hosted SQL check, then re-evaluate integration. [Handoff](HANDOFF_MIGRATION_HISTORY_SYNC_2026-09-27.md).
+
 ## 2026-09-27 — round3824/3825 migration-history restoration, local candidate
 
 - Isolated `codex/migration-history-sync-20260927` began at fetched main `b5679244370a7a8470744bd3aa12568e57179727`. Code commit `1d2e4251` restores only `20263901000000_round3824_founder_console_execute_grants.sql` and `20263902000000_round3825_founder_audit_trigger_row_cast.sql` from `origin/backend/regression-suite`; their blob IDs match source exactly (`a9777e2dd998815f15b98882d1a284d6c0dc9c4f`, `106636cbc98fa1b76dbb25ce14f944b9f3ba618c`). Imported SQL bytes were not modified and no app source changed.
