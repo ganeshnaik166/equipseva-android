@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
 import androidx.work.WorkManager
 import com.equipseva.app.core.auth.AuthModule
 import com.equipseva.app.core.auth.AuthRepository
@@ -38,6 +39,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ActivityReflector
 import org.robolectric.util.ReflectionHelpers
@@ -48,8 +50,9 @@ import javax.inject.Inject
 /**
  * Exercises MainActivity's real save/retain/destroy/create hooks. The router-only
  * tests cannot catch an Activity that forgets to pass its retained owner or
- * saved delivery identity to the router. Unknown auth keeps the Compose host
- * from claiming the tap, and the fake ticket source never contacts a server.
+ * saved delivery identity to the router. A non-visible Activity also proves
+ * that its auth collector retires pending taps on terminal or invalid login
+ * states without a mounted host. The fake ticket source stays offline.
  *
  * Non-visible Robolectric lifecycle avoids draining the app's perpetual
  * Compose splash animation. This does not model OS task delivery, actual
@@ -67,13 +70,20 @@ class MainActivityDeepLinkLifecycleTest {
         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     )
     private val route = Routes.repairJobDetailRoute("RPR-00027")
+    private val freshRoute = Routes.repairJobDetailRoute("RPR-00028")
+    private val freshDeliveryId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+    private enum class SdkStatus { Initializing, Authenticated, NotAuthenticated }
+    private var sdkStatus = SdkStatus.Initializing
     private var sdkTicket: LoginTicketSnapshot? = null
+    // Physical storage can still hold A after NotAuthenticated. The source
+    // must expose it only while the SDK is actually Initializing.
     private var storedTicket: LoginTicketSnapshot? = ticket
+    private val fakeAuthRepository = FakeAuthRepository(AuthSession.Unknown)
 
     @get:Rule val hiltRule = HiltAndroidRule(this)
 
     @BindValue @JvmField val authRepository: AuthRepository =
-        FakeAuthRepository(AuthSession.Unknown)
+        fakeAuthRepository
     @BindValue @JvmField val ticketSource: LoginTicketSource = mockk()
     @BindValue @JvmField val analytics: AnalyticsClient = mockk(relaxed = true)
     // The production DB opens SQLCipher native code, unavailable on the JVM.
@@ -87,8 +97,12 @@ class MainActivityDeepLinkLifecycleTest {
     @Inject lateinit var router: DeepLinkRouter
 
     @Before fun setUp() {
-        every { ticketSource.currentTicket() } answers { sdkTicket }
-        every { ticketSource.provisionalStoredTicketDuringInitializing() } answers { storedTicket }
+        every { ticketSource.currentTicket() } answers {
+            sdkTicket.takeIf { sdkStatus == SdkStatus.Authenticated }
+        }
+        every { ticketSource.provisionalStoredTicketDuringInitializing() } answers {
+            storedTicket.takeIf { sdkStatus == SdkStatus.Initializing }
+        }
         hiltRule.inject()
     }
 
@@ -135,6 +149,7 @@ class MainActivityDeepLinkLifecycleTest {
             // onCreate. The router's transferred claim below verifies that
             // MainActivity read the retained owner during that hook.
 
+            sdkStatus = SdkStatus.Authenticated
             sdkTicket = ticket
             storedTicket = null
             assertNull("The destroyed Activity retained claim authority", router.takeStartupFor(oldOwner, userId))
@@ -166,6 +181,7 @@ class MainActivityDeepLinkLifecycleTest {
             val retainedOwner = replacement.get().lastCustomNonConfigurationInstance
             assertNull("A new task unexpectedly inherited an old owner", retainedOwner)
 
+            sdkStatus = SdkStatus.Authenticated
             sdkTicket = ticket
             storedTicket = null
             assertNull("Saved state alone resurrected an old push", router.takeStartupFor(newOwner, userId))
@@ -185,8 +201,10 @@ class MainActivityDeepLinkLifecycleTest {
         val replacement = Robolectric.buildActivity(MainActivity::class.java, Intent(tap))
             .create(saved)
         try {
+            @Suppress("DEPRECATION")
             val newOwner = replacement.get().onRetainCustomNonConfigurationInstance()
                 as DeepLinkRouter.LaunchOwner
+            sdkStatus = SdkStatus.Authenticated
             sdkTicket = ticket
             storedTicket = null
             assertNull(router.takeStartupFor(newOwner, userId))
@@ -196,8 +214,76 @@ class MainActivityDeepLinkLifecycleTest {
         }
     }
 
-    private fun notificationTap(): Intent = Intent()
-        .setData(Uri.parse("equipseva-internal-notification://tap/$deliveryId"))
-        .putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+    @Test fun blank_authenticated_identity_retires_a_pending_launch_before_same_A_returns() {
+        val controller = Robolectric.buildActivity(MainActivity::class.java, notificationTap()).create()
+        try {
+            @Suppress("DEPRECATION")
+            val owner = controller.get().onRetainCustomNonConfigurationInstance()
+                as DeepLinkRouter.LaunchOwner
+
+            // MainActivity's collector is already active, while a non-visible
+            // Activity has no mounted DeepLinkHost to retire the old tap.
+            // The SDK reports Authenticated with an unparseable/missing user;
+            // both ticket reads must return null despite A still on disk.
+            sdkStatus = SdkStatus.Authenticated
+            assertNull(ticketSource.currentTicket())
+            assertNull(ticketSource.provisionalStoredTicketDuringInitializing())
+            fakeAuthRepository.setSession(AuthSession.SignedIn(" ", null))
+            shadowOf(Looper.getMainLooper()).idle()
+
+            sdkTicket = ticket
+            assertNull("Blank SignedIn let the original launch navigate on A's return",
+                router.takeStartupFor(owner, userId))
+        } finally {
+            controller.close()
+        }
+    }
+
+    @Test fun terminal_signed_out_retires_pending_A_despite_physical_storage_then_allows_fresh_tap() {
+        val controller = Robolectric.buildActivity(MainActivity::class.java, notificationTap()).create()
+        try {
+            @Suppress("DEPRECATION")
+            val owner = controller.get().onRetainCustomNonConfigurationInstance()
+                as DeepLinkRouter.LaunchOwner
+
+            sdkStatus = SdkStatus.NotAuthenticated
+            // Keep storedTicket = A to model delayed disk cleanup. Production
+            // LoginTicketSource still exposes neither method in this status.
+            assertEquals(ticket, storedTicket)
+            assertNull(ticketSource.currentTicket())
+            assertNull(ticketSource.provisionalStoredTicketDuringInitializing())
+            fakeAuthRepository.setSession(AuthSession.SignedOut)
+            shadowOf(Looper.getMainLooper()).idle()
+
+            sdkStatus = SdkStatus.Authenticated
+            sdkTicket = ticket
+            assertNull("SignedOut left the original A tap claimable",
+                router.takeStartupFor(owner, userId))
+
+            // A genuinely new Activity launch after re-authentication must
+            // still deliver a fresh unique tap once, even without a host.
+            fakeAuthRepository.setSession(AuthSession.SignedIn(userId, null))
+            shadowOf(Looper.getMainLooper()).idle()
+            val fresh = Robolectric.buildActivity(
+                MainActivity::class.java,
+                notificationTap(freshDeliveryId, freshRoute),
+            ).create()
+            try {
+                @Suppress("DEPRECATION")
+                val freshOwner = fresh.get().onRetainCustomNonConfigurationInstance()
+                    as DeepLinkRouter.LaunchOwner
+                assertEquals(freshRoute, router.takeStartupFor(freshOwner, userId)?.route)
+                assertNull(router.takeStartupFor(freshOwner, userId))
+            } finally {
+                fresh.close()
+            }
+        } finally {
+            controller.close()
+        }
+    }
+
+    private fun notificationTap(id: String = deliveryId, targetRoute: String = route): Intent = Intent()
+        .setData(Uri.parse("equipseva-internal-notification://tap/$id"))
+        .putExtra(DeepLinkRouter.EXTRA_ROUTE, targetRoute)
         .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, userId)
 }
