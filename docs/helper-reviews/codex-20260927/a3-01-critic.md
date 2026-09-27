@@ -1,0 +1,7 @@
+# A3-01 independent final critic — 27 September 2026
+
+**Frozen source:** `cd13a272b91781983f02185c060d646c2e38997c` on `codex/deeplink-extra-policy-20260926`. **Score: 9.6/10 for the exported `EXTRA_ROUTE` syntax and safe-inbox fallback only. No mandatory code blocker within that scope.** The latest-main merge left the reviewed `DeepLinkPolicy.kt` and `DeepLinkRouter.kt` changes intact.
+
+`DeepLinkPolicy` admits only selected fixed routes and strictly shaped job, chat, engineer-profile and AMC-contract identifiers. `DeepLinkRouter` rejects other exported extras, permits an independently valid App Link to win, then maps the five actual founder/KYC/engineer-visits notification routes to the inbox. This removes direct external access to their unguarded screens while preserving a visible path for those notification taps. The seven focused tests cover the denied and admitted routes, the five fallbacks and App Link precedence.
+
+The coordinator reported focused **72/0** and merged-head full unit XML **2,927/0**, lint with **0 errors**, debug assembly and a successful unsigned release retry after an environment-only Bash failure. I reviewed source and records; I did not run those checks independently. Independent QA subsequently scored the same frozen code **9.6/10** in [its report](a3-01-qa.md); hosted CI and main integration remain pending. This score excludes A3-02 buffered cross-account replay, inbox-row role checks, recipient binding and server object authorization; it is not whole deep-link security or release acceptance.

@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-01 exported-route policy locally accepted; hosted integration pending
+
+- Branch `codex/deeplink-extra-policy-20260926`: original exported-extra test-first RED **4/3** after fixing invalid Robolectric bootstrap. Initial source-only critic **9.2/10** found lost founder notification taps and two role-specific screens without direct role gates. Additional tests `a831cd85`/`b2985f7d` plus bounded-wait polish `2948ff16` gave **7 tests / 2 expected behavioral failures** on the pre-fix policy (log `outputs/deeplink-fallback-red-20260927.log`).
+- Source fix `6fb7f14e3c8264850d4e7119b5a1523e43167f1b` maps those five exact notification routes to the inbox after valid App Link precedence. Unchanged focused class passed **7/0** (log `outputs/deeplink-fallback-green-20260927.log`); design ratchet exited 0. Current main `133720a6` was merged into this isolated branch without A3 app-source overlap; frozen tested code `cd13a272`. Six merged-head suites passed **72/0**. Full unit **2,927/0**, lint **0 errors / 87 warnings / 2 hints**, debug assembly passed; initial combined exit 1 was solely missing `bash` on PowerShell PATH. A same-source Git Bash PATH retry passed `preReleaseCheck` and unsigned release R8/assembly, Gradle exit 0. [Independent critic](helper-reviews/codex-20260927/a3-01-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260927/a3-01-qa.md) **9.6/10** accept only the exported-route policy slice. Hosted CI/main integration remain open. A3-02 buffered replay, inbox row role gates and server object authorization remain separate blockers. [Handoff](HANDOFF_DEEPLINK_EXTRA_POLICY_2026-09-26.md).
+
 ## 2026-09-26 — Sign-in recovery action target, locally scoped acceptance
 
 - Branch `codex/signin-recovery-target-20260926`, fetched-main base `3c5f8b6c71275c06fc3ec1da55895cc9cae745c8`; frozen app/test code `ffbc930f9a97334a7a17605c00f44cab7eb02135`. Only `SignInScreen.kt` and a new `SignInRecoveryTargetTest.kt` changed in the code commit.
