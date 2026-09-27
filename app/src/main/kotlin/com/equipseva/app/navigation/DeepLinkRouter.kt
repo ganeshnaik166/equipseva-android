@@ -82,6 +82,8 @@ class DeepLinkRouter @Inject constructor(
     private val activeOwners = mutableSetOf(DEFAULT_OWNER)
     private val sinks = mutableMapOf<LaunchOwner, SinkRegistration>()
     private val latestIngress = mutableMapOf<LaunchOwner, Long>()
+    /** Last exact SDK login this Activity's mapped auth collector observed. */
+    private val observedTickets = mutableMapOf<LaunchOwner, LoginTicketSnapshot>()
     private var nextIngress = 0L
     private var pendingStartup: StartupHandoff? = null
     /** One accepted route awaiting MainNavGraph's final navigation attempt. */
@@ -91,6 +93,7 @@ class DeepLinkRouter @Inject constructor(
     fun beginActivity(owner: LaunchOwner) = synchronized(sinkLock) {
         activeOwners += owner
         latestIngress.remove(owner)
+        observedTickets.remove(owner)
         ++nextIngress
         // The newest Activity launch supersedes an older unclaimed tap.
         pendingStartup = null
@@ -102,6 +105,7 @@ class DeepLinkRouter @Inject constructor(
         activeOwners -= owner
         sinks.remove(owner)
         latestIngress.remove(owner)
+        observedTickets.remove(owner)
         if (pendingStartup?.owner === owner) pendingStartup = null
         if (inFlight?.owner === owner) inFlight = null
     }
@@ -114,6 +118,7 @@ class DeepLinkRouter @Inject constructor(
     internal fun endActivityForRecreation(owner: LaunchOwner) = synchronized(sinkLock) {
         activeOwners -= owner
         sinks.remove(owner)
+        observedTickets.remove(owner)
         if (pendingStartup?.owner !== owner && inFlight?.owner !== owner) {
             latestIngress.remove(owner)
         }
@@ -146,6 +151,7 @@ class DeepLinkRouter @Inject constructor(
         // beginActivity's supersession happens regardless of transfer outcome.
         activeOwners += newOwner
         latestIngress.remove(newOwner)
+        observedTickets.remove(newOwner)
         val transferIngress = ++nextIngress
         pendingStartup = null
         inFlight = null
@@ -155,6 +161,7 @@ class DeepLinkRouter @Inject constructor(
             activeOwners -= previousOwner
             sinks.remove(previousOwner)
             latestIngress.remove(previousOwner)
+            observedTickets.remove(previousOwner)
         }
         if (eligible) {
             latestIngress[newOwner] = transferIngress
@@ -361,14 +368,27 @@ class DeepLinkRouter @Inject constructor(
         }
 
     /**
-     * MainActivity observes terminal SDK auth status even when no main graph
-     * or DeepLinkHost exists. A delayed callback must not erase a newer tap
-     * once the SDK again shows an authenticated or restoring login.
+     * MainActivity observes terminal SDK auth status even without a host. A
+     * mapped RefreshFailure callback can arrive after the SDK has recovered
+     * the same ticket: the old tap must still retire. A different live ticket
+     * belongs to a newer login and is left alone. During Initializing, the
+     * stored witness may belong to a newer restoration, so keep its tap.
      */
     internal fun retireStartupForTerminalSession(owner: LaunchOwner) = synchronized(sinkLock) {
-        if (readTicketWitness() != null) return@synchronized
-        if (pendingStartup?.owner === owner) pendingStartup = null
-        if (inFlight?.owner === owner) inFlight = null
+        val witness = readTicketWitness()
+        fun shouldRetire(handoff: StartupHandoff): Boolean {
+            if (handoff.owner !== owner) return false
+            if (witness == null) return true
+            if (witness.restoring || handoff.event.ticket != witness.ticket) return false
+            // A current ticket with no earlier mapped SignedIn is still
+            // ambiguous: ingress may have raced ahead of that callback.
+            // Fail closed unless this Activity had observed a different
+            // exact login before the newer tap was captured.
+            val previouslyObserved = observedTickets[owner]
+            return previouslyObserved == null || previouslyObserved == witness.ticket
+        }
+        if (pendingStartup?.let(::shouldRetire) == true) pendingStartup = null
+        if (inFlight?.let(::shouldRetire) == true) inFlight = null
     }
 
     /**
@@ -382,6 +402,9 @@ class DeepLinkRouter @Inject constructor(
         synchronized(sinkLock) {
             if (owner !in activeOwners) return@synchronized
             val witness = readTicketWitness()
+            if (observedUserId.isNotBlank() && witness?.restoring == false &&
+                witness.ticket.userId == observedUserId
+            ) observedTickets[owner] = witness.ticket
             val pending = pendingStartup
             if (pending?.owner === owner && witness?.ticket != pending.event.ticket) {
                 pendingStartup = null
