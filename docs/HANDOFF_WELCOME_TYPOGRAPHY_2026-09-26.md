@@ -1,6 +1,6 @@
 # Welcome typography candidate — 26 September 2026
 
-Status on 27 September: **Welcome-only local typography and visual review accepted; latest-main integration, full build, hosted CI and device review pending**.
+Status on 27 September: **Welcome-only combined-main local unit/lint/debug/unsigned-release checks green; hosted CI and device review pending**.
 
 First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585f698913`, verified equal to local HEAD after fetch/push. The RED commit is `20be747a`, implementation `6ad6e3b3`, and bundled-license whitespace correction `bb867c86`. The Welcome-only locally reviewed source is `fc82310cedf0908e28adef3a6334d1f4236c09f6`; its docs evidence commit is `ae38fa40a9283702a8d6f79fd0f772ec38331714`. Main through accepted SignUp PR1892 `11ac01c1d9e55439eb0673036e5589a07677e629` has now been merged into this candidate without an app-source overlap. The shared Gradle slot was released by Codex at 02:35:44 UTC after the scoped checks; re-read the slot before another build.
 
@@ -17,7 +17,13 @@ First saved remote WIP checkpoint: branch tip `bb867c8678a2457a2591c0612f1f37585
 
 - Temporary Robolectric/Roborazzi probe ran **4/4** (log `outputs/welcome-typography-visual-scroll-20260927.log`) with normal Pixel 5 and 320×420dp at 200% font scale; six PNGs are outside Git under `outputs/welcome-typography-*.png`. The first bottom probe scrolled to Privacy, which was already visible, so its top/bottom images were identical. The corrected probe scrolls to the full tagline; compact top SHA-256 starts `42c734ba`, bottom starts `8e96c21f`. Direct inspection finds both CTAs and legal links readable at the top and the full tagline legible at the bottom. The temporary test source was removed after the run and is not committed.
 - Light/dark screenshots are identical because Welcome intentionally pins its branded forest/white/lime palette instead of reading the system colour scheme. This does not establish a separate adaptive dark treatment. Source contrast checks by the independent critic: white/forest 14.62:1, 75%-white/forest 8.80:1, lime/dark button 8.31:1.
-- Independent critic **9.6/10** and QA **9.6/10** for this bounded Welcome-only local slice after the corrected scroll proof. They did not accept the whole app or release. Device TalkBack, latest-main full checks and hosted CI remain open.
+- Independent critic **9.6/10** and QA **9.6/10** for this bounded Welcome-only local slice after the corrected scroll proof. Their exact combined-tree reports are in `docs/helper-reviews/codex-20260927/`; they did not accept the whole app or release. Device TalkBack and hosted CI remain open.
+
+## Exact combined-main verification, 27 September
+
+- Combined merge `8a1cb2ed49193a0c38ad10f7558719cb779ef889` has accepted main `11ac01c1d9e55439eb0673036e5589a07677e629` as a parent. Its app/test delta versus main is only Welcome fonts/styles, an optional shared-button style argument used at Welcome, and `WelcomeTypographyTest`; accepted SignUp/A3 source and tests remain present. `git diff --check` and `scripts/verify/design_lint.py` exited 0; the design ratchet had no negative signal above baseline.
+- On that exact source, `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --continue --no-daemon --console=plain` exited **0** (`BUILD SUCCESSFUL in 9m48s`), with **2,936 tests / 347 suites / 0 failures, errors or skips**, lint **0 errors / 87 warnings / 2 hints**, debug APK and **unsigned** release R8 APK assembled. Full log: `outputs/welcome-typography-combined-full-20260927.log`; design log: `outputs/welcome-typography-design-ratchet-20260927.log` outside Git. `PRECHECK_LOOSE=1` allowed missing signing configuration; this is not a signed or shipped release. Crashlytics mapping upload task ran, but no external receipt is claimed.
+- The shared Gradle slot was released by Codex at 02:54:47 UTC after all Gradle processes exited, then independently reserved by the session-identity worker. Re-read the slot before future builds.
 
 ## Font provenance and licensing
 
@@ -34,5 +40,5 @@ The two TTF binaries are byte-for-byte identical to the pinned downloads. The co
 
 ## Gates to complete
 
-1. Run design lint, full unit, lintDebug, assembleDebug and unsigned assembleRelease on the combined source using a fresh shared-slot reservation. Record actual counts/failures; unsigned assembly is not release approval.
-2. Review the exact combined tree for regression, open a PR, require applicable hosted CI before main merge. Device/TalkBack verification remains a later acceptance gate. Three-choice registration is separate and still depends on the P2 authority contract.
+1. Finalize the exact combined-tree critic/QA reports, push this branch, open a PR and require applicable hosted CI before main merge.
+2. Physical device/TalkBack and signed-release verification remain later acceptance gates. Three-choice registration is separate and still depends on the P2 authority contract.
