@@ -10,6 +10,10 @@ Append dated results. Keep design, implementation, main integration and release 
 
 - Commit `3a11a5b5` added a synchronous SDK-session/JWT login-ticket reader and 11 synthetic/offline tests. Stub RED was 9 tests/3 failures; stricter JWT-envelope RED was 11/2; final focused GREEN **11/0**. This is local navigation provenance, not JWT signature verification or server authorization. A3-02 replay remains 6/5 RED; no full checks, critic/QA, PR or main acceptance for this branch. Accepted A10 main `2639d480` was merged before overlapping host production edits.
 
+## 2026-09-27 — A3-02 active-host/ticket fence targeted GREEN, still WIP
+
+- WIP source/test commit `2cce4e57` replaces the router buffer with a synchronous registered sink, stamps the current SDK ticket and observed login generation, filters stale host events, and checks again immediately before navigation. The six original replay tests plus three new owner-boundary cases are now **9/0**; five targeted classes total **58/0**, Gradle exit 0 (`outputs/a3-02-combined-targeted-20260927.log`). No full unit/lint/debug/unsigned release, independent review or CI yet. Cold-start taps with no mounted host are intentionally dropped. The next test-first scope is notification-recipient continuity; an exported intent extra can filter a stale tray tap, but cannot prove FCM origin or replace server authorization.
+
 ## 2026-09-27 — Welcome typography merged main; A10 targeted integration
 
 - [Welcome typography PR1893](https://github.com/ganeshnaik166/equipseva-android/pull/1893) passed both hosted Android builds, goldens verification and both secret scans, with record-goldens skipped. It merged to main `06a4f9f85c82e1834eb74e55dd8f5776c4a36b70`. The exact pre-merge combined tree passed 2,936/0 full unit, lint/debug/unsigned R8, with bounded critic and QA 9.6/9.6. Device/TalkBack and signed release remain open.
