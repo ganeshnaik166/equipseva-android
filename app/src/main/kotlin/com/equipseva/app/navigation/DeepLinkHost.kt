@@ -99,6 +99,13 @@ class DeepLinkHost @Inject constructor(
                 val owner = activeSession?.takeIf { it.userId == userId }
                 if (owner != null) return
 
+                // A direct A -> B emission is a boundary even when auth never
+                // emits SignedOut/Unknown. Retire A's unclaimed launch before
+                // installing B; a later A ticket must not reclaim that tap.
+                activeSession?.let { departing ->
+                    router.retireStartupFor(registeredOwner, departing.userId)
+                }
+
                 val freshOwner = LoginSession(userId, ++nextGeneration)
                 activeSession = freshOwner
                 registeredOwner?.let { launchOwner ->
