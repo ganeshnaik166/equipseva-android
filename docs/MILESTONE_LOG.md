@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 hosted RED confirmed
+
+- Android CI on test-bearing `da45af88` [failed](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36321396445), matching the intentional three RED security cases. Docs-only `97a049b4` had [secret-scan success](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36323053012) and no Android run. Draft PR1897 remains unmerged; no accepted build or new app fix. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 ## 2026-09-27 — A3-02 SDK event-cache inspection, still RED
 
 - Read-only inspection of installed auth-kt 3.6.0 confirms separate status and `tryEmit` calls; a replay-1 event cache is not a lossless mutation epoch. No app/test change or new build. Preserve the three failing replay targets and draft PR1897; see [handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md). No critic/QA acceptance or main merge.

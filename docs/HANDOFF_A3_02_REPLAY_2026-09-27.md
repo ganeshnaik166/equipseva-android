@@ -1,5 +1,9 @@
 # A3-02 buffered deep-link replay — blocked WIP handoff, 27 September 2026
 
+## Hosted RED confirmation
+
+Android workflow [run 36321396445](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36321396445) finished **failure** for test-bearing head `da45af88`; this is not a green gate and matches the three preserved local RED cases. Its secret scan passed. Later docs-only head `97a049b4` passed [secret scan](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36323053012) but did not trigger Android. No newer Android success covers these tests. Draft PR1897 remains unmerged.
+
 ## Installed SDK event-cache check — not an auth epoch
 
 Read-only inspection of the resolved `auth-kt-android:3.6.0` bytecode found that `AuthImpl.setSessionStatus` writes a `MutableStateFlow` value. On an expired-session refresh failure, the SDK sets `SessionStatus.RefreshFailure` and then separately calls `emitEvent(AuthEvent.RefreshFailure)`. Its event flow is a `MutableSharedFlow` with replay 1, no extra buffer and the default `SUSPEND` overflow policy; `emitEvent` calls `tryEmit` and ignores its Boolean result. Kotlin's `tryEmit` contract permits failure when a subscriber lags and the buffer is full. Even when the event is retained, the status write and event emission are not one atomic operation. The app currently has no `auth.events` subscriber, but relying on that incidental condition would make a security guarantee fragile. [Kotlin's `tryEmit` contract](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-mutable-shared-flow/try-emit.html) documents the buffer behavior.

@@ -21,6 +21,8 @@ Source status is available in [the candidate handoff](https://github.com/ganeshn
 
 Statuses: **planned**, **partial** (some reusable implementation), **blocked** (known unmet gate), **verified scoped** (named evidence only). No row is marked accepted from design alone.
 
+**P1.2 hosted RED confirmation (27 September):** Android CI on A3-02 test-bearing `da45af88` [failed](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36321396445); later `97a049b4` only changed docs and passed secret scan. Three security tests stay RED, and draft PR1897 remains unmerged. See [handoff](../HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 **P1.2 SDK event-cache follow-up (27 September):** exact installed auth-kt 3.6.0 bytecode uses a separately emitted, fallible `tryEmit` event after the status write, so its replay cache cannot certify an unobserved terminal transition. This is a read-only architecture finding, not a fix or verification pass. Three A3-02 security tests remain RED and draft PR1897 stays unmerged; see [handoff](../HANDOFF_A3_02_REPLAY_2026-09-27.md).
 
 **P1.2 newest A3-02 RED checkpoint (27 September):** test-only `0fbafc26` preserves three previously untested stale-tap failures: observed B/unobserved A, mirrored A/B, and skipped terminal callback after same-ticket recovery. Targeted **8 tests / 3 failures**, Gradle exit **1**, no full checks or production change. The five previous cases pass. Earlier hosted green checks and critic/QA **8.8/8.9** do not accept the new test tree. [Draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) must stay unmerged. See [handoff](../HANDOFF_A3_02_REPLAY_2026-09-27.md) for epoch/fail-closed options and exact log. P1.2 remains partial.

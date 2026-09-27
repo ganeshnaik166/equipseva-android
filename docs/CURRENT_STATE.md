@@ -2,6 +2,10 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## A3-02 exact-head hosted status — 27 September 2026, still RED
+
+The test-bearing `da45af88` push produced Android workflow [failure](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36321396445), consistent with the three intentionally failing security tests; its secret scan passed. The later `97a049b4` push changed only continuity docs and passed [secret scan](https://github.com/ganeshnaik166/equipseva-android/actions/runs/36323053012); no Android run was triggered for those docs. Neither result is an accepted build. Keep [draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) unmerged and the RED tests enabled.
+
 ## A3-02 installed SDK event-cache constraint — 27 September 2026, read-only
 
 The resolved auth-kt 3.6.0 bytecode sets `sessionStatus` and emits `AuthEvent.RefreshFailure` separately; the latter uses `tryEmit` on a replay-1 SharedFlow and ignores failure. A lagging subscriber can cause event loss, while StateFlow can conflate the transient status. An event-cache sample therefore cannot provide a lossless auth epoch or turn the three RED replay cases into security acceptance. No production/test code or new build changed in this inspection. The blocked [draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) still needs a mutation-time epoch or a separately reviewed fail-closed no-buffer route, with UX and full test gates. Details: [A3 handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
