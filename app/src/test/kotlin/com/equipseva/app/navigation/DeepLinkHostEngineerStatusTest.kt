@@ -2,6 +2,7 @@ package com.equipseva.app.navigation
 
 import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.auth.AuthSession
+import com.equipseva.app.core.auth.LoginTicketSource
 import com.equipseva.app.core.data.engineers.Engineer
 import com.equipseva.app.core.data.engineers.EngineerRepository
 import com.equipseva.app.core.data.engineers.VerificationStatus
@@ -91,6 +92,13 @@ class DeepLinkHostEngineerStatusTest {
                 override val sessionState: Flow<AuthSession> = checkNotNull(sessionFlow)
             },
             engineerRepository = engineerRepository,
+            // A10 status ownership is independent of navigation tickets.
+            // A relaxed MockK class return is a fabricated non-null ticket,
+            // unlike the real source's null while no SDK session exists.
+            loginTicketSource = mockk<LoginTicketSource> {
+                every { currentTicket() } returns null
+                every { provisionalStoredTicketDuringInitializing() } returns null
+            },
         )
 
         fun session(session: AuthSession) {

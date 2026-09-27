@@ -15,10 +15,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.equipseva.app.core.data.analytics.AnalyticsClient
 import com.equipseva.app.core.data.analytics.AnalyticsEvent
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.observability.StartupTelemetry
@@ -32,12 +35,17 @@ import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     @Inject lateinit var userPrefs: UserPrefs
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
+    @Inject lateinit var authRepository: AuthRepository
+    private val deepLinkLaunchOwner = DeepLinkRouter.LaunchOwner()
     @Inject lateinit var analytics: AnalyticsClient
 
     // Round 470: dev-mode verdict driven by mutableStateOf so onResume
@@ -60,7 +68,45 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         // Round 470: compute dev-mode verdict before setContent so the
         // first frame is either the blocker or the nav graph, not flicker.
         devModeVerdict.value = DeviceIntegrityCheck.run(this)
-        deepLinkRouter.dispatch(intent)
+        // onCreate runs before Compose installs the authenticated main host.
+        // A restored task's Intent may already have been handled after the
+        // last state save. Only a fresh launch dispatches it here; an exact
+        // in-process retained owner can transfer one unfinished push below.
+        if (savedInstanceState == null) {
+            deepLinkRouter.beginActivity(deepLinkLaunchOwner)
+        } else {
+            // Only Android's in-process configuration retention can supply
+            // the previous opaque owner. A process restart has no such owner
+            // and therefore cannot resurrect a saved launch Intent.
+            @Suppress("DEPRECATION")
+            val previousOwner = lastCustomNonConfigurationInstance as? DeepLinkRouter.LaunchOwner
+            deepLinkRouter.transferPendingToRestoredActivity(
+                previousOwner,
+                deepLinkLaunchOwner,
+                RestoredTaskIngress.uniqueSavedDeliveryIdentity(savedInstanceState),
+                intent,
+            )
+        }
+        // The auth graph may never mount after a failed cold restoration.
+        // Observe its terminal boundary here so the pending tap cannot be
+        // claimed if the same stored login ticket appears on a later attempt.
+        // Start before dispatchStartup to observe the current status in order.
+        lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            authRepository.sessionState.collect { session ->
+                when (session) {
+                    AuthSession.SignedOut ->
+                        deepLinkRouter.retireStartupForTerminalSession(deepLinkLaunchOwner)
+                    is AuthSession.SignedIn ->
+                        deepLinkRouter.observeAuthenticatedSession(
+                            deepLinkLaunchOwner, session.userId,
+                        )
+                    AuthSession.Unknown -> Unit
+                }
+            }
+        }
+        if (RestoredTaskIngress.shouldDispatch(savedInstanceState, intent)) {
+            deepLinkRouter.dispatchStartup(intent, deepLinkLaunchOwner)
+        }
         maybeRequestNotificationPermission()
         // r513 (v0.4 P5 #10 client wire) — fire-and-forget funnel ping.
         analytics.track(AnalyticsEvent.APP_OPEN)
@@ -82,7 +128,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                 if (verdict != null && verdict.devModeBlocking) {
                     DevModeBlockingScreen(verdict = verdict)
                 } else {
-                    AppNavGraph()
+                    AppNavGraph(launchOwner = deepLinkLaunchOwner)
                 }
             }
         }
@@ -103,7 +149,27 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        deepLinkRouter.dispatch(intent)
+        deepLinkRouter.dispatch(intent, deepLinkLaunchOwner)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // setIntent in onNewIntent normally makes this the latest delivery.
+        // A tap delivered after this save can leave a stale marker after
+        // process death; the Bundle alone cannot authorize restored dispatch.
+        RestoredTaskIngress.record(outState, intent)
+    }
+
+    @Deprecated("Android's in-process configuration retention is needed for one pending tap")
+    override fun onRetainCustomNonConfigurationInstance(): Any = deepLinkLaunchOwner
+
+    override fun onDestroy() {
+        if (isChangingConfigurations) {
+            deepLinkRouter.endActivityForRecreation(deepLinkLaunchOwner)
+        } else {
+            deepLinkRouter.endActivity(deepLinkLaunchOwner)
+        }
+        super.onDestroy()
     }
 
     // ---- Razorpay Standard Checkout result hooks (PR-C6 AMC payments).

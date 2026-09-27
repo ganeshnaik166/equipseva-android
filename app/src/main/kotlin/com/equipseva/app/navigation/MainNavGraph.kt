@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -164,6 +165,7 @@ internal val fullScreenRoutePrefixes = listOf(
 
 @Composable
 fun MainNavGraph(
+    launchOwner: DeepLinkRouter.LaunchOwner,
     showTour: Boolean = false,
     onSignIn: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
@@ -176,6 +178,13 @@ fun MainNavGraph(
 
     val showSnackbar: (String) -> Unit = { msg ->
         scope.launch { snackbarHost.showSnackbar(msg) }
+    }
+
+    // Intent ingress exists only while this authenticated main graph is
+    // mounted. Closing the exact registration cannot unregister a newer host.
+    DisposableEffect(deepLinkHost, launchOwner) {
+        val registration = deepLinkHost.registerRouterSink(launchOwner)
+        onDispose { registration.close() }
     }
 
     // First-run tour: if user hasn't seen it yet, push it on top of HOME.
@@ -219,13 +228,21 @@ fun MainNavGraph(
         deepLinkHost.events.collect { event ->
             when (event) {
                 is DeepLinkHost.VerifiedEvent.OpenRoute -> {
-                    // Route comes pre-resolved from NotificationDeepLink; the
-                    // server-emitted (kind, data) was mapped to a known
-                    // Routes helper before the PendingIntent fired. We still
-                    // guard against malformed adb-injected routes and stale
-                    // pre-server-PR-#192 deep_link strings so a bad payload
-                    // can't crash MainActivity with IllegalArgumentException.
-                    runCatching { navController.navigate(event.route) }
+                    // Event collection can resume after a session boundary.
+                    // Recheck the SDK ticket and observed login immediately
+                    // before Navigation consumes the route.
+                    try {
+                        if (!deepLinkHost.isCurrent(event)) return@collect
+                        // Route comes pre-resolved from NotificationDeepLink;
+                        // final validation still guards malformed external
+                        // routes at Navigation's consumption boundary.
+                        runCatching { navController.navigate(event.route) }
+                    } finally {
+                        // A completed attempt cannot be replayed after an
+                        // Activity recreation. Exact ownership makes an old
+                        // collector unable to clear a newer notification.
+                        deepLinkHost.finishNavigation(event)
+                    }
                 }
             }
         }

@@ -3,8 +3,10 @@ package com.equipseva.app.core.push
 import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -15,6 +17,7 @@ import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.util.QuietHours
 import com.equipseva.app.navigation.DeepLinkRouter
 import com.equipseva.app.navigation.NotificationDeepLink
+import com.equipseva.app.navigation.Routes
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalTime
+import java.util.UUID
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -79,15 +83,11 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
             fallbackTitle = getString(R.string.app_name),
         ) ?: return
 
-        // Resolve a deep-link route from the (kind, data) tuple the server
-        // attached. Unknown / missing kinds fall through to MainActivity's
-        // default landing — the user will see the inbox via normal app flow.
-        val route = NotificationDeepLink.routeFor(data["kind"], data)
-        val launchIntent = Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .apply {
-                if (route != null) putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
-            }
+        // Unknown or malformed kinds still open the safe inbox when the
+        // recipient matches the current login; the router rejects stale or
+        // missing recipients before any navigation.
+        val route = notificationRouteForTap(data)
+        val launchIntent = notificationTapIntent(this, route, data)
         val pendingIntent = PendingIntent.getActivity(
             this,
             // Distinct request codes per message keep extras from being
@@ -137,6 +137,27 @@ class EquipSevaMessagingService : FirebaseMessagingService() {
     }
 
 }
+
+/** Keep foreground FCM tap behavior aligned with raw background tray taps. */
+internal fun notificationRouteForTap(data: Map<String, String>): String =
+    NotificationDeepLink.routeFor(data["kind"], data) ?: Routes.NOTIFICATIONS
+
+/** Builds the activity intent carried by a notification tap. */
+internal fun notificationTapIntent(
+    context: Context,
+    route: String?,
+    data: Map<String, String>,
+): Intent = Intent(context, MainActivity::class.java)
+    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    // PendingIntent matching ignores extras. A private, random data URI keeps
+    // distinct tray actions separate even when FCM message IDs share a request code.
+    .setData(Uri.parse("equipseva-internal-notification://tap/${UUID.randomUUID()}"))
+    .apply {
+        if (route != null) {
+            putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+            data["user_id"]?.let { putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, it) }
+        }
+    }
 
 // Caps for push notification title/body lengths. Defends against
 // malformed server payloads — the full string rides in the Bundle
