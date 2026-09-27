@@ -10,8 +10,9 @@
 -- public-schema default so new server callers keep their current grant model.
 -- New client RPCs and DROP+CREATE recreations must explicitly GRANT EXECUTE to
 -- authenticated (or anon, only after an intentional public-access review).
--- The global PUBLIC change also affects future postgres-created functions in
--- other schemas, including extensions: grant required callers explicitly.
+-- The global PUBLIC change also affects other schemas, but additive per-schema
+-- grants still apply (production currently has them in storage). In a schema
+-- without such grants (currently extensions), grant required callers explicitly.
 -- supabase_admin is a separate creator role and is not modified here.
 BEGIN;
 

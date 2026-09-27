@@ -26,8 +26,11 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='supabase_admin') THEN CREATE ROLE supabase_admin NOLOGIN; END IF;
 END $$;
 CREATE SCHEMA extensions;
-GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated, service_role;
+CREATE SCHEMA storage;
+GRANT USAGE ON SCHEMA public, extensions, storage TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA storage
   GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
   GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
@@ -76,6 +79,7 @@ async function makeProbes(db) {
     CREATE FUNCTION public.new_client_rpc() RETURNS integer LANGUAGE sql AS $$ SELECT 12 $$;
     GRANT EXECUTE ON FUNCTION public.new_client_rpc() TO authenticated;
     CREATE FUNCTION extensions.new_extension_helper() RETURNS integer LANGUAGE sql AS $$ SELECT 13 $$;
+    CREATE FUNCTION storage.new_storage_helper() RETURNS integer LANGUAGE sql AS $$ SELECT 14 $$;
   `);
 }
 async function build(extra = '') {
@@ -156,6 +160,10 @@ await check('global PUBLIC revoke also protects future extensions-schema helpers
   await candidate.db.exec(`GRANT EXECUTE ON FUNCTION extensions.new_extension_helper() TO authenticated, service_role;`);
   assert.equal((await as(candidate.db, 'authenticated', 'SELECT extensions.new_extension_helper() AS n')).rows[0].n, 13);
 });
+await check('additive storage-schema defaults still grant client EXECUTE', async () => {
+  for (const role of ['anon', 'authenticated', 'service_role'])
+    assert.equal((await as(candidate.db, role, 'SELECT storage.new_storage_helper() AS n')).rows[0].n, 14);
+});
 await check('supabase_admin defaults remain untouched', async () => {
   assert.equal(await defaultAcl(candidate.db, 'supabase_admin', 'public'), candidate.adminAcl);
 });
@@ -182,5 +190,5 @@ await check('catalog gate rejects reintroduced global PUBLIC EXECUTE', async () 
   await assert.rejects(() => db.exec(tampered), /round3829: postgres global (function default override missing|PUBLIC function EXECUTE remains)/);
 });
 
-console.log(`\ndefault-function-grants: ${passed}/12 checks passed; ${failures.length} failed`);
+console.log(`\ndefault-function-grants: ${passed}/13 checks passed; ${failures.length} failed`);
 if (failures.length) { console.log(failures.join('\n')); process.exitCode = 1; }
