@@ -72,7 +72,7 @@ class EncryptedSessionTicketWitnessTest {
         refreshToken = "synthetic-refresh-only",
         expiresIn = 3600,
         tokenType = "bearer",
-        user = UserInfo(id = userId),
+        user = UserInfo(aud = "authenticated", id = userId),
     )
 
     private fun jwt(subject: String, sessionId: String, nonce: String = "one"): String {

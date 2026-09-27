@@ -69,6 +69,9 @@ class EncryptedSessionManager(context: Context) : SessionManager {
     @Volatile
     private var memorySession: UserSession? = null
 
+    /** WIP test seam; implementation follows the behavioral RED run. */
+    internal fun peekStoredLoginTicket(): LoginTicketSnapshot? = null
+
     override suspend fun saveSession(session: UserSession) {
         val encoded = runCatching {
             json.encodeToString(UserSession.serializer(), session)
