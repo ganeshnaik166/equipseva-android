@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — Welcome typography merged main; A10 targeted integration
+
+- [Welcome typography PR1893](https://github.com/ganeshnaik166/equipseva-android/pull/1893) passed both hosted Android builds, goldens verification and both secret scans, with record-goldens skipped. It merged to main `06a4f9f85c82e1834eb74e55dd8f5776c4a36b70`. The exact pre-merge combined tree passed 2,936/0 full unit, lint/debug/unsigned R8, with bounded critic and QA 9.6/9.6. Device/TalkBack and signed release remain open.
+- A10 engineer-status candidate starts from main `11ac01c1`, selectively ports helper `16b405b8` in commit `9a19533e`, and merges current main `06a4f9f8` at `16062205`. Only `DeepLinkHost.kt` status handling and a new focused test differ as app/test code. The first targeted run failed compilation because a historical `RecordingUserPrefs` fixture was absent; test-only commit `f3e8727e` replaced it with a self-contained MockK double. Fresh targeted rerun passed **23/0**; exact combined source `16062205` passed **2,959 tests / 348 suites / 0 failures/errors/skips**, lint **0 errors / 87 warnings / 2 hints**, debug and unsigned release R8, and design ratchet, Gradle exit 0. Shared slot released 03:32:41 UTC after no Gradle processes. Independent exact combined-tree [critic](helper-reviews/codex-20260927/a10-engineer-status-critic.md) and [QA](helper-reviews/codex-20260927/a10-engineer-status-qa.md) each scored **9.6/10 for the observed-login status slice**. Hosted CI, A3-02 buffered links, repository-level identity and device/signed-release gates remain separate. [A10 handoff](HANDOFF_ENGINEER_STATUS_INTEGRATION_2026-09-27.md).
+
 ## 2026-09-27 — SignUp footer merged main; Welcome typography local screen review
 
 - [SignUp PR1892](https://github.com/ganeshnaik166/equipseva-android/pull/1892) passed both hosted Android builds, Roborazzi verify and both secret scans, then merged main `11ac01c1d9e55439eb0673036e5589a07677e629`. Main push Android, Roborazzi, secret scan, web build and Pages checks also passed. The footer's UI critic/QA 9.6/9.6 do not accept the separate live-session `addRole` race; device verification remains open.
