@@ -230,7 +230,7 @@ BEGIN
   SELECT EXISTS (
     SELECT 1 FROM auth.users
      WHERE id = '756a3373-1077-470e-bc0a-79b8d6673ef4'
-       AND lower(email) = lower('ganesh1431.dhanavath@gmail.com')
+       AND email = 'ganesh1431.dhanavath@gmail.com'
   ) INTO v_founder_present;
 
   IF v_founder_present THEN

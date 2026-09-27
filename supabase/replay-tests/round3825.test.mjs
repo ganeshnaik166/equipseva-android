@@ -29,7 +29,7 @@ const [, founderId, founderEmail] = founderClaim;
 const quotedFounderEmail = founderEmail.replaceAll("'", "''");
 const probeId = '00000000-0000-4000-8000-000000003825';
 
-async function fixture({ seedFounder }) {
+async function fixture({ seedFounder, founderEmailInDb = founderEmail }) {
   const db = new PGlite();
   await db.exec(`
     CREATE SCHEMA auth;
@@ -60,7 +60,7 @@ async function fixture({ seedFounder }) {
   if (seedFounder) {
     await db.query(
       'INSERT INTO auth.users (id, email) VALUES ($1, $2)',
-      [founderId, founderEmail],
+      [founderId, founderEmailInDb],
     );
   }
   await db.exec(oldFunction);
@@ -94,6 +94,16 @@ test('round3825 commits without a founder auth.users row and leaves no probe sta
     assert.match(rows[0].prosrc, /to_jsonb\(OLD\)/);
     assert.doesNotMatch(rows[0].prosrc, /(?:NEW|OLD)::jsonb/);
     assert.equal(rows[0].probe, null);
+  } finally {
+    await db.close();
+  }
+});
+
+test('round3825 skips a founder actor whose stored email differs in case', async () => {
+  const db = await fixture({ seedFounder: true, founderEmailInDb: founderEmail.toUpperCase() });
+  try {
+    await db.exec(migration);
+    assert.equal(await countAudit(db), 0);
   } finally {
     await db.close();
   }
