@@ -6,8 +6,9 @@
 --    authenticated`), so functions created afterwards carry the same direct
 --    grants production shows.
 -- 2. Creates the three order tables the real round471 webhook functions
---    update (columns taken from round471's UPDATE statements).
--- 3. Creates signature-exact stand-ins for the other seven functions, each
+--    update (columns taken from round471's UPDATE statements). The real
+--    round472 migration creates the payment-verify telemetry table/RPC.
+-- 3. Creates signature-exact stand-ins for the other six functions, each
 --    recording its invocation in a canary table, followed by the same
 --    `REVOKE ... FROM PUBLIC; GRANT ... TO service_role` their real
 --    migrations ran. Their bodies are not under test; their grants are.
@@ -47,12 +48,6 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp
 AS $$ INSERT INTO public.service_rpc_canary(fn, called_by) VALUES ('apply_amc_pool_credit', current_user) RETURNING NULL::uuid $$;
 REVOKE EXECUTE ON FUNCTION public.apply_amc_pool_credit(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.apply_amc_pool_credit(uuid) TO service_role;
-
-CREATE FUNCTION public.record_payment_verify_event(
-  a text, b text, c text, d uuid, e text, f text, g boolean, h boolean, i bigint, j text, k text, l uuid, m jsonb
-) RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp
-AS $$ INSERT INTO public.service_rpc_canary(fn, called_by) VALUES ('record_payment_verify_event', current_user) $$;
-REVOKE EXECUTE ON FUNCTION public.record_payment_verify_event(text,text,text,uuid,text,text,boolean,boolean,bigint,text,text,uuid,jsonb) FROM PUBLIC;
 
 CREATE FUNCTION public.pick_engineer_payouts_for_processing(p_limit integer) RETURNS SETOF text
 LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp

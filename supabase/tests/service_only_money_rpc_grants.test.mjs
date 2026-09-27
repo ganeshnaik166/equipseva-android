@@ -4,10 +4,10 @@
 // in two disposable PGlite databases:
 //
 //   LEGACY — fixtures reproducing the project's default privileges, then the
-//            REAL round471 webhook migration (record_razorpay_payment_captured,
-//            record_razorpay_refund) and signature-exact stand-ins for the
-//            other seven functions with their original grant statements:
-//            the production grant state.
+//            REAL round471 webhook and round472 payment-verify migrations
+//            (three functions) and signature-exact stand-ins for the other
+//            six functions with their original grant statements:
+//            a model of the observed production catalog grant state.
 //   NEW    — LEGACY plus round3828, applied twice.
 //
 // CONTROL properties must pass on NEW and fail on LEGACY (on LEGACY the forged
@@ -32,6 +32,7 @@ const read = (p) => readFile(p, 'utf8');
 const baseFixture = await read(path.join(here, 'engineer_location_privacy.fixture.sql'));
 const fixture = await read(path.join(here, 'service_only_money_rpc_grants.fixture.sql'));
 const round471 = await read(path.join(migrations, '20260723000000_round471_razorpay_webhook_events.sql'));
+const round472 = await read(path.join(migrations, '20260724000000_round472_payment_verify_events.sql'));
 const newSql = await read(path.join(migrations, '20263905000000_round3828_service_only_money_rpc_grants.sql'));
 
 const USER = '10000000-0000-0000-0000-000000000009';
@@ -48,7 +49,6 @@ const NINE = [
 ];
 const STAND_IN_CALLS = [
   "SELECT public.apply_amc_pool_credit('00000000-0000-0000-0000-000000000001'::uuid)",
-  "SELECT public.record_payment_verify_event('a','b','c',NULL,'e','f',true,true,1,'j','k',NULL,NULL)",
   'SELECT * FROM public.pick_engineer_payouts_for_processing(100)',
   "SELECT public.record_engineer_payout_dispatch('00000000-0000-0000-0000-000000000002'::uuid,'failed','x','y','z','w','v')",
   "SELECT public.record_engineer_payout_webhook('a','b','c','d','e','f')",
@@ -78,6 +78,8 @@ const escrow = async (db, order) => (await db.query('SELECT status FROM public.r
 
 const CAPTURE = "SELECT public.record_razorpay_payment_captured($1, 'payment.captured', $2, 'pay_forged', 100, 'INR', NULL) AS r";
 const REFUND = "SELECT public.record_razorpay_refund($1, 'refund.processed', 'rfnd_forged', $2, $3, 100, NULL) AS r";
+const TELEMETRY = "SELECT public.record_payment_verify_event('s3a-test','repair_escrow','invalid_signature',NULL,'order_ESC1','pay_probe',true,false,100,'invalid_signature','synthetic',NULL,'{}'::jsonb) AS id";
+const telemetryCount = async (db) => (await db.query("SELECT count(*)::int AS n FROM public.payment_verify_events WHERE verify_fn = 's3a-test'")).rows[0].n;
 
 const PROPERTIES = [
   { kind: 'control', name: 'anon cannot forge a captured payment: the escrow stays pending', run: async (db) => {
@@ -92,7 +94,11 @@ const PROPERTIES = [
     await denied(() => as(db, 'anon', REFUND, ['evt_forged_3', 'pay_real_2', 'order_ESC2']));
     assert.equal(await escrow(db, 'order_ESC2'), 'held');
   } },
-  { kind: 'control', name: 'clients cannot invoke the AMC-credit, verify-telemetry, payout-worker, reaper or escrow-release functions', run: async (db) => {
+  { kind: 'control', name: 'clients cannot write real round472 payment-verify telemetry', run: async (db) => {
+    for (const role of ['anon', 'authenticated']) await denied(() => as(db, role, TELEMETRY));
+    assert.equal(await telemetryCount(db), 0);
+  } },
+  { kind: 'control', name: 'clients cannot invoke the AMC-credit, payout-worker, reaper or escrow-release functions', run: async (db) => {
     for (const role of ['anon', 'authenticated']) {
       for (const call of STAND_IN_CALLS) await denied(() => as(db, role, call));
     }
@@ -117,6 +123,15 @@ const PROPERTIES = [
     assert.equal(r.apply_outcome, 'escrow_flipped_to_held');
     assert.equal(await escrow(db, 'order_ESC3'), 'held');
     await db.query("UPDATE public.repair_job_escrow SET status = 'pending', razorpay_payment_id = NULL, paid_at = NULL WHERE razorpay_order_id = 'order_ESC3'");
+  } },
+  { kind: 'regression', name: 'service_role can still write real round472 payment-verify telemetry', run: async (db) => {
+    const before = await telemetryCount(db);
+    const id = (await as(db, 'service_role', TELEMETRY)).rows[0].id;
+    assert.match(id, /^[0-9a-f-]{36}$/);
+    assert.equal(await telemetryCount(db), before + 1);
+    const row = (await db.query('SELECT outcome, error_code FROM public.payment_verify_events WHERE id = $1', [id])).rows[0];
+    assert.equal(row.outcome, 'invalid_signature');
+    assert.equal(row.error_code, 'invalid_signature');
   } },
   { kind: 'regression', name: 'service_role can still call every worker and credit function', run: async (db) => {
     for (const call of STAND_IN_CALLS) await as(db, 'service_role', call);
@@ -143,6 +158,7 @@ async function build(withNew) {
   await db.exec(baseFixture);
   await db.exec(fixture);
   await db.exec(round471);
+  await db.exec(round472);
   if (withNew) { await db.exec(newSql); await db.exec(newSql); }
   await db.exec(seedSql);
   return db;
