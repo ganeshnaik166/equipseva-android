@@ -232,6 +232,49 @@ class DeepLinkRouterSinkTest {
         assertTrue(received.isEmpty())
     }
 
+    @Test fun malformed_push_hasExtra_does_not_hide_independent_valid_app_link() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+        val intent = mockk<Intent> {
+            every { hasExtra(any()) } throws BadParcelableException("synthetic malformed extras")
+            every { data } returns Uri.parse("https://equipseva.com/notifications")
+        }
+
+        router.dispatch(intent)
+        assertEquals(listOf(Routes.NOTIFICATIONS), received.map { it.route })
+    }
+
+    @Test fun malformed_push_recipient_does_not_override_independent_valid_app_link() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+        val intent = mockk<Intent> {
+            every { hasExtra(any()) } returns false
+            every { hasExtra(DeepLinkRouter.EXTRA_ROUTE) } returns true
+            every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } returns Routes.HOME
+            every { getStringExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID) } throws
+                ClassCastException("synthetic wrong-type recipient")
+            every { data } returns Uri.parse("https://equipseva.com/notifications")
+        }
+
+        router.dispatch(intent)
+        assertEquals(listOf(Routes.NOTIFICATIONS), received.map { it.route })
+    }
+
+    @Test fun malformed_push_extras_without_a_valid_app_link_still_drop() {
+        val router = DeepLinkRouter(ticketSource(ticketA))
+        val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
+        router.registerSink { received += it }
+        val intent = mockk<Intent> {
+            every { hasExtra(any()) } throws BadParcelableException("synthetic malformed extras")
+            every { data } returns Uri.parse("http://equipseva.com/notifications")
+        }
+
+        router.dispatch(intent)
+        assertTrue(received.isEmpty())
+    }
+
     @Test fun wrong_typed_route_extra_is_ignored_without_navigating() {
         val router = DeepLinkRouter(ticketSource(ticketA))
         val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
