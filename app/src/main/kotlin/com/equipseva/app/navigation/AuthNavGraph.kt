@@ -19,6 +19,9 @@ import com.equipseva.app.features.auth.WelcomeScreen
 fun NavGraphBuilder.authNavGraph(
     navController: NavHostController,
     showSnackbar: (String) -> Unit,
+    onHospitalPhoneRequested: () -> Unit,
+    onHospitalPhoneDone: () -> Unit,
+    onSignUpProfileCommitted: () -> Unit,
 ) {
     navigation(
         route = Routes.AUTH_GRAPH,
@@ -45,29 +48,25 @@ fun NavGraphBuilder.authNavGraph(
                 onSignIn = {
                     navController.returnToSignInFromSignUp()
                 },
-                // v0.3.4 — hospitals route into the phone-onboarding gate
-                // immediately after a successful signup so AppNavGraph's
-                // session observer doesn't swap to Home before phone capture.
+                onNavigateToHome = onSignUpProfileCommitted,
+                // The effect requests phone collection; AuthHostInline waits
+                // for a server-confirmed hospital role before opening it.
                 onNavigateToPhoneOnboarding = {
-                    navController.navigate(Routes.HOSPITAL_PHONE_ONBOARDING) {
-                        launchSingleTop = true
-                    }
+                    onHospitalPhoneRequested()
                 },
             )
         }
         composable(Routes.AUTH_FORGOT_PASSWORD) {
             ForgotPasswordScreen(onBack = { navController.popBackStack() })
         }
-        // v0.3.4 — post-signup phone collection for hospitals. Entered
-        // after RoleSelectScreen when hospital role is selected; routes
-        // to main on successful save (AppNavGraph AuthHostInline observes
-        // the session transition and calls onAuthSuccess to swap graphs).
+        // Post-signup phone collection for confirmed hospitals. The host
+        // retains this route through the save/revalidation boundary.
         composable(Routes.HOSPITAL_PHONE_ONBOARDING) {
             com.equipseva.app.features.onboarding.HospitalPhoneOnboardingScreen(
                 onDone = {
-                    // Pop the entire auth graph; AppNavGraph's session
-                    // transition observer will route us to the main graph.
-                    navController.popBackStack(Routes.AUTH_GRAPH, inclusive = true)
+                    // Keep this entry mounted until the root session validates
+                    // the saved profile, then hand off to Main/Onboarding.
+                    onHospitalPhoneDone()
                 },
                 onShowMessage = showSnackbar,
             )

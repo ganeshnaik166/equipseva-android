@@ -166,6 +166,7 @@ internal val fullScreenRoutePrefixes = listOf(
 fun MainNavGraph(
     showTour: Boolean = false,
     onSignIn: () -> Unit = {},
+    validatedRole: com.equipseva.app.features.auth.UserRole? = null,
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
 ) {
     val navController = rememberNavController()
@@ -234,7 +235,7 @@ fun MainNavGraph(
     val isFullScreenRoute = isFullScreenRoute(currentRoute)
 
     val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
-    val activeRole = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
+    val activeRole = validatedRole ?: activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
     val visibleTabs = tabsForRole(activeRole)
     val engineerStatus by deepLinkHost.engineerStatus.collectAsStateWithLifecycle()
 
@@ -348,7 +349,7 @@ fun MainNavGraph(
                 // CTA to raise a new request; everyone else gets the engineer
                 // feed by default (signed-out users land here too).
                 val activeRoleKey by deepLinkHost.activeRole.collectAsStateWithLifecycle(initialValue = null)
-                val role = activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
+                val role = validatedRole ?: activeRoleKey?.let { com.equipseva.app.features.auth.UserRole.fromKey(it) }
                 when (role) {
                     com.equipseva.app.features.auth.UserRole.HOSPITAL ->
                         HospitalActiveJobsScreen(

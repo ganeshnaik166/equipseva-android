@@ -29,6 +29,7 @@
     <string name="common_cancel">Cancel</string>
     <string name="common_continue">Continue</string>
     <string name="common_retry">Retry</string>
+    <string name="auth_session_verify_error" translatable="false">We couldn\'t verify your account. Please try again.</string>
     <string name="common_save">Save</string>
     <string name="common_submit">Submit</string>
     <string name="common_yes">Yes</string>

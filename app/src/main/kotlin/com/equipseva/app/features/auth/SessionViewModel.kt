@@ -10,25 +10,27 @@ import com.equipseva.app.core.data.profile.ProfileRepository
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 /**
- * Top-level session state used by the root nav graph to gate AUTH vs MAIN.
- *
- * Source-of-truth ordering for role:
- *  1. `profiles.role_confirmed = true` on the server (synced into local prefs on sign-in).
- *  2. Local pref written during a confirmed RoleSelect on this device.
- *
- * If neither holds, the user lands on RoleSelect.
+ * Root routing uses a profile validated for the observed login, never the
+ * device-global role/onboarding mirrors. Those mirrors can belong to the last
+ * account on a shared device. AuthSession exposes no SDK login ID, so a local
+ * generation distinguishes observed A -> out -> A and A -> B -> A boundaries;
+ * an entire boundary conflated upstream remains a repository-level gap.
  */
 @HiltViewModel
 class SessionViewModel @Inject constructor(
@@ -38,261 +40,330 @@ class SessionViewModel @Inject constructor(
     private val deviceTokenRegistrar: DeviceTokenRegistrar,
     private val signOutCleanup: SignOutCleanup,
 ) : ViewModel() {
-
-    private val bootstrapping = MutableStateFlow(false)
-
-    /** One-shot toasts surfaced by the sign-in gate (e.g. "Account deleted").
-     *  SharedFlow(replay = 0) so a toast emitted while AppNavGraph is not
-     *  collecting (process death, screen torn down) drops on the floor
-     *  instead of firing the next time the collector mounts — otherwise
-     *  "Your account is no longer active" could phantom-toast on a fresh
-     *  cold start unrelated to the original deletion. */
-    private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<String>(
-        extraBufferCapacity = 4,
+    private data class Login(val userId: String, val generation: Long)
+    private data class Request(val login: Login, val revision: Long)
+    private data class ProfileGate(
+        val role: String?,
+        val onboarded: Boolean,
+        val baseDone: Boolean,
     )
+    private data class Snapshot(
+        val session: AuthSession = AuthSession.Unknown,
+        val login: Login? = null,
+        val profile: ProfileGate? = null,
+        val revoking: Boolean = false,
+        val revalidating: Boolean = false,
+        val verificationFailed: Boolean = false,
+    )
+
+    private val snapshot = MutableStateFlow(Snapshot())
+    private var loginGeneration = 0L
+    private var requestRevision = 0L
+    private var latestRequest: Request? = null
+    private var profileJob: Job? = null
+    private var tokenJob: Job? = null
+    private var signedOutPrefsJob: Job? = null
+    private val preferenceWrites = Mutex()
+
+    // A toast emitted while the root graph is absent cannot replay on a later login.
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val messages: kotlinx.coroutines.flow.Flow<String> = _messages
-
-    init {
-        viewModelScope.launch {
-            authRepository.sessionState
-                .filterIsInstance<AuthSession.SignedIn>()
-                .distinctUntilChangedBy { it.userId }
-                .collect { signedIn ->
-                    // Re-register FCM token under the new user id. onNewToken
-                    // only fires on actual token rotation, so a returning
-                    // user signing in on a device whose previous session
-                    // was revoke()'d would otherwise have no row in
-                    // device_tokens and receive zero pushes. Best-effort.
-                    // Round 431 — runCatching also catches CancellationException,
-                    // which would silently break scope cancellation when the
-                    // viewmodel tears down. Explicit try/catch with rethrow.
-                    try {
-                        deviceTokenRegistrar.refresh()
-                    } catch (ce: CancellationException) {
-                        throw ce
-                    } catch (_: Throwable) {
-                        // Best-effort token refresh; ignore non-cancellation
-                        // failures (network, Play Services missing).
-                    }
-                    bootstrapProfile(signedIn.userId)
-                }
-        }
-        viewModelScope.launch {
-            authRepository.sessionState.collect { session ->
-                if (session is AuthSession.SignedOut) {
-                    userPrefs.clearActiveRole()
-                    bootstrapping.value = false
-                    // Reset in-memory onboarding state; SignOutCleanup
-                    // wipes the persisted sticky cache as well so the
-                    // next user signing in on this device doesn't
-                    // inherit the previous user's "onboarded" status.
-                    profileOnboardingV2Complete.value = null
-                    _profileBaseV2Done.value = false
-                }
-            }
-        }
-    }
-
-    /**
-     * Re-fetch the profile for the current session. Called from
-     * AppNavGraph on subsequent ON_RESUME events so a server-side role
-     * change, hard-delete, or soft-delete that happened while the app
-     * was backgrounded is reflected on the next foreground without
-     * waiting for a sign-out/sign-in. No-op when there's no active
-     * session — the sessionState collector handles wiring on next
-     * sign-in.
-     */
-    fun refreshNow() {
-        viewModelScope.launch {
-            val session = authRepository.sessionState.first() as? AuthSession.SignedIn
-                ?: return@launch
-            bootstrapProfile(session.userId)
-        }
-    }
 
     val tourSeen: StateFlow<Boolean> = userPrefs.observeTourSeen().stateIn(
         scope = viewModelScope,
-        // Eagerly so the upstream stays alive across app background → foreground.
-        // WhileSubscribed(5_000) caused the StateFlow to cold-restart at the
-        // initialValue after >5s in background, which triggered AppNavGraph's
-        // Loading branch and unmounted the entire NavHost on every resume.
         started = SharingStarted.Eagerly,
-        initialValue = true, // assume seen until first emission so we don't flash the tour on splash
+        initialValue = true,
     )
 
-    /**
-     * v0.2.0 onboarding state for the signed-in user — null until the
-     * first profile fetch resolves. The combine treats null as "use the
-     * sticky [UserPrefs.v2OnboardingComplete] cache for the fast-path";
-     * once resolved, this flow is the ground truth.
-     */
-    private val profileOnboardingV2Complete = MutableStateFlow<Boolean?>(null)
+    val profileBaseV2Done: StateFlow<Boolean> = snapshot.map { it.profile?.baseDone == true }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    /**
-     * Round 425 sub-step indicator. The v0.2.0 base fields (phone /
-     * state / district) being filled even when [profileOnboardingV2Complete]
-     * is false means the user has cleared step 1 (HospitalOnboardingScreen
-     * / EngineerOnboardingScreen) but failed the engineer-only payout-
-     * methods gate. The onboarding host reads this to decide which screen
-     * to mount for an engineer: false → step 1 (v0.2.0), true → step 2
-     * (payout). For hospitals this flag mirrors [profileOnboardingV2Complete]
-     * because the payout gate doesn't apply to them.
-     */
-    private val _profileBaseV2Done = MutableStateFlow(false)
-    val profileBaseV2Done: StateFlow<Boolean> = _profileBaseV2Done
+    /** One atomic root input: separately collected owner/state could briefly mismatch. */
+    private fun presentationFor(current: Snapshot): SessionPresentation =
+        SessionPresentation(
+            state = rootState(current),
+            owner = current.login?.let { SessionOwner(it.userId, it.generation) },
+            validatedRole = current.profile?.role?.let(UserRole::fromKey),
+            profileValidated = current.profile != null && !current.revoking,
+            resolvingAuth = current.session == AuthSession.Unknown || current.revalidating,
+            verificationFailed = current.verificationFailed,
+        )
 
-    val state: StateFlow<SessionState> =
-        combine(
-            authRepository.sessionState,
-            userPrefs.activeRole,
-            bootstrapping,
-            profileOnboardingV2Complete,
-            userPrefs.v2OnboardingComplete,
-        ) { session, role, syncing, fetchedOnboarding, cachedOnboarding ->
-            when (session) {
-                is AuthSession.Unknown -> SessionState.Loading
-                is AuthSession.SignedOut -> SessionState.SignedOut
-                is AuthSession.SignedIn -> when {
-                    role.isNullOrBlank() && syncing -> SessionState.Loading
-                    role.isNullOrBlank() -> SessionState.NeedsRole(session.userId, session.email)
-                    else -> {
-                        // Prefer the fresh server-side value over the cache.
-                        // The cache is sticky-true so it never demotes the
-                        // server's truth — it only short-circuits the splash
-                        // for users we've already seen onboarded.
-                        val onboarded = fetchedOnboarding ?: cachedOnboarding
-                        if (onboarded) {
-                            SessionState.Ready(session.userId, session.email, role)
-                        } else {
-                            SessionState.NeedsOnboarding(session.userId, session.email, role)
+    /** Synchronous boundary check for callbacks before StateFlow/Compose delivery. */
+    internal fun currentPresentation(): SessionPresentation = presentationFor(snapshot.value)
+
+    val presentation: StateFlow<SessionPresentation> = snapshot.map(::presentationFor)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SessionPresentation())
+
+    val state: StateFlow<SessionState> = presentation.map { it.state }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SessionState.Loading)
+
+    // Keep init after all state fields: Main.immediate can collect during construction.
+    init {
+        viewModelScope.launch {
+            // No network, token, or preference I/O in this collector. A slow or
+            // cancellation-ignoring A request must not block observation of B.
+            authRepository.sessionState.collect(::observeSession)
+        }
+    }
+
+    private fun rootState(current: Snapshot): SessionState = when (val session = current.session) {
+        AuthSession.Unknown -> SessionState.Loading
+        AuthSession.SignedOut -> SessionState.SignedOut
+        is AuthSession.SignedIn -> {
+            val profile = current.profile
+            when {
+                current.login == null || profile == null || current.revoking -> SessionState.Loading
+                profile.role.isNullOrBlank() || UserRole.fromKey(profile.role) !in
+                    setOf(UserRole.HOSPITAL, UserRole.ENGINEER) ->
+                    SessionState.NeedsRole(session.userId, session.email)
+                profile.onboarded -> SessionState.Ready(session.userId, session.email, profile.role)
+                else -> SessionState.NeedsOnboarding(session.userId, session.email, profile.role)
+            }
+        }
+    }
+
+    private fun observeSession(session: AuthSession) {
+        val previous = snapshot.value
+        when (session) {
+            AuthSession.Unknown -> snapshot.value = previous.copy(
+                session = session,
+                revalidating = previous.profile != null,
+            )
+            AuthSession.SignedOut -> {
+                if (previous.session == AuthSession.SignedOut) return
+                val generation = ++loginGeneration
+                cancelLoginWork()
+                snapshot.value = Snapshot(session = session)
+                signedOutPrefsJob = viewModelScope.launch {
+                    try {
+                        preferenceWrites.withLock {
+                            if (!isLiveSignedOut(generation)) return@withLock
+                            userPrefs.clearActiveRole()
+                            if (!isLiveSignedOut(generation)) return@withLock
+                            userPrefs.setV2OnboardingComplete(false)
                         }
+                    } catch (ce: CancellationException) {
+                        throw ce
+                    } catch (_: Exception) {
+                        // The signed-out root gate remains authoritative.
                     }
                 }
             }
-        }.stateIn(
-            scope = viewModelScope,
-            // Eagerly: the upstream session subscription must survive
-            // background → foreground transitions. With WhileSubscribed(5_000)
-            // the StateFlow cold-restarted at `Loading` on every resume after
-            // 5s+, which mounted SplashScreen() in AppNavGraph and tore down
-            // the entire NavHost — wiping in-flight forms and the back stack.
-            started = SharingStarted.Eagerly,
-            initialValue = SessionState.Loading,
-        )
+            is AuthSession.SignedIn -> {
+                if (session.userId.isBlank()) {
+                    ++loginGeneration
+                    cancelLoginWork()
+                    snapshot.value = Snapshot(session = session)
+                } else if (previous.login?.userId == session.userId) {
+                    // Duplicate emissions and email-only changes are one login.
+                    snapshot.value = previous.copy(session = session)
+                    if (previous.session == AuthSession.Unknown && previous.profile != null) {
+                        startProfileRequest(previous.login)
+                    }
+                } else {
+                    val login = Login(session.userId, ++loginGeneration)
+                    cancelLoginWork()
+                    // Clear A's entire gate before launching any suspending B work.
+                    snapshot.value = Snapshot(session = session, login = login)
+                    startProfileRequest(login)
+                    startTokenRegistration(login)
+                }
+            }
+        }
+    }
 
-    private suspend fun bootstrapProfile(userId: String) {
-        // Always fetch the profile, even when a role is cached locally. The
-        // previous fast-path skip caused a "zombie session" — when an admin
-        // hard-deleted a user server-side, the cached role kept the app on
-        // Home with stale data forever instead of bouncing to Welcome.
-        val cached = userPrefs.activeRole.first()
-        bootstrapping.value = cached.isNullOrBlank()
+    private fun cancelLoginWork() {
+        latestRequest = null
+        profileJob?.cancel()
+        tokenJob?.cancel()
+        signedOutPrefsJob?.cancel()
+    }
+
+    /** A manual refresh never waits for a future account or an Unknown session. */
+    fun refreshNow() {
+        val current = snapshot.value
+        val login = current.login ?: return
+        if (current.session !is AuthSession.SignedIn || current.revoking) return
+        // The cover must raise in this same UI turn before a phone-completion
+        // callback can hand off using the previously validated profile.
+        startProfileRequest(login)
+    }
+
+    private fun startProfileRequest(login: Login) {
+        val current = snapshot.value
+        if (current.login == login) {
+            snapshot.value = current.copy(
+                revalidating = current.profile != null,
+                verificationFailed = false,
+            )
+        }
+        val request = Request(login, ++requestRevision)
+        latestRequest = request
+        profileJob?.cancel()
+        profileJob = viewModelScope.launch {
+            try {
+                bootstrapProfile(request)
+            } finally {
+                if (latestRequest == request) {
+                    latestRequest = null
+                    profileJob = null
+                }
+            }
+        }
+    }
+
+    private fun startTokenRegistration(login: Login) {
+        tokenJob = viewModelScope.launch {
+            if (!isLiveLogin(login)) return@launch
+            try {
+                deviceTokenRegistrar.refresh()
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (_: Throwable) {
+                // Best effort; token registration cannot hold up profile routing.
+            }
+        }
+    }
+
+    private suspend fun isLiveSignedOut(generation: Long): Boolean {
+        val live = authRepository.sessionState.first { it !is AuthSession.Unknown }
+        currentCoroutineContext().ensureActive()
+        return loginGeneration == generation && snapshot.value.session == AuthSession.SignedOut &&
+            live == AuthSession.SignedOut
+    }
+
+    /**
+     * A response may resume before the auth observer sees the queued switch.
+     * Check both the observed generation and the latest upstream identity.
+     * Unknown pauses background work for its existing login; sign-out or a
+     * replacement invalidates it. No local observer can detect a transition
+     * that the repository's StateFlow entirely conflates.
+     */
+    private suspend fun isLiveLogin(login: Login): Boolean {
+        while (true) {
+            val current = snapshot.value
+            if (current.login != login) return false
+            if (current.session is AuthSession.Unknown) {
+                snapshot.first { it.login != login || it.session !is AuthSession.Unknown }
+                currentCoroutineContext().ensureActive()
+                continue
+            }
+            val live = authRepository.sessionState.first { it !is AuthSession.Unknown }
+            currentCoroutineContext().ensureActive()
+            val observed = snapshot.value
+            if (observed.login != login || live !is AuthSession.SignedIn || live.userId != login.userId) {
+                return false
+            }
+            if (observed.session is AuthSession.Unknown) continue
+            return observed.session is AuthSession.SignedIn
+        }
+    }
+
+    private suspend fun owns(request: Request): Boolean =
+        latestRequest == request && isLiveLogin(request.login) && latestRequest == request
+
+    private suspend fun bootstrapProfile(request: Request) {
+        if (!owns(request)) return
+        val result = try {
+            profileRepository.fetchById(request.login.userId)
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (_: Exception) {
+            markVerificationFailed(request)
+            return
+        }
+        if (!owns(request)) return
+        (result.exceptionOrNull() as? CancellationException)?.let { throw it }
+        if (result.isFailure) {
+            markVerificationFailed(request)
+            return
+        }
+        val fetched = result.getOrNull()
+        if (fetched != null && fetched.id != request.login.userId) {
+            markVerificationFailed(request)
+            return
+        }
+
+        if (fetched == null || !fetched.isActive) {
+            // Do not leave a deleted login on a cached Ready route, even if
+            // cleanup/sign-out takes time or fails. External cleanup mutation
+            // boundaries still need their own owner fence (A4/S1).
+            snapshot.value = snapshot.value.copy(
+                profile = null, revoking = true, revalidating = false,
+            )
+            tokenJob?.cancel()
+            if (!owns(request)) return
+            _messages.tryEmit(
+                if (fetched == null) "Your account is no longer active. Sign in again."
+                else "This account was deleted. Contact support to restore it.",
+            )
+            if (!owns(request)) return
+            signOutCleanup.wipeLocalUserState()
+            if (!owns(request)) return
+            try {
+                authRepository.signOut()
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (_: Exception) {
+                // The deleted account stays behind the loading gate.
+            }
+            return
+        }
+
+        val gate = ProfileGate(
+            role = fetched.takeIf { it.roleConfirmed }
+                ?.let { it.activeRoleKey ?: it.rawRoleKey }?.takeUnless { it.isBlank() },
+            onboarded = fetched.hasCompletedV2Onboarding,
+            baseDone = !fetched.phone.isNullOrBlank() &&
+                !fetched.state.isNullOrBlank() && !fetched.district.isNullOrBlank(),
+        )
         try {
-            val result = profileRepository.fetchById(userId)
-            val fetched = result.getOrNull()
-            // Server-deleted account: row is gone (success(null)) while
-            // Supabase still hands us a session token. Sign out + tell the
-            // user. Distinct from network failure (Result.failure) where we
-            // keep the cached session.
-            if (result.isSuccess && fetched == null) {
-                _messages.tryEmit("Your account is no longer active. Sign in again.")
-                // Run the full local-state wipe (outbox, FCM token,
-                // DataStore prefs, realtime channels, …) before
-                // dropping the auth session. Previously only
-                // clearActiveRole() was called, so the zombie path
-                // left the previous user's outbox + FCM token + chat
-                // mutes hanging around for whoever signed in next on
-                // the same device.
-                signOutCleanup.wipeLocalUserState()
-                // Round 431 — explicit try/catch so CancellationException
-                // surfaces and aborts the coroutine cleanly. runCatching
-                // would swallow it and the calling launch would continue
-                // through the `return` below as if everything succeeded.
-                try {
-                    authRepository.signOut()
-                } catch (ce: CancellationException) {
-                    throw ce
-                } catch (_: Throwable) {
-                    // signOut is best-effort here; even if it fails the
-                    // local-state wipe already ran.
-                }
-                return
+            preferenceWrites.withLock {
+                if (!owns(request)) return@withLock
+                if (gate.role == null) userPrefs.clearActiveRole()
+                else userPrefs.setActiveRole(gate.role)
+                if (!owns(request)) return@withLock
+                userPrefs.setV2OnboardingComplete(gate.onboarded)
+                if (!owns(request)) return@withLock
+                // SecurePrefs can emit role before its DataStore edit returns.
+                // Publish the root gate only after both owned writes finish.
+                snapshot.value = snapshot.value.copy(profile = gate, revalidating = false)
             }
-            // Defense-in-depth gate: legacy soft-delete (is_active=false)
-            // ships us a row but flags it inactive. Hard delete normally
-            // removes the row entirely (handled above).
-            if (fetched != null && !fetched.isActive) {
-                _messages.tryEmit("This account was deleted. Contact support to restore it.")
-                signOutCleanup.wipeLocalUserState()
-                try {
-                    authRepository.signOut()
-                } catch (ce: CancellationException) {
-                    throw ce
-                } catch (_: Throwable) {
-                    // Best-effort; see above.
-                }
-                return
-            }
-            // Always overwrite the cached role with the server-confirmed
-            // value when present. The previous version only wrote when
-            // cached was blank — but on a multi-user device, user A's
-            // cached role would survive after user A signed out and user B
-            // signed in, dispatching B to A's Hub (hospital → engineer
-            // home, etc.). A blank confirmedRole still leaves cached alone
-            // so a transient empty fetch doesn't wipe a valid role.
-            //
-            // Use active_role (multi-role hub) over the scalar role: the
-            // handle_new_user trigger hardcodes scalar role='engineer' for
-            // every signup as a security guard, so reading rawRoleKey here
-            // would dispatch every Hospital signup to the engineer hub.
-            val confirmedRole = fetched?.takeIf { it.roleConfirmed }
-                ?.let { it.activeRoleKey ?: it.rawRoleKey }
-            if (!confirmedRole.isNullOrBlank() && cached != confirmedRole) {
-                userPrefs.setActiveRole(confirmedRole)
-            }
-            // v0.2.0 onboarding gate: surface phone + state + district
-            // completeness from the just-fetched profile. We also
-            // promote a true result into the sticky [UserPrefs] cache so
-            // the next cold start can fast-path past Loading without
-            // waiting for this network round-trip.
-            if (fetched != null) {
-                val onboarded = fetched.hasCompletedV2Onboarding
-                profileOnboardingV2Complete.value = onboarded
-                if (onboarded) {
-                    userPrefs.setV2OnboardingComplete(true)
-                }
-                // Round 425 — surface whether the base v0.2.0 fields are
-                // filled separately from the payout-methods gate so the
-                // onboarding host can dispatch to step 1 vs step 2.
-                val baseDone = !fetched.phone.isNullOrBlank() &&
-                    !fetched.state.isNullOrBlank() &&
-                    !fetched.district.isNullOrBlank()
-                _profileBaseV2Done.value = baseDone
-            }
-        } finally {
-            bootstrapping.value = false
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (_: Exception) {
+            // Initial fetch stays Loading; a later manual refresh may retry.
+            markVerificationFailed(request)
+        }
+    }
+
+    private fun markVerificationFailed(request: Request) {
+        if (latestRequest == request && snapshot.value.login == request.login) {
+            snapshot.value = snapshot.value.copy(verificationFailed = true)
         }
     }
 }
+
+data class SessionOwner(val userId: String, val generation: Long)
+
+data class SessionPresentation(
+    val state: SessionState = SessionState.Loading,
+    val owner: SessionOwner? = null,
+    val validatedRole: UserRole? = null,
+    val profileValidated: Boolean = false,
+    val resolvingAuth: Boolean = true,
+    val verificationFailed: Boolean = false,
+)
 
 sealed interface SessionState {
     data object Loading : SessionState
     data object SignedOut : SessionState
     data class NeedsRole(val userId: String, val email: String?) : SessionState
-
-    /**
-     * v0.2.0 mandatory onboarding pending. Signed-in, role confirmed,
-     * but `profiles.hasCompletedV2Onboarding == false` (phone / state /
-     * district missing). AppNavGraph routes to ONBOARDING_HOST_ROUTE
-     * outside MainNavGraph so Home never flashes; the screen calls
-     * [SessionViewModel.refreshNow] after a successful save to flip
-     * back to [Ready] cleanly.
-     */
     data class NeedsOnboarding(
         val userId: String,
         val email: String?,
         val role: String,
     ) : SessionState
-
     data class Ready(val userId: String, val email: String?, val role: String) : SessionState
 }

@@ -65,10 +65,10 @@ fun SignUpScreen(
     onShowMessage: (String) -> Unit,
     onBack: () -> Unit = {},
     onSignIn: () -> Unit = {},
-    // v0.3.4 — invoked when a hospital admin completes signup; routes
-    // into HOSPITAL_PHONE_ONBOARDING before the session-state observer
-    // can swap to the main graph. Engineers don't trigger this callback
-    // (their AuthEffect.NavigateToHome lets AuthHostInline route to Home).
+    // The root re-reads the server profile after either signup effect. The
+    // hospital callback requests the mandatory phone step only after the
+    // server confirms that role; engineers use the home callback.
+    onNavigateToHome: () -> Unit = {},
     onNavigateToPhoneOnboarding: () -> Unit = {},
     viewModel: SignUpViewModel = hiltViewModel(),
 ) {
@@ -78,7 +78,7 @@ fun SignUpScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is AuthEffect.ShowMessage -> onShowMessage(effect.text)
-                AuthEffect.NavigateToHome -> Unit
+                AuthEffect.NavigateToHome -> onNavigateToHome()
                 AuthEffect.NavigateToHospitalPhoneOnboarding ->
                     onNavigateToPhoneOnboarding()
             }
