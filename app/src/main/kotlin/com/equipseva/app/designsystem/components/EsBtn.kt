@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,7 @@ fun EsBtn(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     disabled: Boolean = false,
+    labelStyle: TextStyle = EsType.Label,
 ) {
     val v = visual(kind, disabled)
     val shape = RoundedCornerShape(EsRadius.Md)
@@ -124,7 +126,7 @@ fun EsBtn(
             Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) { leading() }
             Box(modifier = Modifier.size(8.dp))
         }
-        Text(text = text, style = EsType.Label, color = v.fg)
+        Text(text = text, style = labelStyle, color = v.fg)
         if (trailing != null) {
             Box(modifier = Modifier.size(8.dp))
             Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) { trailing() }
