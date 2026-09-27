@@ -62,13 +62,25 @@ class DeepLinkRouter @Inject constructor(
     fun dispatch(intent: Intent?) {
         if (intent == null) return
         val externalRoute = intent.getStringExtra(EXTRA_ROUTE)
-        val route = externalRoute
-            ?.takeIf(DeepLinkPolicy::allows)
-            ?: routeFor(intent.data)
-            ?: DeepLinkPolicy.inboxFallback(externalRoute)
-        if (!DeepLinkPolicy.allows(route)) return
+        val directRoute = externalRoute?.takeIf(DeepLinkPolicy::allows)
+        val appLinkRoute = routeFor(intent.data)
+        val inboxFallback = DeepLinkPolicy.inboxFallback(externalRoute)
+        if (directRoute == null && appLinkRoute == null && inboxFallback == null) return
         val ticket = ticketSource.currentTicket() ?: return
-        val event = Event.OpenRoute(requireNotNull(route), ticket)
+        // A push captured for account A must not inherit account B's live
+        // ticket at tap time. The extra is forgeable on this exported Activity;
+        // it filters stale notifications, while the allow-list and server RLS
+        // remain the actual route/data authorization boundaries. App Links do
+        // not have a push recipient and are evaluated independently.
+        val matchesPushRecipient = intent.getStringExtra(EXTRA_RECIPIENT_USER_ID) == ticket.userId
+        val route = when {
+            directRoute != null && matchesPushRecipient -> directRoute
+            appLinkRoute != null -> appLinkRoute
+            inboxFallback != null && matchesPushRecipient -> inboxFallback
+            else -> return
+        }
+        if (!DeepLinkPolicy.allows(route)) return
+        val event = Event.OpenRoute(route, ticket)
         synchronized(sinkLock) {
             activeSink?.sink?.invoke(event)
         }

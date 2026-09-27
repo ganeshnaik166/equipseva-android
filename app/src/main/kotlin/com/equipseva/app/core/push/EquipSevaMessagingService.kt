@@ -143,7 +143,10 @@ internal fun notificationTapIntent(
 ): Intent = Intent(context, MainActivity::class.java)
     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     .apply {
-        if (route != null) putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+        if (route != null) {
+            putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+            data["user_id"]?.let { putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, it) }
+        }
     }
 
 // Caps for push notification title/body lengths. Defends against

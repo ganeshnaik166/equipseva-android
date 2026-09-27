@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 @Config(application = android.app.Application::class, sdk = [35])
 class DeepLinkRouterSinkTest {
     private val ticketA = LoginTicketSnapshot(
-        userId = "11111111-1111-4111-8111-111111111111",
+        userId = "a1111111-1111-4111-8111-111111111111",
         sessionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     )
     private val ticketB = LoginTicketSnapshot(
@@ -150,6 +150,7 @@ class DeepLinkRouterSinkTest {
     }
 
     @Test fun notification_route_without_a_matching_canonical_recipient_is_dropped() {
+        assertTrue("Fixture must contain a letter to test uppercase mismatch", ticketA.userId.uppercase() != ticketA.userId)
         val router = DeepLinkRouter(ticketSource(ticketA))
         val received = mutableListOf<DeepLinkRouter.Event.OpenRoute>()
         router.registerSink { received += it }
