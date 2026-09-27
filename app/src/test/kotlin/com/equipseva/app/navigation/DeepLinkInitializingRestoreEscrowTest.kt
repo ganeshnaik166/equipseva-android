@@ -48,8 +48,8 @@ import org.robolectric.annotation.Config
  *
  * Robolectric uses EncryptedSessionManager's volatile fallback because it has no Android
  * Keystore. These tests exercise the manager's stored-session API and the router/host race, not
- * the device encryption implementation. The current router does not read a persisted witness,
- * so the positive restoration assertions intentionally fail until that production seam exists.
+ * the device encryption implementation. The router may hold a stored ticket as an ingress
+ * witness during SDK Initializing; delivery still requires the exact authenticated SDK ticket.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -86,12 +86,13 @@ class DeepLinkInitializingRestoreEscrowTest {
 
     private inner class Harness {
         var sdkTicket: LoginTicketSnapshot? = null
+        var sdkInitializing = true
         // Snapshot the real manager's stored identity at ingress; final
         // currentTicket() remains SDK-only, including throughout Initializing.
         val source = mockk<LoginTicketSource>(relaxed = true) {
             every { currentTicket() } answers { sdkTicket }
             every { provisionalStoredTicketDuringInitializing() } answers {
-                if (sdkTicket == null) storedWitness else null
+                if (sdkInitializing && sdkTicket == null) storedWitness else null
             }
         }
         val router = DeepLinkRouter(source)
@@ -255,12 +256,43 @@ class DeepLinkInitializingRestoreEscrowTest {
         register(host, owner)
         advanceUntilIdle()
 
+        // The real LoginTicketSource returns a stored witness only while the
+        // SDK is Initializing; an actual terminal SignedOut is not that state.
+        h.sdkInitializing = false
         auth.setSession(AuthSession.SignedOut)
         advanceUntilIdle()
         h.sdkTicket = ticketA
         auth.setSession(accountA)
         advanceUntilIdle()
         assertNull("A later login inherited a tap from a signed-out restore", host.nextRouteOrNull())
+    }
+
+    @Test fun delayed_SignedOut_during_Initializing_keeps_the_exact_A_tap_for_its_mounted_host() = runTest {
+        saveStoredSession(ticketA)
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.router.dispatchStartup(push(routeOne), owner)
+        val auth = FakeAuthRepository(AuthSession.Unknown)
+        val host = host(h, auth)
+        register(host, owner)
+        advanceUntilIdle()
+        assertNull("A stored ticket alone must not navigate", host.nextRouteOrNull())
+
+        // A stale SignedOut emission can reach the host after the SDK has
+        // entered Initializing for this same stored login. The live SDK
+        // witness, not the delayed emission, owns this pending tap.
+        auth.setSession(AuthSession.SignedOut)
+        advanceUntilIdle()
+        h.router.retireStartupForTerminalSession(owner) // MainActivity sees the same emission.
+        assertNull(host.nextRouteOrNull())
+
+        h.sdkInitializing = false
+        h.sdkTicket = ticketA
+        auth.setSession(accountA)
+        advanceUntilIdle()
+        assertEquals(routeOne, host.nextRouteOrNull())
+        assertNull("One tap must navigate only once", host.nextRouteOrNull())
     }
 
     @Test fun no_stored_session_does_not_escrow_a_signed_out_tap() = runTest {
