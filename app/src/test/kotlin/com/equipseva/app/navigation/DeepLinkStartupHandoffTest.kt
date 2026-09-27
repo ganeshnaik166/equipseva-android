@@ -163,6 +163,21 @@ class DeepLinkStartupHandoffTest {
         assertNull("Signed-out startup intent replayed after login", host.nextRouteOrNull())
     }
 
+    @Test fun initializing_without_an_SDK_ticket_never_gives_the_tap_to_later_A() = runTest {
+        val tickets = TicketHarness(null)
+        val auth = FakeAuthRepository(AuthSession.Unknown)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userA))
+        val host = host(tickets, auth)
+        register(host)
+        advanceUntilIdle()
+
+        tickets.current = loginA
+        auth.setSession(accountA)
+        advanceUntilIdle()
+
+        assertNull("Unowned startup tap followed a later login", host.nextRouteOrNull())
+    }
+
     @Test fun initial_Unknown_may_settle_to_A_with_the_same_SDK_ticket() = runTest {
         val tickets = TicketHarness(loginA)
         tickets.router.dispatchStartup(pushIntent(routeOne, userA))
@@ -213,6 +228,20 @@ class DeepLinkStartupHandoffTest {
         assertEquals(routeTwo, host.nextRouteOrNull())
     }
 
+    @Test fun a_later_ordinary_intent_before_mount_retires_the_older_startup_tap() = runTest {
+        val tickets = TicketHarness(loginA)
+        tickets.router.dispatchStartup(pushIntent(routeOne, userA))
+        tickets.router.dispatch(pushIntent(routeTwo, userA)) // A newer onNewIntent while no host exists.
+
+        val host = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(host)
+
+        assertNull("An older startup route survived a later intent", host.nextRouteOrNull())
+        tickets.router.dispatch(pushIntent(routeTwo, userA))
+        assertEquals(routeTwo, host.nextRouteOrNull())
+    }
+
     @Test fun second_pre_host_startup_intent_replaces_the_first() = runTest {
         val tickets = TicketHarness(loginA)
         tickets.router.dispatchStartup(pushIntent(routeOne, userA))
@@ -224,6 +253,22 @@ class DeepLinkStartupHandoffTest {
 
         assertEquals(routeTwo, host.nextRouteOrNull())
         assertNull("First startup tap survived replacement", host.nextRouteOrNull())
+    }
+
+    @Test fun new_Activity_launch_waits_for_its_own_host_instead_of_the_old_Activity_sink() = runTest {
+        val tickets = TicketHarness(loginA)
+        val oldHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(oldHost)
+
+        tickets.router.dispatchStartup(pushIntent(routeOne, userA))
+        assertNull("Older Activity consumed the new launch", oldHost.nextRouteOrNull())
+
+        val newHost = host(tickets, FakeAuthRepository(accountA))
+        advanceUntilIdle()
+        register(newHost)
+        assertEquals(routeOne, newHost.nextRouteOrNull())
+        assertNull(newHost.nextRouteOrNull())
     }
 
     private fun pushIntent(route: String, recipient: String): Intent =
