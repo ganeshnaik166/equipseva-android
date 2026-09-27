@@ -104,11 +104,11 @@ class DeepLinkRouter @Inject constructor(
         val event = try {
             intent?.let { resolveEvent(it, owner) }
         } catch (_: BadParcelableException) {
-            null
+            resolveAppLinkOnly(intent, owner)
         } catch (_: ClassCastException) {
-            null
+            resolveAppLinkOnly(intent, owner)
         } catch (_: IllegalArgumentException) {
-            null
+            resolveAppLinkOnly(intent, owner)
         }
         val registration = synchronized(sinkLock) {
             if (owner !in activeOwners) return@synchronized null
@@ -153,6 +153,21 @@ class DeepLinkRouter @Inject constructor(
                 pendingStartup = null
             }
         }
+
+    /** Bad push extras contribute nothing; a valid HTTPS App Link stands alone. */
+    private fun resolveAppLinkOnly(intent: Intent?, owner: LaunchOwner): Event.OpenRoute? {
+        val route = try {
+            routeFor(intent?.data)?.takeIf(DeepLinkPolicy::allows)
+        } catch (_: BadParcelableException) {
+            null
+        } catch (_: ClassCastException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        } ?: return null
+        val ticket = ticketSource.currentTicket() ?: return null
+        return Event.OpenRoute(route, ticket, owner)
+    }
 
     private fun resolveEvent(intent: Intent, owner: LaunchOwner): Event.OpenRoute? {
         val hasCustomRoute = intent.hasExtra(EXTRA_ROUTE)

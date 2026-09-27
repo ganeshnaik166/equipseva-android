@@ -191,6 +191,7 @@ class DeepLinkRouterSinkTest {
             every { hasExtra(DeepLinkRouter.EXTRA_ROUTE) } returns true
             every { getStringExtra(DeepLinkRouter.EXTRA_ROUTE) } throws
                 BadParcelableException("synthetic malformed route Bundle")
+            every { data } returns null
         }
 
         router.dispatch(intent)
