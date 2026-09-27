@@ -95,7 +95,7 @@ class DeepLinkRouterExternalIntentTest {
             assertEquals(
                 "Founder notification $kind must open a safe visible landing",
                 Routes.NOTIFICATIONS,
-                (router.events.first() as DeepLinkRouter.Event.OpenRoute).route,
+                (router.nextOrNull() as? DeepLinkRouter.Event.OpenRoute)?.route,
             )
         }
     }
@@ -112,7 +112,7 @@ class DeepLinkRouterExternalIntentTest {
             assertEquals(
                 "Role-specific notification $kind must open a safe visible landing",
                 Routes.NOTIFICATIONS,
-                (router.events.first() as DeepLinkRouter.Event.OpenRoute).route,
+                (router.nextOrNull() as? DeepLinkRouter.Event.OpenRoute)?.route,
             )
         }
     }
