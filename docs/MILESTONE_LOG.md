@@ -2,6 +2,10 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — A3-02 hosted green, SDK identity design still blocked
+
+- [Draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) branch head `b2e2002f` passed hosted Android, Roborazzi and secret-scan. This does not supersede app/test `68ec227b` critic **8.8/10** and QA **8.9/10** blocks. Read-only SDK inspection found ticketless mapped `SignedOut` and a conflating auth status `StateFlow`; rapid failure/recovery can omit a terminal observer callback. A callback-only terminal ticket cannot guarantee safe replay. Next test-first implementation must obtain an SDK-authored atomic auth epoch or explicitly accept a reviewed fail-closed tap-drop policy. No code or tests changed for this design finding; device FCM, process death, recipient/server authorization, signed release and main integration remain open. [Handoff](HANDOFF_A3_02_REPLAY_2026-09-27.md).
+
 ## 2026-09-27 — A3-02 same-ticket terminal race, exact-source checks green but review blocked
 
 - Frozen app/test commit `68ec227b29488e37c38620ec57c9e088b3f96e83` on `codex/deeplink-replay-fence-20260927` changes only `DeepLinkRouter.kt` and `DeepLinkSameTicketRefreshFailureRaceTest.kt`. It retires a pending or in-flight A tap after delayed terminal callback following A `RefreshFailure`/same-ticket recovery, while keeping an exact newer B tap in the tested cases. Focused test-first RED and corrected targeted **90/0** are recorded in `outputs/a3-02-same-ticket-refresh-*20260927.log`.
