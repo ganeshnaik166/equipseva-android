@@ -39,18 +39,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * RED targets for an Activity recreated while its exact restoring tap is still held.
+ * Regressions for an Activity recreated while its exact restoring tap is still held.
  * No OS-delivery token or decoded JWT is trusted as authorization. An in-process
- * transfer must require the old opaque Activity owner, the same bounded delivery
- * identity saved by RestoredTaskIngress, and the unchanged SDK/storage login ticket.
- * A process death has no old owner and intentionally cannot transfer the tap.
- *
- * Proposed production seam:
- * DeepLinkRouter.transferPendingToRestoredActivity(previousOwner, newOwner,
- *     savedDeliveryIdentity, currentIntent): Boolean
- * It atomically begins the new owner and transfers only a matching pending event.
- * MainActivity can supply previousOwner from configuration-retained state; the
- * saved Bundle/current Intent identity remains checked by RestoredTaskIngress.
+ * transfer requires the old opaque Activity owner, the latest router ingress,
+ * the current Intent's delivery identity and the unchanged SDK/storage login
+ * ticket. The saved Bundle identity can be stale after a later onNewIntent and
+ * does not authorize transfer. A process death has no old owner, so its saved
+ * marker alone cannot transfer a tap.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

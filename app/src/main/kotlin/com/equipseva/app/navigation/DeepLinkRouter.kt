@@ -373,13 +373,14 @@ class DeepLinkRouter @Inject constructor(
 
     /**
      * The root Activity observes auth even when role/onboarding has no host.
-     * A delayed callback cannot erase an exact live pending ticket. If the
-     * witness is missing or changed, no later return to this ticket may
-     * reclaim the old tap, even when the new SDK ticket is not yet readable.
+     * A delayed callback cannot erase an exact live pending ticket. A blank
+     * mapped user ID is not a valid login owner: it still retires old work
+     * when the SDK has no ticket. If the witness is missing or changed, no
+     * later return to this ticket may reclaim the old tap.
      */
     internal fun observeAuthenticatedSession(owner: LaunchOwner, observedUserId: String) =
         synchronized(sinkLock) {
-            if (owner !in activeOwners || observedUserId.isBlank()) return@synchronized
+            if (owner !in activeOwners) return@synchronized
             val witness = readTicketWitness()
             val pending = pendingStartup
             if (pending?.owner === owner && witness?.ticket != pending.event.ticket) {
