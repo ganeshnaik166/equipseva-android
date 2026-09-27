@@ -299,6 +299,7 @@ class DeepLinkRouterSinkTest {
 
     private fun ticketSource(ticket: LoginTicketSnapshot?): LoginTicketSource = mockk {
         every { currentTicket() } returns ticket
+        every { provisionalStoredTicketDuringInitializing() } returns null
     }
 
     private fun routeIntent(route: String, recipient: String? = ticketA.userId): Intent =

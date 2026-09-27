@@ -86,7 +86,11 @@ class DeepLinkHost @Inject constructor(
                 // Initializing is normal before the first observed login.
                 // A later Unknown is a boundary and retires any old handoff.
                 if (activeSession != null) {
-                    router.retireStartupFor(registeredOwner, activeSession?.userId)
+                    router.retireStartupFor(
+                        registeredOwner,
+                        activeSession?.userId,
+                        preserveInitializingRestoration = true,
+                    )
                 }
                 clearSession()
             }
@@ -97,7 +101,15 @@ class DeepLinkHost @Inject constructor(
                     return
                 }
                 val owner = activeSession?.takeIf { it.userId == userId }
-                if (owner != null) return
+                if (owner != null) {
+                    // The SDK can restore an exact ticket while this host
+                    // already presents the same user. Claim a provisional
+                    // tap before treating the session event as a duplicate.
+                    registeredOwner?.let { launchOwner ->
+                        router.takeStartupFor(launchOwner, userId)?.let(::acceptRoute)
+                    }
+                    return
+                }
 
                 // A direct A -> B emission is a boundary even when auth never
                 // emits SignedOut/Unknown. Retire A's unclaimed launch before

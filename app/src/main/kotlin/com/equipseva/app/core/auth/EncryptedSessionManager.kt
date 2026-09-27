@@ -6,8 +6,11 @@ import android.util.Log
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.auth.SessionManager
 import io.github.jan.supabase.auth.user.UserSession
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 
 /**
@@ -37,7 +40,8 @@ import kotlinx.serialization.json.Json
  * in again on cold-start than to expose tokens. The fallback is
  * logged so on-device Keystore failures are observable.
  */
-class EncryptedSessionManager(context: Context) : SessionManager {
+@Singleton
+class EncryptedSessionManager @Inject constructor(@ApplicationContext context: Context) : SessionManager {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -69,22 +73,37 @@ class EncryptedSessionManager(context: Context) : SessionManager {
     @Volatile
     private var memorySession: UserSession? = null
 
-    /** WIP test seam; implementation follows the behavioral RED run. */
-    internal fun peekStoredLoginTicket(): LoginTicketSnapshot? = null
+    private val storageLock = Any()
+
+    /** Read-only ingress witness while SDK restoration is pending; never returns session tokens. */
+    internal fun peekStoredLoginTicket(): LoginTicketSnapshot? = synchronized(storageLock) {
+        try {
+            val session = prefs?.getString(KEY, null)?.let { raw ->
+                json.decodeFromString(UserSession.serializer(), raw)
+            } ?: if (prefs == null) memorySession else null
+            session?.let { parseLoginTicket(it.user?.id, it.accessToken) }
+        } catch (_: Exception) {
+            // A corrupt or temporarily unreadable encrypted value cannot witness a login.
+            // loadSession retains the SDK's existing clear-on-decode-failure contract.
+            null
+        }
+    }
 
     override suspend fun saveSession(session: UserSession) {
-        val encoded = runCatching {
-            json.encodeToString(UserSession.serializer(), session)
-        }.getOrNull()
-        if (encoded == null) {
-            Log.e(TAG, "Failed to serialize session; refusing to persist.")
-            return
-        }
-        val p = prefs
-        if (p != null) {
-            p.edit { putString(KEY, encoded) }
-        } else {
-            memorySession = session
+        synchronized(storageLock) {
+            val encoded = runCatching {
+                json.encodeToString(UserSession.serializer(), session)
+            }.getOrNull()
+            if (encoded == null) {
+                Log.e(TAG, "Failed to serialize session; refusing to persist.")
+                return
+            }
+            val p = prefs
+            if (p != null) {
+                p.edit { putString(KEY, encoded) }
+            } else {
+                memorySession = session
+            }
         }
     }
 
@@ -100,11 +119,11 @@ class EncryptedSessionManager(context: Context) : SessionManager {
      * once more. Only [Exception]s are thrown — the SDK's catch clauses
      * are `catch (e: Exception)`, so an [Error] would escape them.
      */
-    override suspend fun loadSession(): UserSession {
+    override suspend fun loadSession(): UserSession = synchronized(storageLock) {
         val p = prefs
-            ?: return memorySession ?: throw NoSuchElementException("No session in volatile memory")
+            ?: return@synchronized memorySession ?: throw NoSuchElementException("No session in volatile memory")
         val raw = p.getString(KEY, null) ?: throw NoSuchElementException("No stored session")
-        return try {
+        try {
             json.decodeFromString(UserSession.serializer(), raw)
         } catch (e: Exception) {
             Log.w(TAG, "Stored session failed to decode; clearing.", e)
@@ -114,8 +133,10 @@ class EncryptedSessionManager(context: Context) : SessionManager {
     }
 
     override suspend fun deleteSession() {
-        prefs?.edit { remove(KEY) }
-        memorySession = null
+        synchronized(storageLock) {
+            prefs?.edit { remove(KEY) }
+            memorySession = null
+        }
     }
 
     private companion object {

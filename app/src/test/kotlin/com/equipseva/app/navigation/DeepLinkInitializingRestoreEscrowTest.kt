@@ -66,6 +66,7 @@ class DeepLinkInitializingRestoreEscrowTest {
     private val routeTwo = Routes.repairJobDetailRoute("RPR-00028")
 
     private lateinit var store: EncryptedSessionManager
+    private var storedWitness: LoginTicketSnapshot? = null
     private val hosts = mutableListOf<DeepLinkHost>()
     private val registrations = mutableListOf<AutoCloseable>()
 
@@ -73,6 +74,7 @@ class DeepLinkInitializingRestoreEscrowTest {
         Dispatchers.setMain(StandardTestDispatcher())
         store = EncryptedSessionManager(ApplicationProvider.getApplicationContext())
         store.deleteSession()
+        storedWitness = null
     }
 
     @After fun tearDown() = runTest {
@@ -84,10 +86,13 @@ class DeepLinkInitializingRestoreEscrowTest {
 
     private inner class Harness {
         var sdkTicket: LoginTicketSnapshot? = null
-        // The production ingress-only witness seam can be stubbed from storedTicketOrNull() here.
-        // currentTicket() must remain SDK-only, including throughout Initializing.
+        // Snapshot the real manager's stored identity at ingress; final
+        // currentTicket() remains SDK-only, including throughout Initializing.
         val source = mockk<LoginTicketSource>(relaxed = true) {
             every { currentTicket() } answers { sdkTicket }
+            every { provisionalStoredTicketDuringInitializing() } answers {
+                if (sdkTicket == null) storedWitness else null
+            }
         }
         val router = DeepLinkRouter(source)
     }
@@ -128,6 +133,51 @@ class DeepLinkInitializingRestoreEscrowTest {
         assertNull("Warm tap navigated while SDK was Initializing", host.nextRouteOrNull())
         h.sdkTicket = ticketA
         auth.setSession(accountA)
+        advanceUntilIdle()
+        assertEquals(routeOne, host.nextRouteOrNull())
+        assertNull(host.nextRouteOrNull())
+    }
+
+    @Test fun warm_tap_captured_before_delayed_Unknown_survives_the_same_restore() = runTest {
+        saveStoredSession(ticketA)
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.sdkTicket = ticketA
+        val auth = FakeAuthRepository(accountA)
+        val host = host(h, auth)
+        register(host, owner)
+        advanceUntilIdle()
+
+        h.sdkTicket = null
+        h.router.dispatch(push(routeOne), owner)
+        auth.setSession(AuthSession.Unknown)
+        advanceUntilIdle()
+        assertNull(host.nextRouteOrNull())
+
+        h.sdkTicket = ticketA
+        auth.setSession(accountA)
+        advanceUntilIdle()
+        assertEquals(routeOne, host.nextRouteOrNull())
+        assertNull(host.nextRouteOrNull())
+    }
+
+    @Test fun same_user_status_emission_claims_restored_tap_after_SDK_recovers() = runTest {
+        saveStoredSession(ticketA)
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.sdkTicket = ticketA
+        val auth = FakeAuthRepository(accountA)
+        val host = host(h, auth)
+        register(host, owner)
+        advanceUntilIdle()
+
+        h.sdkTicket = null
+        h.router.dispatch(push(routeOne), owner)
+        assertNull(host.nextRouteOrNull())
+        h.sdkTicket = ticketA
+        auth.setSession(AuthSession.SignedIn(userA, "updated@example.test"))
         advanceUntilIdle()
         assertEquals(routeOne, host.nextRouteOrNull())
         assertNull(host.nextRouteOrNull())
@@ -288,6 +338,74 @@ class DeepLinkInitializingRestoreEscrowTest {
         assertEquals(routeTwo, host.nextRouteOrNull())
     }
 
+    @Test fun old_Activity_signout_cannot_retire_new_Activity_B_restore() = runTest {
+        saveStoredSession(ticketB)
+        val h = Harness()
+        val oldOwner = DeepLinkRouter.LaunchOwner()
+        val newOwner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(oldOwner)
+        h.sdkTicket = ticketA
+        val oldAuth = FakeAuthRepository(accountA)
+        val oldHost = host(h, oldAuth)
+        register(oldHost, oldOwner)
+        advanceUntilIdle()
+
+        h.sdkTicket = null
+        h.router.beginActivity(newOwner)
+        h.router.dispatchStartup(push(routeOne, userB), newOwner)
+        oldAuth.setSession(AuthSession.SignedOut)
+        advanceUntilIdle()
+
+        h.sdkTicket = ticketB
+        val newHost = host(h, FakeAuthRepository(accountB))
+        advanceUntilIdle()
+        register(newHost, newOwner)
+        assertEquals("Old A host erased B's restoring tap", routeOne, newHost.nextRouteOrNull())
+        assertNull(newHost.nextRouteOrNull())
+    }
+
+    @Test fun same_Activity_old_A_signout_cannot_retire_B_restore() = runTest {
+        saveStoredSession(ticketB)
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.sdkTicket = ticketA
+        val auth = FakeAuthRepository(accountA)
+        val host = host(h, auth)
+        register(host, owner)
+        advanceUntilIdle()
+
+        h.sdkTicket = null
+        h.router.dispatch(push(routeOne, userB), owner)
+        auth.setSession(AuthSession.SignedOut)
+        advanceUntilIdle()
+        h.sdkTicket = ticketB
+        auth.setSession(accountB)
+        advanceUntilIdle()
+        assertEquals("Old A sign-out erased B's tap on the same Activity", routeOne, host.nextRouteOrNull())
+        assertNull(host.nextRouteOrNull())
+    }
+
+    @Test fun same_Activity_direct_A_to_B_status_claims_B_restore() = runTest {
+        saveStoredSession(ticketB)
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.sdkTicket = ticketA
+        val auth = FakeAuthRepository(accountA)
+        val host = host(h, auth)
+        register(host, owner)
+        advanceUntilIdle()
+
+        h.sdkTicket = null
+        h.router.dispatch(push(routeOne, userB), owner)
+        h.sdkTicket = ticketB
+        auth.setSession(accountB)
+        advanceUntilIdle()
+        assertEquals("Direct B replacement erased its own tap", routeOne, host.nextRouteOrNull())
+        assertNull(host.nextRouteOrNull())
+    }
+
     @Test fun a_newer_tap_replaces_the_older_restoring_tap() = runTest {
         saveStoredSession(ticketA)
         val h = Harness()
@@ -306,6 +424,7 @@ class DeepLinkInitializingRestoreEscrowTest {
 
     private suspend fun saveStoredSession(ticket: LoginTicketSnapshot, nonce: String = "initial") {
         store.saveSession(session(ticket.userId, jwt(ticket, nonce)))
+        storedWitness = storedTicketOrNull()
     }
 
     private suspend fun storedTicketOrNull(): LoginTicketSnapshot? =
@@ -327,9 +446,9 @@ class DeepLinkInitializingRestoreEscrowTest {
         return "${encoded(header)}.${encoded(payload)}.${encoded("synthetic-signature")}"
     }
 
-    private fun push(route: String): Intent = Intent()
+    private fun push(route: String, recipient: String = userA): Intent = Intent()
         .putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
-        .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, userA)
+        .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)
 
     private fun host(h: Harness, auth: FakeAuthRepository): DeepLinkHost {
         val prefs = mockk<UserPrefs> {

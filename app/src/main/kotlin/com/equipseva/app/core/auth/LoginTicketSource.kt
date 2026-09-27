@@ -2,6 +2,7 @@ package com.equipseva.app.core.auth
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.util.Base64
@@ -19,10 +20,21 @@ data class LoginTicketSnapshot(val userId: String, val sessionId: String)
 @Singleton
 class LoginTicketSource @Inject constructor(
     private val client: SupabaseClient,
+    private val sessionManager: EncryptedSessionManager?,
 ) {
+    /** Keeps existing direct-construction tests independent of Android storage. */
+    constructor(client: SupabaseClient) : this(client, null)
+
     fun currentTicket(): LoginTicketSnapshot? {
         val session = client.auth.currentSessionOrNull() ?: return null
         return parseLoginTicket(session.user?.id, session.accessToken)
+    }
+
+    /** A stored identity may hold ingress only during SDK restoration; it never authorizes delivery. */
+    fun provisionalStoredTicketDuringInitializing(): LoginTicketSnapshot? {
+        if (client.auth.sessionStatus.value !is SessionStatus.Initializing) return null
+        val ticket = sessionManager?.peekStoredLoginTicket() ?: return null
+        return ticket.takeIf { client.auth.sessionStatus.value is SessionStatus.Initializing }
     }
 }
 

@@ -67,6 +67,7 @@ class DeepLinkHostReplayIsolationTest {
         var current: LoginTicketSnapshot? = initial
         val source = mockk<LoginTicketSource> {
             every { currentTicket() } answers { current }
+            every { provisionalStoredTicketDuringInitializing() } returns null
         }
         val router = DeepLinkRouter(source)
     }
