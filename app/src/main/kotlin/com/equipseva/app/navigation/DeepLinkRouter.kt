@@ -47,20 +47,32 @@ class DeepLinkRouter @Inject constructor(
             val launchOwner: LaunchOwner = DEFAULT_OWNER,
             /** Persisted witness at ingress; never sufficient for navigation. */
             val restoring: Boolean = false,
+            /** Monotonic local delivery order; never read from an Intent. */
+            internal val ingress: Long = 0L,
         ) : Event
     }
 
-    private class SinkRegistration(val sink: (Event.OpenRoute) -> Unit)
+    private class SinkRegistration(val sink: (Event.OpenRoute) -> Boolean)
     private data class StartupHandoff(val owner: LaunchOwner, val event: Event.OpenRoute)
+    private data class TicketWitness(val ticket: LoginTicketSnapshot, val restoring: Boolean)
+    private data class Delivery(
+        val registration: SinkRegistration,
+        val event: Event.OpenRoute,
+        val ingress: Long,
+    )
 
     private val sinkLock = Any()
     private val activeOwners = mutableSetOf(DEFAULT_OWNER)
     private val sinks = mutableMapOf<LaunchOwner, SinkRegistration>()
+    private val latestIngress = mutableMapOf<LaunchOwner, Long>()
+    private var nextIngress = 0L
     private var pendingStartup: StartupHandoff? = null
 
     /** A recreated or second Activity gets a fresh, unforgeable route owner. */
     fun beginActivity(owner: LaunchOwner) = synchronized(sinkLock) {
         activeOwners += owner
+        latestIngress.remove(owner)
+        ++nextIngress
         // The newest Activity launch supersedes an older unclaimed tap.
         pendingStartup = null
     }
@@ -69,6 +81,7 @@ class DeepLinkRouter @Inject constructor(
     fun endActivity(owner: LaunchOwner) = synchronized(sinkLock) {
         activeOwners -= owner
         sinks.remove(owner)
+        latestIngress.remove(owner)
         if (pendingStartup?.owner === owner) pendingStartup = null
     }
 
@@ -80,6 +93,15 @@ class DeepLinkRouter @Inject constructor(
     fun registerSink(
         owner: LaunchOwner = DEFAULT_OWNER,
         sink: (Event.OpenRoute) -> Unit,
+    ): AutoCloseable = registerAcknowledgingSink(owner) { event ->
+        sink(event)
+        true
+    }
+
+    /** The host acknowledges only after its verified event entered the channel. */
+    internal fun registerAcknowledgingSink(
+        owner: LaunchOwner,
+        sink: (Event.OpenRoute) -> Boolean,
     ): AutoCloseable {
         val registration = SinkRegistration(sink)
         synchronized(sinkLock) {
@@ -92,7 +114,7 @@ class DeepLinkRouter @Inject constructor(
         }
     }
 
-    /** Ordinary onNewIntent ingress: no host means drop; a mounted host may await SDK restore. */
+    /** Ordinary onNewIntent ingress: only an exact restoring witness may wait without a host. */
     fun dispatch(intent: Intent?, owner: LaunchOwner = DEFAULT_OWNER) =
         dispatchIntent(intent, owner, startup = false)
 
@@ -114,23 +136,47 @@ class DeepLinkRouter @Inject constructor(
         } catch (_: IllegalArgumentException) {
             resolveAppLinkOnly(intent, owner)
         }
-        val registration = synchronized(sinkLock) {
+        val delivery = synchronized(sinkLock) {
             if (owner !in activeOwners) return@synchronized null
+            val ingress = ++nextIngress
+            latestIngress[owner] = ingress
+            val ownedEvent = event?.copy(ingress = ingress)
             val matchingSink = sinks[owner]
-            if ((startup && matchingSink == null) || (matchingSink != null && event?.restoring == true)) {
+            if ((startup && matchingSink == null) || ownedEvent?.restoring == true) {
                 // An old Activity's sink cannot consume this new launch.
                 // A mounted host cannot authenticate a persisted witness until
-                // the SDK finishes restoring the exact same login ticket.
-                pendingStartup = event?.let { StartupHandoff(owner, it) }
+                // the SDK finishes restoring the exact same login ticket. An
+                // ordinary tap during that interval is also owned, even if
+                // the main graph has temporarily unmounted its sink.
+                pendingStartup = ownedEvent?.let { StartupHandoff(owner, it) }
                 null
             } else {
                 // Only this Activity's newer ordinary intent can retire its
                 // own pending tap. Another Activity's ingress leaves it alone.
                 if (pendingStartup?.owner === owner) pendingStartup = null
-                matchingSink
+                if (ownedEvent != null && matchingSink != null) Delivery(matchingSink, ownedEvent, ingress)
+                else null
             }
         }
-        if (event != null) registration?.sink(event)
+        if (delivery != null && !delivery.registration.sink(delivery.event)) {
+            synchronized(sinkLock) {
+                // The sink can reject when SDK restoration begins after the
+                // first ticket read. Never let an older rejected callback
+                // overwrite a newer tap or another Activity's handoff.
+                if (owner !in activeOwners ||
+                    sinks[owner] !== delivery.registration ||
+                    latestIngress[owner] != delivery.ingress ||
+                    nextIngress != delivery.ingress
+                ) return@synchronized
+                val witness = readTicketWitness()
+                if (witness?.ticket == delivery.event.ticket) {
+                    pendingStartup = StartupHandoff(
+                        owner,
+                        delivery.event.copy(restoring = witness.restoring),
+                    )
+                }
+            }
+        }
     }
 
     /** Wrong-Activity claims leave the slot intact; the matching owner consumes once. */
@@ -138,17 +184,65 @@ class DeepLinkRouter @Inject constructor(
         synchronized(sinkLock) {
             val pending = pendingStartup ?: return@synchronized null
             if (pending.owner !== owner || owner !in activeOwners) return@synchronized null
-            val sdkTicket = ticketSource.currentTicket()
-            if (pending.event.restoring && sdkTicket == null &&
-                ticketSource.provisionalStoredTicketDuringInitializing() == pending.event.ticket
+            val witness = readTicketWitness()
+            if (pending.event.restoring && witness?.restoring == true &&
+                witness.ticket == pending.event.ticket
             ) {
                 // An observed user ID alone cannot release a persisted tap.
                 // Keep it for the eventual SDK-authenticated emission.
                 return@synchronized null
             }
             pendingStartup = null
-            pending.event.takeIf { it.ticket.userId == userId && sdkTicket == it.ticket }
+            pending.event.takeIf {
+                it.ticket.userId == userId && witness?.restoring == false &&
+                    witness.ticket == it.ticket
+            }
         }
+
+    /** A production host acknowledges a claim; a same-ticket SDK pause restores its handoff. */
+    internal fun deliverStartupFor(
+        owner: LaunchOwner,
+        userId: String,
+        sink: (Event.OpenRoute) -> Boolean,
+    ): Boolean {
+        val claimed = takeStartupFor(owner, userId) ?: return false
+        if (sink(claimed)) return true
+        retainIfLatest(claimed, requireRestoring = false)
+        return false
+    }
+
+    /** Re-offer a queued event only during this exact login's SDK restoration interval. */
+    internal fun deferVerifiedDuringRestoration(event: Event.OpenRoute): Boolean =
+        retainIfLatest(event, requireRestoring = true)
+
+    /** A host whose auth presentation is Unknown may hold, never emit, its last exact login. */
+    internal fun deferVerifiedForCurrentTicket(event: Event.OpenRoute): Boolean =
+        retainIfLatest(event, requireRestoring = false)
+
+    private fun retainIfLatest(event: Event.OpenRoute, requireRestoring: Boolean): Boolean =
+        synchronized(sinkLock) {
+            val owner = event.launchOwner
+            if (owner !in activeOwners || event.ingress == 0L ||
+                latestIngress[owner] != event.ingress || nextIngress != event.ingress
+            ) return@synchronized false
+            val witness = readTicketWitness() ?: return@synchronized false
+            if (witness.ticket != event.ticket ||
+                (requireRestoring && !witness.restoring)
+            ) return@synchronized false
+            pendingStartup = StartupHandoff(owner, event.copy(restoring = witness.restoring))
+            true
+        }
+
+    /**
+     * MainActivity observes terminal SDK auth status even when no main graph
+     * or DeepLinkHost exists. A delayed callback must not erase a newer tap
+     * once the SDK again shows an authenticated or restoring login.
+     */
+    internal fun retireStartupForTerminalSession(owner: LaunchOwner) = synchronized(sinkLock) {
+        if (pendingStartup?.owner === owner && readTicketWitness() == null) {
+            pendingStartup = null
+        }
+    }
 
     /**
      * Retire on this Activity's auth boundary, a departing recipient, or an
@@ -162,17 +256,24 @@ class DeepLinkRouter @Inject constructor(
     ) =
         synchronized(sinkLock) {
             val pending = pendingStartup ?: return@synchronized
+            val witness = readTicketWitness()
             if (preserveInitializingRestoration && pending.event.restoring &&
-                (ticketSource.currentTicket() == pending.event.ticket ||
-                    ticketSource.provisionalStoredTicketDuringInitializing() == pending.event.ticket)
+                witness?.ticket == pending.event.ticket
             ) {
                 // The host's delayed Unknown describes the same Initializing
                 // interval in which this tap was captured, not a new login.
                 return@synchronized
             }
-            val sdkTicket = ticketSource.currentTicket()
-            val lostTicketWitness = sdkTicket == null &&
-                ticketSource.provisionalStoredTicketDuringInitializing() != pending.event.ticket
+            if (observer != null && departedUserId != null &&
+                witness?.ticket == pending.event.ticket
+            ) {
+                // A delayed sign-out for an older session of the same user
+                // must not erase this newer exact ticket. A real terminal
+                // SDK state has no witness and retires the handoff below.
+                return@synchronized
+            }
+            val sdkTicket = witness?.takeUnless { it.restoring }?.ticket
+            val lostTicketWitness = witness?.ticket != pending.event.ticket
             val observedOwnerBoundary = pending.owner === observer &&
                 (departedUserId == null || pending.event.ticket.userId == departedUserId)
             // A departing old Activity cannot infer that a different Activity's
@@ -202,9 +303,8 @@ class DeepLinkRouter @Inject constructor(
         } catch (_: IllegalArgumentException) {
             null
         } ?: return null
-        val sdkTicket = ticketSource.currentTicket()
-        val ticket = sdkTicket ?: ticketSource.provisionalStoredTicketDuringInitializing() ?: return null
-        return Event.OpenRoute(route, ticket, owner, restoring = sdkTicket == null)
+        val witness = readTicketWitness() ?: return null
+        return Event.OpenRoute(route, witness.ticket, owner, restoring = witness.restoring)
     }
 
     private fun resolveEvent(intent: Intent, owner: LaunchOwner): Event.OpenRoute? {
@@ -238,8 +338,8 @@ class DeepLinkRouter @Inject constructor(
         if (customDirect == null && rawDirect == null && appLinkRoute == null && inboxFallback == null) {
             return null
         }
-        val sdkTicket = ticketSource.currentTicket()
-        val ticket = sdkTicket ?: ticketSource.provisionalStoredTicketDuringInitializing() ?: return null
+        val witness = readTicketWitness() ?: return null
+        val ticket = witness.ticket
         // A push captured for account A must not inherit account B's live
         // ticket at tap time. The extra is forgeable on this exported Activity;
         // it filters stale notifications, while the allow-list and server RLS
@@ -261,7 +361,20 @@ class DeepLinkRouter @Inject constructor(
             else -> return null
         }
         if (!DeepLinkPolicy.allows(route)) return null
-        return Event.OpenRoute(route, ticket, owner, restoring = sdkTicket == null)
+        return Event.OpenRoute(route, ticket, owner, restoring = witness.restoring)
+    }
+
+    /**
+     * The SDK can finish restoration while encrypted storage is being read.
+     * Prefer its authenticated ticket on a second read so that the ingress,
+     * claim and retirement paths do not lose that transition. This snapshot
+     * only owns local navigation; DeepLinkHost checks the SDK again to deliver.
+     */
+    private fun readTicketWitness(): TicketWitness? {
+        ticketSource.currentTicket()?.let { return TicketWitness(it, restoring = false) }
+        val provisional = ticketSource.provisionalStoredTicketDuringInitializing()
+        ticketSource.currentTicket()?.let { return TicketWitness(it, restoring = false) }
+        return provisional?.let { TicketWitness(it, restoring = true) }
     }
 
     companion object {

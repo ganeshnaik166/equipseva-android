@@ -48,6 +48,7 @@ class DeepLinkRestorationStatusRaceTest {
     private val userA = "11111111-1111-4111-8111-111111111111"
     private val userB = "22222222-2222-4222-8222-222222222222"
     private val ticketA = LoginTicketSnapshot(userA, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+    private val ticketA2 = LoginTicketSnapshot(userA, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")
     private val route = Routes.repairJobDetailRoute("RPR-00027")
     private val hosts = mutableListOf<DeepLinkHost>()
     private val registrations = mutableListOf<AutoCloseable>()
@@ -66,12 +67,17 @@ class DeepLinkRestorationStatusRaceTest {
         var status = SdkStatus.Initializing
         var sdkTicket: LoginTicketSnapshot? = null
         var storedWitness: LoginTicketSnapshot? = ticketA
+        var onCurrentRead: (() -> Unit)? = null
         var onProvisionalRead: (() -> Unit)? = null
         var provisionalReads = 0
 
         val source = mockk<LoginTicketSource> {
             every { currentTicket() } answers {
-                sdkTicket.takeIf { status == SdkStatus.Authenticated }
+                val snapshot = sdkTicket.takeIf { status == SdkStatus.Authenticated }
+                val transition = onCurrentRead
+                onCurrentRead = null
+                transition?.invoke()
+                snapshot
             }
             every { provisionalStoredTicketDuringInitializing() } answers {
                 provisionalReads++
@@ -122,6 +128,63 @@ class DeepLinkRestorationStatusRaceTest {
         assertNull("The App Link navigated twice", host.nextRouteOrNull())
     }
 
+    @Test fun mounted_host_preserves_warm_tap_when_SDK_enters_Initializing_after_ticket_read() = runTest {
+        val h = Harness()
+        h.status = SdkStatus.Authenticated
+        h.sdkTicket = ticketA
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        val auth = FakeAuthRepository(AuthSession.SignedIn(userA, null))
+        val host = host(h, auth)
+        advanceUntilIdle()
+        register(host, owner)
+
+        // The router reads a valid A ticket, then the SDK enters its ordinary
+        // background restoration interval before the mounted host receives it.
+        h.onCurrentRead = {
+            h.status = SdkStatus.Initializing
+            h.sdkTicket = null
+            h.storedWitness = ticketA
+        }
+        h.router.dispatch(push(), owner)
+        auth.setSession(AuthSession.Unknown)
+        advanceUntilIdle()
+        assertNull("A stored witness alone must never navigate", host.nextRouteOrNull())
+
+        h.finishRestore()
+        auth.setSession(AuthSession.SignedIn(userA, null))
+        advanceUntilIdle()
+        assertEquals("An exact A warm tap was lost in the SDK transition", route, host.nextRouteOrNull())
+        assertNull("The warm tap navigated twice", host.nextRouteOrNull())
+    }
+
+    @Test fun same_UID_A1_to_A2_to_A1_cannot_replay_A1_buffered_host_event() = runTest {
+        val h = Harness()
+        h.status = SdkStatus.Authenticated
+        h.sdkTicket = ticketA
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        val auth = FakeAuthRepository(AuthSession.SignedIn(userA, "a1@example.test"))
+        val host = host(h, auth)
+        advanceUntilIdle()
+        register(host, owner)
+        h.router.dispatch(push(), owner) // A1 event is buffered; no collector yet.
+
+        // Distinct email values force FakeAuthRepository's StateFlow to emit
+        // both same-UID SignedIn events. The SDK tickets name different logins.
+        h.sdkTicket = ticketA2
+        auth.setSession(AuthSession.SignedIn(userA, "a2@example.test"))
+        advanceUntilIdle()
+        h.sdkTicket = ticketA
+        auth.setSession(AuthSession.SignedIn(userA, "a1-return@example.test"))
+        advanceUntilIdle()
+
+        assertNull("A1's buffered event replayed after an observed A2 login", host.nextRouteOrNull())
+        val freshRoute = Routes.repairJobDetailRoute("RPR-00028")
+        h.router.dispatch(push(freshRoute), owner)
+        assertEquals("A fresh A1 tap must still work", freshRoute, host.nextRouteOrNull())
+    }
+
     @Test fun held_tap_survives_SDK_restore_during_take() {
         val h = Harness()
         val owner = DeepLinkRouter.LaunchOwner()
@@ -158,6 +221,52 @@ class DeepLinkRestorationStatusRaceTest {
         assertNull(h.router.takeStartupFor(newOwner, userA))
     }
 
+    @Test fun delayed_old_same_user_signout_cannot_retire_new_authenticated_login_tap() {
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        // A1 was the observed login. Before its SignedOut callback reaches the
+        // router, a fresh A2 login (same UID, different session ID) receives a tap.
+        h.status = SdkStatus.Authenticated
+        h.sdkTicket = ticketA
+        h.sdkTicket = ticketA2
+        h.router.dispatchStartup(push(), owner)
+
+        h.router.retireStartupFor(owner, userA)
+
+        assertEquals(
+            "A1's delayed sign-out erased an exact A2 SDK launch",
+            route,
+            h.router.takeStartupFor(owner, userA)?.route,
+        )
+        assertNull(h.router.takeStartupFor(owner, userA))
+    }
+
+    @Test fun delayed_old_same_user_signout_cannot_retire_new_restoring_login_tap() {
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.status = SdkStatus.Authenticated
+        h.sdkTicket = ticketA
+        // A2 is the encrypted stored login while the SDK restores it. The old
+        // A1 SignedOut callback is delivered after this newer tap was captured.
+        h.status = SdkStatus.Initializing
+        h.sdkTicket = null
+        h.storedWitness = ticketA2
+        h.router.dispatchStartup(push(), owner)
+
+        h.router.retireStartupFor(owner, userA)
+        h.status = SdkStatus.Authenticated
+        h.sdkTicket = ticketA2
+
+        assertEquals(
+            "A1's delayed sign-out erased an exact A2 restoration launch",
+            route,
+            h.router.takeStartupFor(owner, userA)?.route,
+        )
+        assertNull(h.router.takeStartupFor(owner, userA))
+    }
+
     @Test fun cold_NotAuthenticated_before_any_host_retires_the_stored_tap() = runTest {
         assertColdTerminalStatusRetiresTap(SdkStatus.NotAuthenticated)
     }
@@ -179,7 +288,10 @@ class DeepLinkRestorationStatusRaceTest {
         val auth = FakeAuthRepository(AuthSession.Unknown)
         h.status = terminal
         auth.setSession(AuthSession.SignedOut)
-        advanceUntilIdle() // Give any Activity-level observer the terminal emission before A returns.
+        // MainActivity observes SignedOut even when no DeepLinkHost has mounted. Both terminal
+        // SDK statuses map to that boundary; it must retire this Activity's pending tap now.
+        h.router.retireStartupForTerminalSession(owner)
+        advanceUntilIdle()
         h.finishRestore()
         auth.setSession(AuthSession.SignedIn(userA, null))
 
@@ -189,8 +301,8 @@ class DeepLinkRestorationStatusRaceTest {
         assertNull("$terminal let a later exact ticket claim the old cold tap", host.nextRouteOrNull())
     }
 
-    private fun push(): Intent = Intent()
-        .putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
+    private fun push(targetRoute: String = route): Intent = Intent()
+        .putExtra(DeepLinkRouter.EXTRA_ROUTE, targetRoute)
         .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, userA)
 
     private fun appLink(): Intent = Intent().apply {

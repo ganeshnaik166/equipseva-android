@@ -15,10 +15,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.equipseva.app.core.data.analytics.AnalyticsClient
 import com.equipseva.app.core.data.analytics.AnalyticsEvent
+import com.equipseva.app.core.auth.AuthRepository
+import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.data.prefs.ThemeMode
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.observability.StartupTelemetry
@@ -32,12 +35,16 @@ import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     @Inject lateinit var userPrefs: UserPrefs
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
+    @Inject lateinit var authRepository: AuthRepository
     private val deepLinkLaunchOwner = DeepLinkRouter.LaunchOwner()
     @Inject lateinit var analytics: AnalyticsClient
 
@@ -62,10 +69,22 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         // first frame is either the blocker or the nav graph, not flicker.
         devModeVerdict.value = DeviceIntegrityCheck.run(this)
         // onCreate runs before Compose installs the authenticated main host.
-        // Only a fresh launch may hold one route with an exact SDK login ticket;
-        // ordinary onNewIntent ingress still requires an already mounted host.
+        // A restored task may carry either its old Intent or a new external tap.
+        // The saved delivery identity suppresses the old one; the router still
+        // binds any newly admitted tap to this Activity and an exact login.
         deepLinkRouter.beginActivity(deepLinkLaunchOwner)
-        if (savedInstanceState == null) {
+        // The auth graph may never mount after a failed cold restoration.
+        // Observe its terminal boundary here so the pending tap cannot be
+        // claimed if the same stored login ticket appears on a later attempt.
+        // Start before dispatchStartup to observe the current status in order.
+        lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            authRepository.sessionState.collect { session ->
+                if (session == AuthSession.SignedOut) {
+                    deepLinkRouter.retireStartupForTerminalSession(deepLinkLaunchOwner)
+                }
+            }
+        }
+        if (RestoredTaskIngress.shouldDispatch(savedInstanceState, intent)) {
             deepLinkRouter.dispatchStartup(intent, deepLinkLaunchOwner)
         }
         maybeRequestNotificationPermission()
@@ -111,6 +130,14 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkRouter.dispatch(intent, deepLinkLaunchOwner)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // setIntent in onNewIntent normally makes this the latest delivery.
+        // A tap delivered after this save with no later save can still leave a
+        // stale marker after process death; the Bundle alone cannot resolve it.
+        RestoredTaskIngress.record(outState, intent)
     }
 
     override fun onDestroy() {
