@@ -138,6 +138,69 @@ class DeepLinkSameTicketRefreshFailureRaceTest {
         assertNull(h.router.takeStartupFor(owner, userB))
     }
 
+    @Test fun observed_B_then_unobserved_A_failure_retires_old_A_tap() {
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.sdkTicket = ticketB
+        h.router.beginActivity(owner)
+        h.router.observeAuthenticatedSession(owner, userB)
+        // SDK login A and its tap outrun Activity's mapped SignedIn(A).
+        h.sdkTicket = ticketA
+        h.router.dispatchStartup(tap(oldRoute, userA), owner)
+
+        h.status = SdkStatus.RefreshFailure
+        assertNull(h.source.currentTicket())
+        h.status = SdkStatus.Authenticated // Same A session recovers first.
+        h.router.retireStartupForTerminalSession(owner) // Delayed terminal callback.
+
+        assertNull("Observed B made an old, unobserved A tap look newer",
+            h.router.takeStartupFor(owner, userA))
+        h.router.dispatchStartup(tap(freshRoute, userA), owner)
+        assertEquals(freshRoute, h.router.takeStartupFor(owner, userA)?.route)
+        assertNull(h.router.takeStartupFor(owner, userA))
+    }
+
+    @Test fun observed_A_then_unobserved_B_failure_retires_old_B_tap() {
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.router.observeAuthenticatedSession(owner, userA)
+        // Mirror the race: B's ingress precedes mapped SignedIn(B).
+        h.sdkTicket = ticketB
+        h.router.dispatchStartup(tap(oldRoute, userB), owner)
+
+        h.status = SdkStatus.RefreshFailure
+        assertNull(h.source.currentTicket())
+        h.status = SdkStatus.Authenticated
+        h.router.retireStartupForTerminalSession(owner)
+
+        assertNull("Observed A made an old, unobserved B tap look newer",
+            h.router.takeStartupFor(owner, userB))
+        h.router.dispatchStartup(tap(freshRoute, userB), owner)
+        assertEquals(freshRoute, h.router.takeStartupFor(owner, userB)?.route)
+        assertNull(h.router.takeStartupFor(owner, userB))
+    }
+
+    @Test fun missed_terminal_callback_after_same_ticket_recovery_cannot_replay_old_tap() {
+        val h = Harness()
+        val owner = DeepLinkRouter.LaunchOwner()
+        h.router.beginActivity(owner)
+        h.router.observeAuthenticatedSession(owner, userA)
+        h.router.dispatchStartup(tap(oldRoute, userA), owner)
+
+        // A StateFlow observer may skip RefreshFailure entirely when the SDK
+        // publishes Authenticated(A) before it resumes. There is no callback.
+        h.status = SdkStatus.RefreshFailure
+        assertNull(h.source.currentTicket())
+        h.status = SdkStatus.Authenticated
+
+        assertNull("A skipped terminal callback allowed the pre-failure tap",
+            h.router.takeStartupFor(owner, userA))
+        h.router.dispatchStartup(tap(freshRoute, userA), owner)
+        assertEquals(freshRoute, h.router.takeStartupFor(owner, userA)?.route)
+        assertNull(h.router.takeStartupFor(owner, userA))
+    }
+
     private fun tap(route: String, recipient: String) = Intent()
         .putExtra(DeepLinkRouter.EXTRA_ROUTE, route)
         .putExtra(DeepLinkRouter.EXTRA_RECIPIENT_USER_ID, recipient)
