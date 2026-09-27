@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-27 — SignUp footer combined-head local acceptance
+
+- Frozen integration source `1e62b7cd` contains main `133720a6` and reviewed helper `c6d92b87`, with only `SignUpScreen.kt` and new `SignUpFooterTargetTest.kt` changing app/test code. Test-first helper RED **3/2**, focused GREEN **3/0**. Four combined SignUp/SignIn/Welcome/navigation suites passed **16/0** (`outputs/signup-footer-combined-targeted-20260927.log`). Full `testDebugUnitTest lintDebug assembleDebug assembleRelease --continue` passed **2,923 tests / 345 suites / 0 failures, errors or skips**, lint **0 errors / 87 warnings / 2 hints**, debug and unsigned release R8 assembly, Gradle exit 0 (`outputs/signup-footer-combined-full-20260927.log`). Design ratchet exited 0. `PRECHECK_LOOSE=1` permitted missing signing configuration; no shipped release.
+- Independent combined-head [critic](helper-reviews/codex-20260927/signup-integration-critic.md) and [QA](helper-reviews/codex-20260927/signup-integration-qa.md) each scored **9.6/10** for the bounded footer/navigation UI slice, no mandatory source blocker. The footer's pre-existing clickability during in-flight signup remains a separate auth/session race; this score does not accept it. Hosted CI, main reconciliation after A3-01 PR1891, physical device/TalkBack and dark rendered check remain open. [Handoff](HANDOFF_SIGNUP_FOOTER_INTEGRATION_2026-09-26.md).
+
 ## 2026-09-26 — SignUp footer integration checkpoint; shared build slot handed to Claude
 
 - Isolated branch `codex/signup-footer-integration-20260926` merged reviewed helper `c6d92b87` into main `133720a6` at **`052fd288f38c965f65c20f534c321404a39c1a07`**, preserving the three overlapping continuity records. Diff versus main is one screen, one focused test and six docs/review files. Source helper critic/QA each scored 9.6/10 for frozen `ec423858`; this is not combined-head acceptance.
