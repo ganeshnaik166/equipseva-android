@@ -1,0 +1,19 @@
+# Handoff — main-based migration-history replay integration, 27 September 2026
+
+## Scope and provenance
+
+Branch `codex/migration-history-replay-integration-20260927` began at fetched `origin/main` `0ef2db99d0aa58a8c3cdc93b57335d3bfea4ca2b`, after S3a round3828 had merged. Frozen source head `8e91e2010538ee8c3674511f1e6f247c37b3630b` ports only two migrations and the four focused `supabase/replay-tests/` files from pushed repair branch `codex/migration-history-sync-20260927` at `a1d67a07`, plus the dedicated workflow. `git diff --exit-code a1d67a07 --` over those six paths exited 0. Round3824 remains blob `a9777e2dd998815f15b98882d1a284d6c0dc9c4f`; round3825 is repaired blob `43352752f21e0fcf04b3841440f78c4e11602e51`. The original imported round3825 blob was `106636cbc98fa1b76dbb25ce14f944b9f3ba618c`. Its only change is a conditional, truthful GREEN probe; the `founder_audit_table_mutation()` definition and all functional DDL/grants are unchanged.
+
+The separate `.github/workflows/supabase-history-replay.yml` runs this focused suite on PR/push changes to either migration filename, the predecessor function, tests or workflow, or on manual dispatch. Its checkout, pnpm and Node actions use the same full SHA pins as main's S3a workflow; permissions are `contents: read`, checkout does not persist credentials, and no project credentials, production endpoint, Docker or Gradle are used. This workflow is separate from S3a SQL/CI. A round3824-only change triggers it for provenance, but the assertions do not test round3824's grants.
+
+## Evidence and limits
+
+The repair branch first ran the original imported round3825 against the new disposable PGlite fixture: `pnpm test` exited 1 with **1/2 passed** because the unseeded GREEN audit insert failed foreign-key SQLSTATE `23503`; its seeded case passed. The repair then added an exact `auth.users` id/email guard, leaving the cast-free body and no-leaked-row checks unconditional. Corrected-code independent critic and QA each scored 9.6/10 for that focused repair; their notes remain on the pushed WIP branch.
+
+On the main-based frozen source, `pnpm install --frozen-lockfile --offline` exited 0 with pnpm 11.25.0. `pnpm test` exited 0, **3/3** for absent founder, same-id case-variant stored email, and matching founder with an audit-row/non-founder control. `node --check round3825.test.mjs`, official actionlint v1.7.12 on the dedicated workflow, and `git diff --check` exited 0. The tests use an in-memory immediate-predecessor fixture, not the complete Supabase migration chain; they do not execute round3824. No Supabase CLI, Docker, Gradle or production SQL ran for this integration.
+
+The production migration ledger previously reported round3824 and round3825 versions applied. That observation does **not** establish byte parity with either the original source blob or this repaired replay file, because the read-only API returned split statements rather than the deployed original file. Round3828's separate deployment and receipt remain on main; blocked rounds3821/3823/3826/3827 are outside this branch.
+
+## Next gates
+
+Independent [critic](helper-reviews/codex-20260927/migration-history-integration-critic.md) and [QA](helper-reviews/codex-20260927/migration-history-integration-qa.md) each scored **9.6/10** on exact source `8e91e201`, with no source blocker for this bounded port. Next fetch and push the branch and open a **draft** PR for hosted checks. A successful focused hosted check is still not full replay proof. Run a disposable clean Supabase migration replay through round3825 and round3828 before main integration; keep this branch and PR unmerged until that gate and any resulting repair are reviewed. No main merge, production deployment or release acceptance is claimed.
