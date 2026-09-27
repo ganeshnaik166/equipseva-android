@@ -18,6 +18,8 @@ This is a requirements/evidence ledger, not a percentage-complete counter. A des
 
 **Replay integration update, 27 September:** [Draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900) carries the reviewed source unchanged through docs-only main merge `e41c8559`; its dedicated focused SQL push and PR runs both succeeded. This does not exercise round3824 or establish full clean replay. Keep the PR draft and unmerged until disposable Supabase replay through round3828 and any repair/review pass. Production SQL-byte parity remains indeterminate.
 
+**Full-chain baseline gate:** The earliest tracked migration already applies policy/trigger DDL to `public.spare_part_orders`; no tracked migration creates that table. This makes a blank-stack replay appear blocked before round3825, based on source inspection only. Reconstruct and review the missing prehistory baseline before claiming full replay; the focused SQL workflow cannot substitute for it.
+
 Source status is available in [the candidate handoff](https://github.com/ganeshnaik166/equipseva-android/blob/ccda4e4addef7e995f6e55a106c703dbee7af253/docs/HANDOFF_QUALITY_INTEGRATION_2026-09-19.md). Evidence from that branch is not implied to exist on main. Fetch before each integration; keep other worktrees and helper branches intact.
 
 ## Requirement matrix
