@@ -34,7 +34,10 @@ import kotlinx.coroutines.launch
  * service picking lives on the Hub.
  */
 @Composable
-fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
+fun AppNavGraph(
+    launchOwner: DeepLinkRouter.LaunchOwner,
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+) {
     val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -88,6 +91,7 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 if (rootMountedOnce.value) {
                     RootHost(
+                        launchOwner = launchOwner,
                         showSnackbar = showSnackbar,
                         showTour = !tourSeen,
                     )
@@ -107,6 +111,7 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
 @Composable
 private fun RootHost(
+    launchOwner: DeepLinkRouter.LaunchOwner,
     showSnackbar: (String) -> Unit,
     showTour: Boolean,
     sessionViewModel: SessionViewModel = hiltViewModel(),
@@ -200,6 +205,7 @@ private fun RootHost(
         }
         composable(MAIN_HOST_ROUTE) {
             MainNavGraph(
+                launchOwner = launchOwner,
                 showTour = showTour,
                 onSignIn = {
                     navController.navigate(Routes.AUTH_GRAPH) { launchSingleTop = true }

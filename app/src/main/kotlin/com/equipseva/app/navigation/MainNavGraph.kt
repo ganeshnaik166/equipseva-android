@@ -165,6 +165,7 @@ internal val fullScreenRoutePrefixes = listOf(
 
 @Composable
 fun MainNavGraph(
+    launchOwner: DeepLinkRouter.LaunchOwner,
     showTour: Boolean = false,
     onSignIn: () -> Unit = {},
     deepLinkHost: DeepLinkHost = hiltViewModel<DeepLinkHost>(),
@@ -181,8 +182,8 @@ fun MainNavGraph(
 
     // Intent ingress exists only while this authenticated main graph is
     // mounted. Closing the exact registration cannot unregister a newer host.
-    DisposableEffect(deepLinkHost) {
-        val registration = deepLinkHost.registerRouterSink()
+    DisposableEffect(deepLinkHost, launchOwner) {
+        val registration = deepLinkHost.registerRouterSink(launchOwner)
         onDispose { registration.close() }
     }
 

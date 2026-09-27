@@ -10,16 +10,17 @@ import javax.inject.Singleton
 
 /**
  * Bridge between [android.app.Activity.onNewIntent] / launch intents and the
- * Compose nav graph. The activity calls [dispatch] on each intent; an active
- * host receives the route synchronously with the current SDK login ticket.
- * With no host or no authenticated ticket, ingress is discarded rather than
- * replayed to a future account.
+ * Compose nav graph. Ordinary intents reach only an active host. A first
+ * Activity launch may hold one route stamped with the current SDK login ticket
+ * until the host observes that same login. Nothing without a ticket is saved.
  *
- * Two entry points handled, in priority order:
+ * Three external formats are handled, subject to the same route policy:
  *  1. [EXTRA_ROUTE] string extra — stamped by the FCM service after running
  *     NotificationDeepLink. The activity is exported, so this value is
  *     untrusted and must pass [DeepLinkPolicy] before navigation.
- *  2. [Intent.getData] HTTPS URI on `equipseva.com` / `www.equipseva.com` — the
+ *  2. Raw FCM `kind`/ID extras — placed on launcher intents by Android when a
+ *     combined notification+data message arrives while the app is backgrounded.
+ *  3. [Intent.getData] HTTPS URI on `equipseva.com` / `www.equipseva.com` — the
  *     App Link path declared with autoVerify=true in the manifest. A small
  *     whitelist of paths maps to nav routes; anything else is ignored so the
  *     app falls back to its default landing screen.
@@ -28,6 +29,9 @@ import javax.inject.Singleton
 class DeepLinkRouter @Inject constructor(
     private val ticketSource: LoginTicketSource,
 ) {
+
+    /** Opaque local identity for one Activity instance, never read from an Intent. */
+    class LaunchOwner
 
     sealed interface Event {
         /**
@@ -38,53 +42,119 @@ class DeepLinkRouter @Inject constructor(
         data class OpenRoute(
             val route: String,
             val ticket: LoginTicketSnapshot,
+            val launchOwner: LaunchOwner = DEFAULT_OWNER,
         ) : Event
     }
 
     private class SinkRegistration(val sink: (Event.OpenRoute) -> Unit)
+    private data class StartupHandoff(val owner: LaunchOwner, val event: Event.OpenRoute)
 
     private val sinkLock = Any()
-    private var activeSink: SinkRegistration? = null
+    private val activeOwners = mutableSetOf(DEFAULT_OWNER)
+    private val sinks = mutableMapOf<LaunchOwner, SinkRegistration>()
+    private var pendingStartup: StartupHandoff? = null
 
-    /**
-     * Replaces the current host. Closing a superseded registration cannot
-     * unregister the replacement.
-     */
-    fun registerSink(sink: (Event.OpenRoute) -> Unit): AutoCloseable {
+    /** A recreated or second Activity gets a fresh, unforgeable route owner. */
+    fun beginActivity(owner: LaunchOwner) = synchronized(sinkLock) {
+        activeOwners += owner
+        // The newest Activity launch supersedes an older unclaimed tap.
+        pendingStartup = null
+    }
+
+    /** Activity teardown cannot revoke another Activity's pending launch. */
+    fun endActivity(owner: LaunchOwner) = synchronized(sinkLock) {
+        activeOwners -= owner
+        sinks.remove(owner)
+        if (pendingStartup?.owner === owner) pendingStartup = null
+    }
+
+    internal fun isOwnerActive(owner: LaunchOwner): Boolean = synchronized(sinkLock) {
+        owner in activeOwners
+    }
+
+    /** Replaces only this Activity's host; a stale close cannot remove its successor. */
+    fun registerSink(
+        owner: LaunchOwner = DEFAULT_OWNER,
+        sink: (Event.OpenRoute) -> Unit,
+    ): AutoCloseable {
         val registration = SinkRegistration(sink)
-        synchronized(sinkLock) { activeSink = registration }
+        synchronized(sinkLock) {
+            if (owner in activeOwners) sinks[owner] = registration
+        }
         return AutoCloseable {
             synchronized(sinkLock) {
-                if (activeSink === registration) activeSink = null
+                if (sinks[owner] === registration) sinks.remove(owner)
             }
         }
     }
 
-    fun dispatch(intent: Intent?) {
-        if (intent == null) return
+    /** Ordinary onNewIntent ingress: no host means drop, including any older startup tap. */
+    fun dispatch(intent: Intent?, owner: LaunchOwner = DEFAULT_OWNER) =
+        dispatchIntent(intent, owner, startup = false)
+
+    /** Called only for a fresh Activity launch, before Compose mounts its main host. */
+    fun dispatchStartup(intent: Intent?, owner: LaunchOwner = DEFAULT_OWNER) =
+        dispatchIntent(intent, owner, startup = true)
+
+    private fun dispatchIntent(intent: Intent?, owner: LaunchOwner, startup: Boolean) {
         // MainActivity is exported. Android may throw while unparcelling an
         // attacker-supplied Bundle or URI; never let that crash the Activity.
         // Keep the active-host callback outside this catch so app bugs there
         // remain visible rather than being misclassified as bad input.
         val event = try {
-            resolveEvent(intent)
+            intent?.let { resolveEvent(it, owner) }
         } catch (_: BadParcelableException) {
-            return
+            null
         } catch (_: ClassCastException) {
-            return
+            null
         } catch (_: IllegalArgumentException) {
-            return
-        } ?: return
-        synchronized(sinkLock) {
-            activeSink?.sink?.invoke(event)
+            null
         }
+        val registration = synchronized(sinkLock) {
+            if (owner !in activeOwners) return@synchronized null
+            val matchingSink = sinks[owner]
+            if (startup && matchingSink == null) {
+                // An old Activity's sink cannot consume this new launch.
+                pendingStartup = event?.let { StartupHandoff(owner, it) }
+                null
+            } else {
+                // Only this Activity's newer ordinary intent can retire its
+                // own pending tap. Another Activity's ingress leaves it alone.
+                if (pendingStartup?.owner === owner) pendingStartup = null
+                matchingSink
+            }
+        }
+        if (event != null) registration?.sink(event)
     }
 
-    // WIP API stub: cold-launch ownership tests are intentionally RED until
-    // a ticket-bound, one-shot handoff is implemented.
-    fun dispatchStartup(intent: Intent?) = dispatch(intent)
+    /** Wrong-Activity claims leave the slot intact; the matching owner consumes once. */
+    internal fun takeStartupFor(owner: LaunchOwner, userId: String): Event.OpenRoute? =
+        synchronized(sinkLock) {
+            val pending = pendingStartup ?: return@synchronized null
+            if (pending.owner !== owner || owner !in activeOwners) return@synchronized null
+            pendingStartup = null
+            pending.event.takeIf {
+                it.ticket.userId == userId && ticketSource.currentTicket() == it.ticket
+            }
+        }
 
-    private fun resolveEvent(intent: Intent): Event.OpenRoute? {
+    /**
+     * Retire on this Activity's auth boundary, a departing recipient, or an
+     * SDK ticket change. A stale A host must not erase a new B Activity's tap
+     * while B's exact ticket is still live.
+     */
+    internal fun retireStartupFor(observer: LaunchOwner?, departedUserId: String?) =
+        synchronized(sinkLock) {
+            val pending = pendingStartup ?: return@synchronized
+            if (pending.owner === observer ||
+                pending.event.ticket.userId == departedUserId ||
+                ticketSource.currentTicket() != pending.event.ticket
+            ) {
+                pendingStartup = null
+            }
+        }
+
+    private fun resolveEvent(intent: Intent, owner: LaunchOwner): Event.OpenRoute? {
         val hasCustomRoute = intent.hasExtra(EXTRA_ROUTE)
         // FCM notification+data messages received in the background bypass
         // FirebaseMessagingService. Android puts these server data keys on
@@ -137,10 +207,12 @@ class DeepLinkRouter @Inject constructor(
             else -> return null
         }
         if (!DeepLinkPolicy.allows(route)) return null
-        return Event.OpenRoute(route, ticket)
+        return Event.OpenRoute(route, ticket, owner)
     }
 
     companion object {
+        /** Legacy test ingress. Production always supplies its Activity owner. */
+        val DEFAULT_OWNER = LaunchOwner()
         const val EXTRA_ROUTE = "com.equipseva.app.deeplink.ROUTE"
         // A local stale-tray filter only. MainActivity is exported, so this
         // caller-supplied value never proves push origin or server access.

@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     @Inject lateinit var userPrefs: UserPrefs
     @Inject lateinit var deepLinkRouter: DeepLinkRouter
+    private val deepLinkLaunchOwner = DeepLinkRouter.LaunchOwner()
     @Inject lateinit var analytics: AnalyticsClient
 
     // Round 470: dev-mode verdict driven by mutableStateOf so onResume
@@ -60,7 +61,13 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         // Round 470: compute dev-mode verdict before setContent so the
         // first frame is either the blocker or the nav graph, not flicker.
         devModeVerdict.value = DeviceIntegrityCheck.run(this)
-        deepLinkRouter.dispatch(intent)
+        // onCreate runs before Compose installs the authenticated main host.
+        // Only a fresh launch may hold one route with an exact SDK login ticket;
+        // ordinary onNewIntent ingress still requires an already mounted host.
+        deepLinkRouter.beginActivity(deepLinkLaunchOwner)
+        if (savedInstanceState == null) {
+            deepLinkRouter.dispatchStartup(intent, deepLinkLaunchOwner)
+        }
         maybeRequestNotificationPermission()
         // r513 (v0.4 P5 #10 client wire) — fire-and-forget funnel ping.
         analytics.track(AnalyticsEvent.APP_OPEN)
@@ -82,7 +89,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                 if (verdict != null && verdict.devModeBlocking) {
                     DevModeBlockingScreen(verdict = verdict)
                 } else {
-                    AppNavGraph()
+                    AppNavGraph(launchOwner = deepLinkLaunchOwner)
                 }
             }
         }
@@ -103,7 +110,12 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        deepLinkRouter.dispatch(intent)
+        deepLinkRouter.dispatch(intent, deepLinkLaunchOwner)
+    }
+
+    override fun onDestroy() {
+        deepLinkRouter.endActivity(deepLinkLaunchOwner)
+        super.onDestroy()
     }
 
     // ---- Razorpay Standard Checkout result hooks (PR-C6 AMC payments).

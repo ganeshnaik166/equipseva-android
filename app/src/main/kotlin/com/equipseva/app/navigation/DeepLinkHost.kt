@@ -54,6 +54,8 @@ class DeepLinkHost @Inject constructor(
     private var activeSession: LoginSession? = null
     private var activeRequest: EngineerStatusRequest? = null
     private var requestJob: Job? = null
+    private var registeredOwner: DeepLinkRouter.LaunchOwner? = null
+    private var registrationMarker: Any? = null
 
     val activeRole: Flow<String?> = userPrefs.activeRole
 
@@ -76,10 +78,21 @@ class DeepLinkHost @Inject constructor(
 
     private fun onSession(session: AuthSession) {
         when (session) {
-            AuthSession.SignedOut -> clearSession()
-            AuthSession.Unknown -> clearSession()
+            AuthSession.SignedOut -> {
+                router.retireStartupFor(registeredOwner, activeSession?.userId)
+                clearSession()
+            }
+            AuthSession.Unknown -> {
+                // Initializing is normal before the first observed login.
+                // A later Unknown is a boundary and retires any old handoff.
+                if (activeSession != null) {
+                    router.retireStartupFor(registeredOwner, activeSession?.userId)
+                }
+                clearSession()
+            }
             is AuthSession.SignedIn -> {
                 val userId = session.userId.takeIf { it.isNotBlank() } ?: run {
+                    router.retireStartupFor(registeredOwner, activeSession?.userId)
                     clearSession()
                     return
                 }
@@ -88,6 +101,9 @@ class DeepLinkHost @Inject constructor(
 
                 val freshOwner = LoginSession(userId, ++nextGeneration)
                 activeSession = freshOwner
+                registeredOwner?.let { launchOwner ->
+                    router.takeStartupFor(launchOwner, userId)?.let(::acceptRoute)
+                }
                 publishStatusFor(freshOwner)
             }
         }
@@ -165,26 +181,47 @@ class DeepLinkHost @Inject constructor(
             val route: String,
             internal val ticket: LoginTicketSnapshot,
             internal val observedGeneration: Long,
+            internal val launchOwner: DeepLinkRouter.LaunchOwner,
         ) : VerifiedEvent
     }
 
-    // Only an event captured by a mounted main graph may enter this queue.
+    // A mounted main graph or a ticket-bound one-shot launch may enter this queue.
     // The queue survives a collector delay, but its ownership is checked on
     // emission AND again immediately before navigation. A cold-start tap
-    // before the graph mounts is intentionally dropped rather than replayed
-    // into whichever account becomes active later.
+    // without an SDK ticket is dropped rather than given to a later account.
     private val _events = Channel<VerifiedEvent>(Channel.BUFFERED)
     val events: Flow<VerifiedEvent> = _events.receiveAsFlow().filter(::isCurrent)
 
     /** Called only while MainNavGraph is in composition; close on disposal. */
     @MainThread
-    fun registerRouterSink(): AutoCloseable = router.registerSink(::acceptRoute)
+    fun registerRouterSink(
+        owner: DeepLinkRouter.LaunchOwner = DeepLinkRouter.DEFAULT_OWNER,
+    ): AutoCloseable {
+        val marker = Any()
+        val registration = router.registerSink(owner, ::acceptRoute)
+        registeredOwner = owner
+        registrationMarker = marker
+        // A retained ViewModel may have observed SignedIn before a new graph
+        // registers. The one-shot claim still requires its exact SDK ticket.
+        activeSession?.let { login ->
+            router.takeStartupFor(owner, login.userId)?.let(::acceptRoute)
+        }
+        return AutoCloseable {
+            registration.close()
+            if (registrationMarker === marker) {
+                registrationMarker = null
+                registeredOwner = null
+            }
+        }
+    }
 
     @MainThread
     private fun acceptRoute(raw: DeepLinkRouter.Event.OpenRoute) {
         val owner = activeSession ?: return
+        val launchOwner = registeredOwner ?: return
+        if (launchOwner !== raw.launchOwner || !router.isOwnerActive(launchOwner)) return
         if (owner.userId != raw.ticket.userId || loginTicketSource.currentTicket() != raw.ticket) return
-        _events.trySend(VerifiedEvent.OpenRoute(raw.route, raw.ticket, owner.generation))
+        _events.trySend(VerifiedEvent.OpenRoute(raw.route, raw.ticket, owner.generation, launchOwner))
     }
 
     /** Recheck at the final navigation boundary; the collector can resume after logout. */
@@ -194,6 +231,8 @@ class DeepLinkHost @Inject constructor(
             val owner = activeSession
             owner != null && owner.userId == event.ticket.userId &&
                 owner.generation == event.observedGeneration &&
+                registeredOwner === event.launchOwner &&
+                router.isOwnerActive(event.launchOwner) &&
                 loginTicketSource.currentTicket() == event.ticket
         }
     }
