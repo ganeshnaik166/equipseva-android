@@ -13,6 +13,6 @@
 
 At 15:26 UTC on 26 September the owner directed Codex to yield the shared Gradle slot to Claude's `claudedev-build-20260923` security audit. Claude later released it. Codex ran the combined checks above and released it again at 01:59:22 UTC on 27 September. Always re-read the live slot file before a future build; this historical receipt does not reserve it.
 
-Next: reconcile the latest `origin/main` after A3-01 [PR1891](https://github.com/ganeshnaik166/equipseva-android/pull/1891) finishes its hosted checks and main merge. The A3 route files do not overlap this footer source, but rerun applicable combined checks and independent review on the new exact merge head before opening a SignUp PR. Hosted CI must pass before main. Do not infer signed release, device/TalkBack or dark rendered acceptance from these local checks.
+Accepted A3-01 [PR1891](https://github.com/ganeshnaik166/equipseva-android/pull/1891) merged main at `3283ab55` and is now being reconciled into this isolated SignUp candidate without footer-source overlap. Next: rerun applicable combined checks and independent review on the new exact merge head before opening a SignUp PR. Hosted CI must pass before main. Do not infer signed release, device/TalkBack or dark rendered acceptance from these local checks.
 
 Still open: physical device/TalkBack, dark rendered check, signup-while-submitting auth race (separate security branch), full three-choice registration, signed release and provider end-to-end checks. No app-wide score or shipped-release claim.
