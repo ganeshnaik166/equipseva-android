@@ -34,8 +34,8 @@
 -- WHAT THIS DOES: replaces the two `(NEW::jsonb)` / `(OLD::jsonb)` casts with
 -- to_jsonb(...). Nothing else changes -- same signature, same guards, same
 -- inserted columns, same return. The gates below prove the old body really did
--- fail and the new one really does write an audit row, both against a throwaway
--- temp table so no audited table is touched.
+-- fail and, when the founder auth.users row exists, the new one really does
+-- write an audit row. Both use a throwaway temp table; no audited table is touched.
 --
 -- ROLLBACK (exact): re-create the function with `(NEW::jsonb)->>'id'` and
 -- `(OLD::jsonb)->>'id'` in place of the to_jsonb calls; the pre-change body has
@@ -102,8 +102,8 @@ BEGIN
   INSERT INTO _r3825_probe (id, touched_at) VALUES (v_id, now());
 
   -- is_founder() reads auth.email() out of request.jwt.claims, and the trigger
-  -- also needs a non-null auth.uid(); the real founder ids are used so the
-  -- audit table's FK to auth.users holds. Transaction-local.
+  -- also needs a non-null auth.uid(). The old cast fails before the audit
+  -- table's FK to auth.users is reached. Transaction-local.
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', '756a3373-1077-470e-bc0a-79b8d6673ef4',
                       'role', 'authenticated',
@@ -210,7 +210,9 @@ COMMENT ON FUNCTION public.founder_audit_table_mutation() IS
   'Catch-all audit trigger for privileged founder mutations on the money and identity tables. Resolves the row id with to_jsonb(NEW/OLD) -- a composite-to-jsonb cast does not exist in Postgres and, unguarded, aborted the founder''s own writes. Writes one public.founder_action_log row per founder mutation; every other caller returns early.';
 
 -- ---------------------------------------------------------------------
--- GREEN PROBE -- the same founder write now succeeds AND records the audit row.
+-- GREEN PROBE -- when the claimed founder exists in auth.users, the same write
+-- succeeds AND records an audit row. Clean replays without that account skip
+-- this data-dependent probe; the cast-free body check below still runs.
 -- The probe row is rolled back through the sentinel; only the function change
 -- survives this transaction.
 -- ---------------------------------------------------------------------
@@ -221,48 +223,59 @@ DECLARE
   v_after   int;
   v_logged  record;
   v_probed  boolean := false;
+  v_founder_present boolean;
 BEGIN
   SELECT count(*) INTO v_before FROM public.founder_action_log;
 
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', '756a3373-1077-470e-bc0a-79b8d6673ef4',
-                      'role', 'authenticated',
-                      'email', 'ganesh1431.dhanavath@gmail.com')::text, true);
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users
+     WHERE id = '756a3373-1077-470e-bc0a-79b8d6673ef4'
+       AND lower(email) = lower('ganesh1431.dhanavath@gmail.com')
+  ) INTO v_founder_present;
 
-  BEGIN
-    UPDATE _r3825_probe SET touched_at = now() WHERE id = v_id;
+  IF v_founder_present THEN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', '756a3373-1077-470e-bc0a-79b8d6673ef4',
+                        'role', 'authenticated',
+                        'email', 'ganesh1431.dhanavath@gmail.com')::text, true);
 
-    SELECT count(*) INTO v_after FROM public.founder_action_log;
-    IF v_after <> v_before + 1 THEN
-      RAISE EXCEPTION 'round 3825 VERIFY FAILED: expected exactly one audit row, went % -> %', v_before, v_after;
-    END IF;
+    BEGIN
+      UPDATE _r3825_probe SET touched_at = now() WHERE id = v_id;
 
-    SELECT * INTO v_logged FROM public.founder_action_log ORDER BY created_at DESC, id DESC LIMIT 1;
-    IF v_logged.target_row_id IS DISTINCT FROM v_id THEN
-      RAISE EXCEPTION 'round 3825 VERIFY FAILED: audit row points at %, expected %', v_logged.target_row_id, v_id;
-    END IF;
-    IF v_logged.op_name <> 'probe:update' THEN
-      RAISE EXCEPTION 'round 3825 VERIFY FAILED: op_name is %, expected probe:update', v_logged.op_name;
-    END IF;
-    IF v_logged.actor_email <> 'ganesh1431.dhanavath@gmail.com' THEN
-      RAISE EXCEPTION 'round 3825 VERIFY FAILED: actor_email is %', v_logged.actor_email;
-    END IF;
-    IF v_logged.before_value IS NULL OR v_logged.after_value IS NULL THEN
-      RAISE EXCEPTION 'round 3825 VERIFY FAILED: before/after diff not captured';
-    END IF;
+      SELECT count(*) INTO v_after FROM public.founder_action_log;
+      IF v_after <> v_before + 1 THEN
+        RAISE EXCEPTION 'round 3825 VERIFY FAILED: expected exactly one audit row, went % -> %', v_before, v_after;
+      END IF;
 
-    RAISE NOTICE 'round 3825 green probe: the founder write succeeded and recorded % -> % with the right target and actor', v_before, v_after;
-    RAISE EXCEPTION 'ROUND3825_PROBE_ROLLBACK';
-  EXCEPTION
-    WHEN SQLSTATE 'P0001' THEN
-      IF SQLERRM <> 'ROUND3825_PROBE_ROLLBACK' THEN RAISE; END IF;
-      v_probed := true;
-  END;
+      SELECT * INTO v_logged FROM public.founder_action_log ORDER BY created_at DESC, id DESC LIMIT 1;
+      IF v_logged.target_row_id IS DISTINCT FROM v_id THEN
+        RAISE EXCEPTION 'round 3825 VERIFY FAILED: audit row points at %, expected %', v_logged.target_row_id, v_id;
+      END IF;
+      IF v_logged.op_name <> 'probe:update' THEN
+        RAISE EXCEPTION 'round 3825 VERIFY FAILED: op_name is %, expected probe:update', v_logged.op_name;
+      END IF;
+      IF v_logged.actor_email <> 'ganesh1431.dhanavath@gmail.com' THEN
+        RAISE EXCEPTION 'round 3825 VERIFY FAILED: actor_email is %', v_logged.actor_email;
+      END IF;
+      IF v_logged.before_value IS NULL OR v_logged.after_value IS NULL THEN
+        RAISE EXCEPTION 'round 3825 VERIFY FAILED: before/after diff not captured';
+      END IF;
 
-  IF NOT v_probed THEN
-    RAISE EXCEPTION 'round 3825 VERIFY FAILED: the green probe never reached its rollback sentinel';
+      RAISE NOTICE 'round 3825 green probe: the founder write succeeded and recorded % -> % with the right target and actor', v_before, v_after;
+      RAISE EXCEPTION 'ROUND3825_PROBE_ROLLBACK';
+    EXCEPTION
+      WHEN SQLSTATE 'P0001' THEN
+        IF SQLERRM <> 'ROUND3825_PROBE_ROLLBACK' THEN RAISE; END IF;
+        v_probed := true;
+    END;
+
+    IF NOT v_probed THEN
+      RAISE EXCEPTION 'round 3825 VERIFY FAILED: the green probe never reached its rollback sentinel';
+    END IF;
+    PERFORM set_config('request.jwt.claims', NULL, true);
+  ELSE
+    RAISE NOTICE 'round 3825 green probe skipped: matching founder auth.users row is absent';
   END IF;
-  PERFORM set_config('request.jwt.claims', NULL, true);
 
   -- Post-condition: the broken spelling is gone from the shipped body.
   IF EXISTS (
@@ -279,7 +292,11 @@ BEGIN
     RAISE EXCEPTION 'round 3825 VERIFY FAILED: the probe audit row leaked (% rows, expected %)', v_after, v_before;
   END IF;
 
-  RAISE NOTICE 'round 3825 verified: founder writes to the audited tables no longer abort, the audit row is written, and the probe left nothing behind';
+  IF v_founder_present THEN
+    RAISE NOTICE 'round 3825 verified: founder write and audit row passed; the probe left nothing behind';
+  ELSE
+    RAISE NOTICE 'round 3825 verified: cast-free audit body and no leaked probe row; founder write was not exercised';
+  END IF;
 END;
 $green$;
 
