@@ -1,4 +1,14 @@
-# A3-02 buffered deep-link replay — test-first checkpoint, 27 September 2026
+# A3-02 buffered deep-link replay — blocked WIP handoff, 27 September 2026
+
+## Resume here — delayed terminal callback after same-ticket recovery
+
+The owned branch `codex/deeplink-replay-fence-20260927` has app/test commit `68ec227b29488e37c38620ec57c9e088b3f96e83`. [PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) had green hosted checks on older `74128177`; **no hosted run covered `68ec227b` at this checkpoint**. Recheck exact-head CI after push. Only `DeepLinkRouter.kt` and `DeepLinkSameTicketRefreshFailureRaceTest.kt` changed in this new code commit. Do not merge it to main: independent exact-source critic **8.8/10** and QA **8.9/10** both **BLOCK** it.
+
+The new router state tracks the last exact SDK login observed by each Activity's mapped auth collector. When delayed terminal `SignedOut` follows A `RefreshFailure` and A recovers with the same ticket, it retires A's older pending/in-flight tap. The five new synthetic cases also preserve a newer exact B tap after an A callback in the tested authenticated and restoring paths. Test-first same-ticket RED and the corrected targeted **90/0** are in `outputs/a3-02-same-ticket-refresh-*20260927.log`. Exact-source full unit passed **3,138 tests / 369 suites / 0 failures, errors or skips**, lint **0 errors / 88 warnings / 2 hints**, debug and **unsigned** release assembly, and design ratchet (`outputs/a3-02-full-68ec227b-20260927.log`, `outputs/a3-02-design-ratchet-68ec227b-20260927.log`). The first strict full configuration failed for absent local signing configuration; the successful retry used `PRECHECK_LOOSE=1`. This does not produce a signed or publishable release.
+
+**Unresolved ticketless boundary:** the Activity has observed B, but an A tap arrives before A's mapped `SignedIn` is observed. A then reaches `RefreshFailure`, recovers with the same A ticket, and a delayed ticketless `SignedOut` callback is delivered. The current preservation rule can treat that A tap as newer and leave the pre-failure A tap claimable. Repeat with A/B swapped. Removing every tap on a terminal callback would regress the tested newer-B preservation path, so the next owner must add the two orderings as RED tests and derive an exact terminal ticket or ordered SDK epoch; an explicitly reviewed fail-closed UX policy is an alternative. Keep the fix within the proven ownership boundary, rerun targeted and full exact-source gates, and obtain separate critic/QA scores of at least 9.5 before updating this status.
+
+The previous `bf997510` critic **9.5/10** and QA **9.6/10** passed its bounded local replay scope only. Those scores do not accept `68ec227b`. Current-code hosted CI, main integration, physical-device foreground/background/terminated FCM, actual process-death and Compose navigation, restored-task lost-tap UX, signed release, inbox recipient/role and server object authorization remain open. Preserve other checkouts; consult the live shared Gradle slot before running any build.
 
 ## Latest 27 September local checkpoint — Activity auth-observer proof
 
