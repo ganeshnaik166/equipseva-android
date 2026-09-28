@@ -84,6 +84,7 @@ fun NotificationsScreen(
     viewModel: NotificationsInboxViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val renderedGeneration = state.ownerGeneration
     // Round 439 — refresh on return. Tapping a notification opens the
     // routed destination (chat, job, AMC contract, etc.); when the user
     // pops back here, read_at flips landed server-side while they were
@@ -103,7 +104,7 @@ fun NotificationsScreen(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .clickable(onClick = viewModel::markAllRead),
+                                    .clickable { viewModel.markAllRead(renderedGeneration) },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
@@ -174,12 +175,18 @@ fun NotificationsScreen(
                                 NotificationRow(
                                     notification = row,
                                     onClick = {
-                                        if (row.isUnread) viewModel.markRead(row.id)
-                                        val resolved = NotificationDeepLink.routeFor(row.kind, row.data)
+                                        // A retained click callback must not route A's row
+                                        // after the account has switched to B (or back to A).
+                                        val currentRow = viewModel.rowForOpen(row.id, renderedGeneration)
+                                            ?: return@NotificationRow
+                                        if (currentRow.isUnread) {
+                                            viewModel.markRead(currentRow.id, renderedGeneration)
+                                        }
+                                        val resolved = NotificationDeepLink.routeFor(currentRow.kind, currentRow.data)
                                         if (resolved != null) {
                                             onOpenRoute(resolved)
                                         } else {
-                                            row.deepLink?.takeIf { it.isNotBlank() }?.let(onOpenDeepLink)
+                                            currentRow.deepLink?.takeIf { it.isNotBlank() }?.let(onOpenDeepLink)
                                         }
                                     },
                                 )

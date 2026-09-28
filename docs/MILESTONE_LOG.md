@@ -2,6 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-28 — A3 inbox observed-owner fence locally reviewed; hosted pending
+
+- `codex/a3-inbox-owner-20260928` started from fetched main `2bdbfe15dad4a23efb79deb0fac9f59e1d28264e`. Reviewed source/test commit **`1ff859cee8b8e3b48b3e8f60c0ae9373ed7f9d27`** changes only the inbox ViewModel, notification row/bulk callback guard and new synthetic test class. It clears A rows on observed account changes/sign-out/Unknown/blank IDs, refetches A→B→A, fences late work/outbox payloads, and rejects stale rendered callbacks. No router/host/auth SDK/repository, SQL or other checkout changed.
+- Test-first owner suite **13/12 RED**, then **13/13** and **15/15 GREEN**. Reviewer-found reconnect ordering and noncooperative timeout expanded the suite to **19/2 RED** before repair; final focused class **20/20 GREEN**. Full frozen-source unit **2,985/0 across 350 suites**, lint **0 errors / 87 warnings / 2 hints**, debug assembly and design ratchet passed. Local release R8 assembly exited 0 only with `PRECHECK_LOOSE=1` and `preReleaseCheck`/Crashlytics mapping upload excluded: unsigned, not shippable. Build-slot reservation released after daemon stop. Independent critic and QA each re-reviewed the bounded source/tests at **9.6/10** after initial 9.3 blockers were fixed; agents did not run Gradle.
+- [Handoff](HANDOFF_A3_INBOX_OWNER_2026-09-28.md). Hosted exact-head Android/goldens/Gitleaks and main integration remain pending. SDK-unobserved identity, server mutation/outbox timing, final A3 navigation ownership, real device/TalkBack and signed release are separate gates; draft A3-02 PR1897 stays RED.
+
 ## 2026-09-28 — Hosted reset-page security merged main; live synthetic delivery checked
 
 - [PR1906](https://github.com/ganeshnaik166/equipseva-android/pull/1906) merged exact reviewed source `9876ca9e` and docs `6ea431a2` to main **`e0fc2362ea18d1640db3292309c6950acffe22a4`** after hosted page tests, both Gitleaks checks and Android debug/release R8 passed. Original scanner-blocked [PR1905](https://github.com/ganeshnaik166/equipseva-android/pull/1905) closed unmerged. On the merge commit, hosted `offline-security`, Gitleaks, Pages build/deploy/status and Android unit tests, lint, design ratchet, debug/release R8 assembly and mapping upload all completed **success**.
