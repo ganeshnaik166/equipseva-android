@@ -1,0 +1,7 @@
+# Clean hosted reset page — independent QA, 28 September 2026
+
+**Score: 9.6/10 for the bounded local source at `9876ca9ef7432fa51b3d439c0c50297bc691e456`; no mandatory source blocker.** Base `5e098defea73e54185d238892eab48bc055d12ca`. This verdict is independent of the historical PR1905 review.
+
+I read the current plan/handoff and full page/source/test/workflow diff. I independently reran `pnpm test` (**13/13**), bundle parity, optional real-Chrome smoke (**2/2**), `git diff --check`, and pinned exact-range Gitleaks (**0 findings**). At 1024×768 and 320×420, fields measured 48 px, action 52 px and support target 135×48 px; the compact page scrolls without horizontal overflow. Synthetic Chrome Auth responses showed A→B same-tab re-verification, an invalid second link disabling the form, and a simulated persisted `pageshow` dropping verified state. The strict fragment pair, early fragment removal, server `getUser` same-ID gate, non-persistent client and generic failure copy are covered by source and synthetic tests.
+
+Residuals: the browser intercepts Auth and submits no real password; returned local sign-out errors are not surfaced but the completed form stays disabled and the session is not persisted. Real email delivery, expiry/replay, physical device/TalkBack, hosted CI, Pages bytes/effective CSP and HTTP `frame-ancestors` remain unverified delivery/release gates. This is not an app-wide score.
