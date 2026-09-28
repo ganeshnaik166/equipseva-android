@@ -1,4 +1,8 @@
-# Forgot-password receipt — WIP handoff, 27 September 2026
+# Forgot-password receipt — 27–28 September 2026
+
+## Main integration receipt — 28 September
+
+[PR1903](https://github.com/ganeshnaik166/equipseva-android/pull/1903) merged reviewed head `c56a89e20c58ff3bb2b24d0bc45ff8bc42def98a` into main `a554f69c395639cbc5bcc375d1a010aa4a8030cd`. Both exact-head hosted Android builds, goldens verification and both Gitleaks jobs passed; record-goldens was skipped. Main-push CI was still running at this receipt. The earlier WIP and local acceptance sections below are dated evidence, not current main-pending status. The live hosted reset page has separate HIGH script/CSP and stale-session risks on `codex/reset-page-security-20260928`; the Android UI merge does not resolve those, real reset delivery, provider account-existence parity, physical TalkBack or signing.
 
 ## 28 September continuation — source/test candidate, hosted pending
 
