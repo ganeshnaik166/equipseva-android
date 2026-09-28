@@ -102,6 +102,20 @@ class ForgotPasswordViewModelTest {
         assertEquals(listOf("user@example.com", "other@example.com"), fake.resetEmails)
     }
 
+    @Test fun `provider account-specific failure never reaches the reset form`() = runTest {
+        val email = "private.person@example.com"
+        fake.resetEmailResult = Result.failure(IllegalStateException("User not found: $email"))
+        viewModel.onEmailChange(email)
+        viewModel.onSubmit()
+
+        val final = viewModel.state.first { !it.submitting && it.errorMessage != null }
+        assertEquals(false, final.sent)
+        assertEquals("We couldn't process this reset request. Try again later.", final.errorMessage)
+        assertTrue(final.errorMessage?.contains(email) == false)
+        assertTrue(final.errorMessage?.contains("User not found") == false)
+        assertEquals(listOf(email), fake.resetEmails)
+    }
+
     @Test fun `failed request stays editable and can retry without an edit transition`() = runTest {
         fake.resetEmailResult = Result.failure(IOException("offline"))
         viewModel.onEmailChange("user@example.com")

@@ -1,5 +1,7 @@
 package com.equipseva.app.features.auth
 
+import android.app.Application
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
@@ -19,10 +21,14 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import com.equipseva.app.R
 import com.equipseva.app.designsystem.theme.EquipSevaTheme
 import com.equipseva.app.designsystem.theme.Spacing
+import com.equipseva.app.testing.FakeAuthRepository
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import io.mockk.every
 import io.mockk.mockk
@@ -35,6 +41,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -60,12 +67,20 @@ class ForgotPasswordReceiptUiTest {
         composeRule.onAllNodesWithContentDescription("Email sent").assertCountEquals(0)
     }
 
-    @Test fun edit_email_is_a_distinct_48dp_button_and_does_not_navigate_back() {
+    @Test fun edit_email_restores_the_retained_form_without_resending_until_explicit_submit() {
         var backs = 0
-        val viewModel = sentViewModel("mistyped@example.com")
+        val fake = FakeAuthRepository()
+        val viewModel = ForgotPasswordViewModel(fake)
         composeRule.setContent {
             EquipSevaTheme { ForgotPasswordScreen(onBack = { backs++ }, viewModel = viewModel) }
         }
+
+        composeRule.runOnIdle {
+            viewModel.onEmailChange("mistyped@example.com")
+            viewModel.onSubmit()
+        }
+        composeRule.waitUntil(5_000) { viewModel.state.value.sent }
+        assertEquals(listOf("mistyped@example.com"), fake.resetEmails)
 
         val edit = composeRule.onNodeWithText("Edit email").performScrollTo()
         edit.assertHasClickAction()
@@ -74,6 +89,33 @@ class ForgotPasswordReceiptUiTest {
         assertTrue("Edit email target is shorter than 48dp", bounds.bottom - bounds.top >= Spacing.MinTouchTarget)
         edit.performClick()
         assertEquals(0, backs)
+        assertEquals(false, viewModel.state.value.sent)
+        assertEquals(listOf("mistyped@example.com"), fake.resetEmails)
+        composeRule.onNodeWithText("mistyped@example.com").performScrollTo()
+            .performTextReplacement("corrected@example.com")
+        assertEquals("corrected@example.com", viewModel.state.value.email)
+        assertEquals(listOf("mistyped@example.com"), fake.resetEmails)
+
+        composeRule.onNodeWithText("Send reset link").performScrollTo().performClick()
+        composeRule.waitUntil(5_000) { viewModel.state.value.sent }
+        assertEquals(listOf("mistyped@example.com", "corrected@example.com"), fake.resetEmails)
+    }
+
+    @Test fun receipt_strings_remain_english_under_hindi_and_telugu_device_locales() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val ids = listOf(
+            R.string.forgot_password_email_instructions,
+            R.string.forgot_password_request_received,
+            R.string.forgot_password_receipt_description,
+            R.string.forgot_password_edit_email,
+        )
+        for (language in listOf("hi", "te")) {
+            val config = Configuration(app.resources.configuration).apply {
+                setLocale(Locale.forLanguageTag(language))
+            }
+            val localized = app.createConfigurationContext(config)
+            for (id in ids) assertEquals(app.getString(id), localized.getString(id))
+        }
     }
 
     @Test fun compact_double_text_receipt_keeps_both_actions_reachable() {
