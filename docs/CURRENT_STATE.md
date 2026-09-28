@@ -2,6 +2,10 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## Isolated hosted reset-page security slice — 28 September 2026, in progress
+
+`codex/reset-page-security-20260928` owns only the static password-reset page under `docs/auth/`, its pinned local JavaScript build and synthetic offline checks, plus the related P7.2 continuity records. It starts at fetched main `427aa8d03ca8d7af795aa2083baac5ea0ce504c4`. Read-only inspection of the live `https://equipseva.com/auth/reset` returned HTTP 200 with the mutable `https://esm.sh/@supabase/supabase-js@2` import and no CSP header; the matching source is `docs/auth/reset.html`. The intended fix is a reproducible self-hosted bundle and restrictive GitHub Pages-compatible meta CSP while preserving the recovery form. Test-first local evidence, independent critic/QA, main integration, hosted deployment, and real provider validation are separate pending gates. This checkout does not own the active forgot-password Android PR1903 worktree, SQL, auth repositories, Gradle, or production writes.
+
 ## Latest security checkpoint — 27 September 2026, status only
 
 S3a's nine current money-RPC grants are closed on main and in production. A3-02 [draft PR1897](https://github.com/ganeshnaik166/equipseva-android/pull/1897) remains intentional RED (**8 focused tests / 3 failures**, hosted Android failure). Historical round3824/3825 [draft PR1900](https://github.com/ganeshnaik166/equipseva-android/pull/1900) has hosted focused SQL success but no clean replay: the first tracked migration requires an untracked prehistory table. Future-grant [draft PR1901](https://github.com/ganeshnaik166/equipseva-android/pull/1901) has local PGlite **14/14**, exact-source critic/QA **9.6/9.6**, and hosted SQL/secret success; staging, old-client, default-owner and production gates remain open. No draft was merged or deployed by this status checkpoint. [Full dated handoff](HANDOFF_SECURITY_STATUS_2026-09-27.md).
