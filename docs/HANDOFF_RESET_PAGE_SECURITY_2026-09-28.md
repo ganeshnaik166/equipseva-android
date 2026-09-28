@@ -11,7 +11,10 @@ receipt PR1903 and continuity PR1904). This branch owns `docs/auth/**`,
 `.github/workflows/reset-page.yml`, and the linked continuity records only.
 It did not edit the Android auth UI/repository, SQL, shared Gradle slot, other
 worktrees, or production. No reset-page PR, main merge, or deployment is
-claimed here. Independent critic and QA reviews of this page are pending.
+claimed here. QA rated the former branch head `b5b4b4ee` **9.4/10, RED** for
+accessibility and verification guidance. The subsequent test-first repair is
+source commit **`a907fe51`**; fresh independent critic and QA reviews of this
+source are pending.
 
 ## Trigger and resulting behavior
 
@@ -27,11 +30,14 @@ fields, removes the entire fragment with `history.replaceState`, and creates
 a reset-only Supabase client with `persistSession:false`,
 `detectSessionInUrl:false`, and `autoRefreshToken:false`. The submit button is
 disabled in HTML and remains disabled until explicit `setSession` succeeds and
-`getUser` confirms the same user. Invalid/expired/mismatched links receive
-fixed copy, and provider errors are not echoed. A successful update attempts
+`getUser` confirms the same user. Invalid fragments receive fixed copy; any
+link-session verification failure gives neutral guidance to check the
+connection, reopen the email link, or request a new email. It does not echo
+provider details or restore the fragment. A successful update attempts
 `signOut({ scope: 'local' })`; bare `signOut()` would affect other sessions.
-The page keeps the original form and styling, with external CSS and an
-announced status region.
+The page keeps the original form and visual theme, with external CSS and an
+announced status region. Password fields have at least 48 CSS px height, the
+primary action at least 52, and the support email link at least 48 by 48.
 
 `reset.js` is self-hosted and built with exact `@supabase/supabase-js@2.108.1`
 and `esbuild@0.25.0` from `pnpm-lock.yaml`; the committed bundle is compared
@@ -69,6 +75,52 @@ other-origin requests, and the CSP blocked an injected CDN script.
   raised `script-src-elem` violation with **0** outbound requests. No real
   account, provider, or recovery token was used.
 
+## QA 9.4 follow-up at source `a907fe51`
+
+QA measured 43.2 px password fields, a 45.6 px primary action and a 16 px
+support-link target on former head `b5b4b4ee`. It also found that a verification
+transport/offline failure showed “invalid or expired” after the fragment had
+been cleared. These were mandatory findings; the **9.4/10 result is not
+acceptance**. A new Chrome measurement check and synthetic transport test were
+RED before implementation: local Chrome measured 43/43 px fields, 45 px
+primary action and 16 px support height, and the flow test received the old
+invalid/expired message instead of connection guidance.
+
+The repair sets minimum target sizes in `reset.css` and gives verification
+failure neutral next steps. It continues to remove the whole fragment and
+keeps submit disabled if `setSession` or `getUser` fails. A user can reopen the
+link from the reset email after checking connectivity, or request a new email
+if that fails; the page never restores token-bearing URLs or displays provider
+error text. This does not distinguish network failure from expiry at the
+provider, so it does not claim provider validity or an in-page retry.
+
+- `pnpm install --frozen-lockfile --offline`, `pnpm run build`,
+  `pnpm run check:bundle`, and `node --check src/reset-page.mjs`: exit **0**.
+  `pnpm test`: **10/10 GREEN**, including unchanged exact-fragment,
+  non-persisted-session, CSP, duplicate-submit, and bundle assertions.
+- Optional local `node --test test/browser-targets.smoke.mjs`: **1/1 GREEN**
+  using Playwright **1.62.1** and Chrome **153.0.8010.50**. It requires
+  `EQUIPSEVA_PLAYWRIGHT_PATH` pointing to the installed Playwright module and
+  `EQUIPSEVA_CHROME_PATH` pointing to the Chrome executable; the test does not
+  silently use a global installation or download a browser. At 1024×768 and
+  320×420, both fields measured **48 px**, primary action **52 px**, support
+  link **135.39×48 px**. At 320×420, card top was **24 px**, page height
+  **655 px**, support link reachable after scrolling, horizontal overflow
+  **0**, external requests **0**. This smoke is separate from offline CI
+  because its browser runtime is not declared as a project dependency.
+- `pnpm audit --prod --audit-level high`: exit **0**, no known vulnerabilities
+  at this check. Tests used only synthetic fragments and fake or intercepted
+  responses; no real account or provider call was asserted as successful.
+
+To repeat the optional smoke on this Windows host from `docs/auth/`, set the
+explicit local runtime paths and run:
+
+```powershell
+$env:EQUIPSEVA_PLAYWRIGHT_PATH='C:/Users/lokes/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright'
+$env:EQUIPSEVA_CHROME_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe'
+node --test test/browser-targets.smoke.mjs
+```
+
 ## Remaining gates and merge points
 
 The local browser and Node checks do not prove actual recovery email delivery,
@@ -86,9 +138,9 @@ The only merge conflict with PR1903/PR1904 was the top of
 `docs/CURRENT_STATE.md`; both records were preserved. No reset-page source
 overlap occurred. The `reset-page` workflow covers docs-only PRs, where the
 Android and web workflows are not expected to run. Next: obtain separate
-critic and QA review of the frozen branch diff/evidence at or above the
-repository's 9.5 gate, address findings, then have the coordinator open and
-validate the PR. Keep main integration, hosted deployment and release
+critic and QA review of source `a907fe51` and its continuity diff/evidence at
+or above the repository's 9.5 gate, address findings, then have the coordinator
+open and validate the PR. Keep main integration, hosted deployment and release
 acceptance separate.
 
 SDK behavior references: [setSession](https://supabase.com/docs/reference/javascript/auth-setsession),
