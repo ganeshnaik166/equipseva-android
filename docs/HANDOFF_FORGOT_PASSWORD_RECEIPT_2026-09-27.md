@@ -1,5 +1,15 @@
 # Forgot-password receipt — WIP handoff, 27 September 2026
 
+## 28 September continuation — source/test candidate, hosted pending
+
+The 27 September WIP evidence below remains historical. New frozen app/test source **`888ed52960fac4b59f28a2450aa1c9276600d10b`** closes its three recorded blockers. `ForgotPasswordViewModel` now shows one fixed neutral message for non-transport reset failures, fixed network advice for `IOException`/`HttpRequestException`, and propagates cancellation after clearing pending state. A test injected `User not found: private.person@example.com`: before the fix, the focused set ran **11/1 RED**; after it, UI+VM+parity focused tests passed **12/0**. The Compose Edit test now uses a real ViewModel and synthetic fake repository to prove initial send, retained form, typo correction, no second request before explicit Send, and then a second request. The four English reset strings are `translatable="false"`, with hi/te overrides still removed; synthetic device-locale fallback and `StringsParityTest` pass. The design ratchet passes without increased negative signals.
+
+Full exact-source `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --continue --no-daemon --console=plain` ran **2,965 tests / 349 suites / 0 failures, errors or skips**, lint **0 errors / 87 warnings / 2 hints**, and assembled debug plus **unsigned** release R8 APKs. **Combined Gradle exit 1** came only from `:app:uploadCrashlyticsMappingFileRelease` failing DNS resolution of `firebasecrashlyticssymbols.googleapis.com` with ignored synthetic config. No mapping-upload receipt or signed release is claimed. Log: `C:/Users/lokes/Documents/Codex/2026-09-07/im/outputs/forgot-password-full-20260928.log`. The shared Gradle slot was released at **01:02:24 UTC**. Independent exact-source [critic](helper-reviews/codex-20260928/forgot-receipt-critic.md) **9.6/10** and [QA](helper-reviews/codex-20260928/forgot-receipt-qa.md) **9.6/10** accept only this bounded local source/test slice.
+
+**Next gates:** push this branch and open its PR; require exact-head hosted Android, visual and secret checks, then integrate main only if they pass. Do not claim endpoint-wide anti-enumeration: if the provider responds differently for absent and present accounts, the app still shows generic failure versus conditional success receipt. Real provider contract, physical TalkBack/device, hosted reset delivery, mapping upload and signed release remain separate. No main merge or production change occurred in this continuation at this point.
+
+## 27 September paused state (historical)
+
 Owner paused implementation for the morning. Keep this branch separate from main until the failed checks and independent review findings are fixed and rerun. This is a narrow UI/security slice, not a full auth or app redesign acceptance.
 
 ## Exact checkpoint and ownership
