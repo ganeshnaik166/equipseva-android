@@ -96,6 +96,23 @@ test('failed, expired, or mismatched recovery sessions leave form disabled', asy
   }
 });
 
+test('verification transport failure gives safe next steps after removing the fragment', async () => {
+  for (const failingMethod of ['setSession', 'getUser']) {
+    const ui = page();
+    const sb = client();
+    sb.auth[failingMethod] = async () => { throw new TypeError('synthetic-provider-network-detail'); };
+    const parsed = link('#access_token=synthetic-access&refresh_token=synthetic-refresh&type=recovery');
+    await mountResetPage({ doc: ui.doc, client: sb, recovery: parsed.recovery });
+    assert.equal(parsed.replacements[0][2], '/auth/reset?source=email');
+    assert.equal(ui.elements.submit.disabled, true);
+    assert.equal(ui.elements.form.listeners.submit, undefined);
+    assert.ok(!sb.calls.some(([name]) => name === 'updateUser'));
+    assert.match(ui.elements.alert.textContent, /connection/i);
+    assert.match(ui.elements.alert.textContent, /reset email/i);
+    assert.doesNotMatch(ui.elements.alert.textContent, /synthetic-provider-network-detail|synthetic-access|synthetic-refresh/);
+  }
+});
+
 test('verified link enables one password update and then closes its session', async () => {
   const ui = page();
   const sb = client();

@@ -1,4 +1,5 @@
 const INVALID_LINK = 'This link is invalid or has expired. Open the EquipSeva app and request a new reset email.';
+const VERIFY_FAILED = 'We could not verify this reset link. Check your connection and reopen the link from your reset email. If that does not work, request a new reset email in the EquipSeva app.';
 const SAVE_FAILED = 'Could not save password. Try again.';
 
 // The implicit recovery redirect carries credentials in the URL fragment. Capture
@@ -46,8 +47,8 @@ export async function mountResetPage({ doc, client, recovery }) {
       throw new Error('Recovery user rejected');
     }
   } catch {
+    show('error', VERIFY_FAILED);
     try { await client.auth.signOut({ scope: 'local' }); } catch { /* The form remains disabled. */ }
-    show('error', INVALID_LINK);
     return;
   }
 
