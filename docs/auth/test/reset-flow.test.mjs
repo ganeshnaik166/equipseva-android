@@ -159,3 +159,43 @@ test('double submit while a request is pending sends one update', async () => {
   finishUpdate({ data: {}, error: null });
   await Promise.all([first, second]);
 });
+
+test('aborted recovery verification cannot enable a stale form', async () => {
+  const ui = page();
+  const sb = client();
+  const controller = new AbortController();
+  let enteredGetUser;
+  let releaseGetUser;
+  const inGetUser = new Promise((resolve) => { enteredGetUser = resolve; });
+  sb.auth.getUser = () => {
+    enteredGetUser();
+    return new Promise((resolve) => { releaseGetUser = resolve; });
+  };
+  const pending = mountResetPage({
+    doc: ui.doc, client: sb,
+    recovery: link('#access_token=synthetic-access&refresh_token=synthetic-refresh&type=recovery').recovery,
+    signal: controller.signal,
+  });
+  await inGetUser;
+  controller.abort();
+  releaseGetUser({ data: { user: { id: 'recovery-account' } }, error: null });
+  await pending;
+  assert.equal(ui.elements.submit.disabled, true);
+  assert.equal(ui.elements.form.listeners.submit, undefined);
+  assert.ok(!sb.calls.some(([name]) => name === 'updateUser'));
+});
+
+test('aborted verified recovery cannot submit under the old account', async () => {
+  const ui = page();
+  const sb = client();
+  const controller = new AbortController();
+  await mountResetPage({
+    doc: ui.doc, client: sb,
+    recovery: link('#access_token=synthetic-access&refresh_token=synthetic-refresh&type=recovery').recovery,
+    signal: controller.signal,
+  });
+  controller.abort();
+  ui.elements.pw1.value = ui.elements.pw2.value = 'strong-synthetic-password';
+  await ui.submit();
+  assert.ok(!sb.calls.some(([name]) => name === 'updateUser'));
+});
