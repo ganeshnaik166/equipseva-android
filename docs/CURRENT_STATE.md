@@ -2,7 +2,11 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
-## Hosted reset-page security — clean replacement candidate, 28 September 2026
+## Hosted reset-page security — clean source reviewed and pushed, 28 September 2026
+
+`codex/reset-page-security-clean-20260928` source head **`9876ca9ef7432fa51b3d439c0c50297bc691e456`** is pushed with matching remote HEAD, based on main `5e098def`. The first commit replaced the copied legacy anon JWT with this project's existing public publishable key **before committing**; the second fixes same-tab recovery-link A→B reuse. At the exact source head, offline page/SDK tests **13/13**, pinned bundle comparison, optional real-Chrome synthetic smoke **2/2** and pinned Gitleaks v8.24.3 exact base..head scan **0 findings** passed. New browser/cancellation regressions were red before the A→B fix. Fresh independent [critic](helper-reviews/codex-20260928/reset-page-clean-critic.md) and [QA](helper-reviews/codex-20260928/reset-page-clean-qa.md) each scored **9.6/10 for this bounded local source**, with no mandatory source blocker. A docs-only review-record commit and replacement PR, hosted checks, main/Pages integration, live byte/CSP comparison and real provider/device gates remain open. The original [draft PR1905](https://github.com/ganeshnaik166/equipseva-android/pull/1905) remains blocked by its historical JWT scan and must not merge. [Clean handoff](HANDOFF_RESET_PAGE_SECURITY_CLEAN_2026-09-28.md).
+
+## Historical clean replacement candidate checkpoint, 28 September 2026
 
 The original [draft PR1905](https://github.com/ganeshnaik166/equipseva-android/pull/1905) at `c738c294` is **blocked by Gitleaks**: the new page source and generated bundle introduced the legacy anon JWT in three scanned historical patches. Its local page tests and bounded 9.6/9.6 reviews remain historical evidence, but a later removal commit cannot clear this repository's full-range scanner. Preserve PR1905 as failed evidence; do not merge or weaken the scan.
 

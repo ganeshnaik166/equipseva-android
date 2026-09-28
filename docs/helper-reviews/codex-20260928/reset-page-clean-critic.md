@@ -1,0 +1,7 @@
+# Clean hosted reset page — independent critic, 28 September 2026
+
+**Score: 9.6/10 for the bounded source at `9876ca9ef7432fa51b3d439c0c50297bc691e456`; no mandatory code blocker.** Base `5e098defea73e54185d238892eab48bc055d12ca`. This is a fresh review of the publishable-key branch, not the historical PR1905 score.
+
+I inspected the page source, generated bundle/build, workflow, tests, Android redirect contract and full clean-branch diff. I independently reran `pnpm test` (**13/13**), `pnpm run check:bundle` (byte match), optional real-Chrome smoke (**2/2**), `git diff --check`, and pinned Gitleaks v8.24.3 for the exact `5e098def..9876ca9e` range (**0 findings**). Browser evidence covers 48/52/48 px targets, compact scrolling, no horizontal overflow, same-tab A→B re-verification, invalid follow-up and a synthetic persisted `pageshow`. Hash navigation aborts the old form logic, clears fields and reloads; late verification or an old submit cannot publish after that boundary.
+
+Residuals outside this source score: a mutation already sent before navigation may finish server-side; a returned `signOut({scope:'local'})` error can leave only an ephemeral memory session until unload. Real provider recovery/expiry/replay, actual back/forward-cache/device behavior, HTTP `frame-ancestors`, live deployed bytes and hosted CI were not verified in this review. Do not promote this score to a production or full-app score.
