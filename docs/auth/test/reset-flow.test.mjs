@@ -113,7 +113,7 @@ test('verification transport failure gives safe next steps after removing the fr
   }
 });
 
-test('verified link enables one password update and then closes its session', async () => {
+test('verified link enables one password update and attempts local sign-out', async () => {
   const ui = page();
   const sb = client();
   await mountResetPage({ doc: ui.doc, client: sb, recovery: link('#access_token=synthetic-access&refresh_token=synthetic-refresh&type=recovery').recovery });

@@ -13,8 +13,9 @@ It did not edit the Android auth UI/repository, SQL, shared Gradle slot, other
 worktrees, or production. No reset-page PR, main merge, or deployment is
 claimed here. QA rated the former branch head `b5b4b4ee` **9.4/10, RED** for
 accessibility and verification guidance. The subsequent test-first repair is
-source commit **`a907fe51`**; fresh independent critic and QA reviews of this
-source are pending.
+source commit **`a907fe51`**. Fresh independent [critic](helper-reviews/codex-20260928/reset-page-critic.md)
+and [QA](helper-reviews/codex-20260928/reset-page-qa.md) each scored the corrected
+bounded source/offline/browser scope **9.6/10**, with no mandatory blocker.
 
 ## Trigger and resulting behavior
 
@@ -137,11 +138,11 @@ fresh license/security review and regenerated asset.
 The only merge conflict with PR1903/PR1904 was the top of
 `docs/CURRENT_STATE.md`; both records were preserved. No reset-page source
 overlap occurred. The `reset-page` workflow covers docs-only PRs, where the
-Android and web workflows are not expected to run. Next: obtain separate
-critic and QA review of source `a907fe51` and its continuity diff/evidence at
-or above the repository's 9.5 gate, address findings, then have the coordinator
-open and validate the PR. Keep main integration, hosted deployment and release
-acceptance separate.
+Android and web workflows are not expected to run. A later test-title-only
+wording correction makes clear that local sign-out is attempted, not guaranteed;
+it changes no assertion or page behavior. Next: push the owned branch, open
+the PR, verify exact-head hosted reset-page and secret checks, then consider
+main merge. Keep hosted deployment and release acceptance separate.
 
 SDK behavior references: [setSession](https://supabase.com/docs/reference/javascript/auth-setsession),
 [updateUser](https://supabase.com/docs/reference/javascript/auth-updateuser),
