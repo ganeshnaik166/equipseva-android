@@ -2,6 +2,11 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-09-28 — Forgot-password receipt merged to main; hosted reset-page risk isolated
+
+- [PR1903](https://github.com/ganeshnaik166/equipseva-android/pull/1903) merged exact head `c56a89e20c58ff3bb2b24d0bc45ff8bc42def98a` into main **`a554f69c395639cbc5bcc375d1a010aa4a8030cd`**. Before merge, both hosted Android builds, goldens verification and both Gitleaks jobs passed; the record-goldens job was skipped. Main-push CI was in progress at this receipt. The frozen local source is `888ed529` with focused **12/0**, full unit **2,965/0**, lint 0 errors and debug/unsigned R8 assembly; the combined local Gradle exit was **1** only on external Crashlytics mapping-upload DNS. Independent bounded critic/QA **9.6/9.6** accepted the source/test slice, not delivery or release.
+- Read-only live `/auth/reset` inspection found a mutable third-party module without CSP and an incomplete-fragment/persisted-session risk. A separate isolated reset-page security branch owns test-first repair. The Android PR does not fix or accept the hosted page, provider delivery, account-existence parity, physical TalkBack or signed release.
+
 ## 2026-09-28 — Forgot-password receipt local source accepted; hosted and main pending
 
 - Frozen source `888ed52960fac4b59f28a2450aa1c9276600d10b` on `codex/forgot-password-receipt-20260927` keeps the 27 September UI change and closes both reviewer defects: fixed account-neutral provider error copy (network advice remains actionable, cancellation propagates), and real ViewModel/fake-repo Compose proof of Edit → retained form → correction → explicit resend. Four reset strings are now `translatable="false"` in default English; hi/te overrides stay removed. No auth repository, navigation, session, SQL, main or production edit.
