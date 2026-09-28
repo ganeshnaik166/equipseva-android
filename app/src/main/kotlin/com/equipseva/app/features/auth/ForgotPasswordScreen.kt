@@ -27,10 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.equipseva.app.R
@@ -71,12 +69,11 @@ fun ForgotPasswordScreen(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
             ) {
                 if (state.sent) {
-                    SentBlock(email = state.email.trim().ifBlank { "your email" }, onBack = onBack)
+                    SentBlock(onEditEmail = viewModel::onEditEmail, onBack = onBack)
                 } else {
                     Text(
                         text = stringResource(R.string.forgot_password_email_instructions),
-                        fontSize = 13.sp,
-                        lineHeight = 19.5.sp,
+                        style = EsType.WelcomeTagline,
                         color = SevaInk600,
                     )
                     Spacer(Modifier.height(20.dp))
@@ -113,7 +110,7 @@ fun ForgotPasswordScreen(
 }
 
 @Composable
-private fun SentBlock(email: String, onBack: () -> Unit) {
+private fun SentBlock(onEditEmail: () -> Unit, onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -129,23 +126,21 @@ private fun SentBlock(email: String, onBack: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = "Email sent",
+                contentDescription = null,
                 tint = SevaGreen700,
                 modifier = Modifier.size(32.dp),
             )
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            text = stringResource(R.string.forgot_password_check_email),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
+            text = stringResource(R.string.forgot_password_request_received),
+            style = EsType.WelcomeBrand,
             color = SevaInk900,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = stringResource(R.string.forgot_password_reset_link_sent, email),
-            fontSize = 13.sp,
-            lineHeight = 19.5.sp,
+            text = stringResource(R.string.forgot_password_receipt_description),
+            style = EsType.WelcomeTagline,
             color = SevaInk500,
             textAlign = TextAlign.Center,
         )
@@ -154,6 +149,14 @@ private fun SentBlock(email: String, onBack: () -> Unit) {
             text = "Back to sign in",
             onClick = onBack,
             kind = EsBtnKind.Primary,
+            size = EsBtnSize.Lg,
+            full = true,
+        )
+        Spacer(Modifier.height(12.dp))
+        EsBtn(
+            text = stringResource(R.string.forgot_password_edit_email),
+            onClick = onEditEmail,
+            kind = EsBtnKind.Secondary,
             size = EsBtnSize.Lg,
             full = true,
         )

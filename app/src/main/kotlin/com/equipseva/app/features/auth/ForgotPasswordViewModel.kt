@@ -6,12 +6,18 @@ import com.equipseva.app.core.auth.AuthRepository
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.util.Validators
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.exceptions.HttpRequestException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
+
+private const val RESET_REQUEST_FAILED_MESSAGE =
+    "We couldn't process this reset request. Try again later."
 
 @HiltViewModel
 class ForgotPasswordViewModel @Inject constructor(
@@ -30,12 +36,22 @@ class ForgotPasswordViewModel @Inject constructor(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     fun onEmailChange(value: String) {
-        _state.update { it.copy(email = value, emailError = null, errorMessage = null) }
+        _state.update { current ->
+            if (current.submitting || current.sent) current
+            else current.copy(email = value, emailError = null, errorMessage = null)
+        }
+    }
+
+    fun onEditEmail() {
+        _state.update { current ->
+            if (current.submitting || !current.sent) current
+            else current.copy(sent = false, emailError = null, errorMessage = null)
+        }
     }
 
     fun onSubmit() {
         val current = _state.value
-        if (current.submitting) return
+        if (current.submitting || current.sent) return
 
         val trimmed = current.email.trim()
         if (!Validators.emailIsValid(trimmed)) {
@@ -50,7 +66,18 @@ class ForgotPasswordViewModel @Inject constructor(
                     _state.update { it.copy(submitting = false, sent = true, errorMessage = null) }
                 },
                 onFailure = { ex ->
-                    _state.update { it.copy(submitting = false, errorMessage = ex.toUserMessage()) }
+                    // Provider-specific text may reveal whether an account exists.
+                    // Transport errors already map to fixed, account-neutral copy.
+                    if (ex is CancellationException) {
+                        _state.update { it.copy(submitting = false) }
+                        throw ex
+                    }
+                    val message = if (ex is IOException || ex is HttpRequestException) {
+                        ex.toUserMessage()
+                    } else {
+                        RESET_REQUEST_FAILED_MESSAGE
+                    }
+                    _state.update { it.copy(submitting = false, errorMessage = message) }
                 },
             )
         }
