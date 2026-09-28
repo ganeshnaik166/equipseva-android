@@ -1,0 +1,23 @@
+# Hosted reset-page security — clean replacement handoff, 28 September 2026
+
+## Why this branch exists
+
+The original [draft PR1905](https://github.com/ganeshnaik166/equipseva-android/pull/1905) at `c738c29432902aefaa29d63224bdce96691417f3` passed hosted `offline-security`, but both Gitleaks jobs failed. A local checksum-verified Gitleaks v8.24.3 run reproduced **three `jwt` findings**: one in `docs/auth/src/entry.mjs` at source commit `3ad3549f`, and one each in the generated `docs/auth/reset.js` at `3ad3549f` and `a907fe51`. Those commits added a legacy low-privilege anon JWT that the old page already used; the scan still correctly blocks newly committed JWTs. `scripts/verify/secret_scan.py` scans every patch in `base..head`, so removing the JWT in a later commit on that branch would leave its history red. No rule, allowlist, ignored finding, security gate or remote history was changed.
+
+## Clean candidate and ownership
+
+`codex/reset-page-security-clean-20260928` uses the existing owned `work/equipseva-status-20260927` checkout, switched only after its prior docs branch was clean and pushed. It starts from fetched `origin/main` **`5e098defea73e54185d238892eab48bc055d12ca`**. The final 23 changed files from PR1905 were copied as a working-tree snapshot, without its commits or an inherited JWT patch. Before the first clean-branch commit, `docs/auth/src/entry.mjs` was changed to use this same project's already-existing **publishable** `sb_publishable_` key; `docs/auth/reset.js` was rebuilt from the pinned lockfile. No key value is recorded here. The original PR/worktree remains intact and draft for audit evidence.
+
+The page still uses a self-hosted pinned Supabase bundle, an early restrictive meta CSP, exact recovery token pair, fragment removal, non-persistent reset-only client, server-confirmed user before enabling submit, fixed provider-safe guidance, and 48/52/48 CSS-pixel action targets. Only `docs/auth/**`, `.github/workflows/reset-page.yml`, and linked continuity/review documents belong to this slice. Android app/auth, SQL, other worktrees, shared Gradle slot and production were untouched. The old page reviews (critic/QA 9.6/9.6) are **historical for PR1905**; this changed-key candidate requires fresh independent reviews.
+
+## Evidence so far — working tree, not yet accepted
+
+- Read-only Supabase Management API metadata confirmed this project has one existing default publishable key as well as its legacy anon key. The new key was selected by exact type/name, with no secret or key value printed. Read-only `GET /auth/v1/settings` returned HTTP **200** with that publishable key as `apikey` alone and with `Authorization: Bearer` publishable. This checks API-key gateway acceptance, not a real recovery transaction.
+- In `docs/auth/`, `pnpm install --frozen-lockfile --offline`, `pnpm run build`, `pnpm run check:bundle` and `pnpm test` exited **0**; the synthetic page and installed-SDK suite passed **11/11**. The added fully intercepted SDK test confirmed `setSession`, `getUser` and `updateUser` use the recovery access token as bearer and the publishable key as `apikey`; it used only synthetic values and an invalid synthetic origin. The rebuilt source and bundle contain no legacy JWT marker. A local pinned Gitleaks `dir docs/auth` content scan exited **0**. A full Git commit-range scan remains pending until a clean-branch commit exists.
+- The optional Chrome target-size smoke and prior synthetic browser Auth/CSP runs were executed on the otherwise matching original page; they must be repeated on this exact publishable-key bundle. An installed-SDK fake-fetch header test is being added before acceptance.
+
+## Next gates
+
+1. Re-run offline suite, bundle parity and optional Chrome smoke; commit the clean snapshot; scan the **exact new commit range** with pinned Gitleaks before pushing. If any finding remains, preserve that branch as RED and start another clean branch rather than rewriting or weakening policy.
+2. Obtain fresh independent critic and QA scores at least 9.5 for the exact clean source, push only this owned branch, open a new PR, and verify hosted `offline-security`, Gitleaks and applicable Android checks. The failed PR1905 remains unmerged and should be closed as superseded only after the new PR is reviewable.
+3. After a reviewed main merge and Pages publication, compare live HTML/JS/CSS and effective CSP with the committed bytes after CDN cache expiry. Real disposable-provider email, expiry/replay, physical accessibility, and an HTTP `frame-ancestors` policy remain separate delivery/release gates. Local sign-out is attempted but a returned SDK error can leave only an ephemeral memory session until unload.

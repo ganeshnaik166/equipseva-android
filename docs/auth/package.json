@@ -1,0 +1,18 @@
+{
+  "name": "equipseva-reset-page",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check:bundle": "node scripts/build.mjs --check",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.108.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}
