@@ -213,17 +213,10 @@ android {
         }
     }
 
-    // Round 514 (v0.4 P5 #9) — ship only the locales we actually
-    // translate, so Play Asset Delivery doesn't bake stub translations
-    // from AndroidX libraries for ~80 unsupported languages into the APK.
-    // Migrated off the deprecated defaultConfig.resourceConfigurations
-    // (AGP 9.1.1 warning: "Support for resource configurations will be
-    // removed... use androidResources.localeFilters") — confirmed via
-    // javap on the actual AGP 9.2.1 gradle-api.jar that localeFilters is
-    // a Set<String> getter (add-only, no setter) on
-    // ApplicationAndroidResources, not defaultConfig/BaseFlavor.
+    // Owner decision: ship English only, including dependency resources.
+    // AGP's ApplicationAndroidResources exposes an add-only Set getter.
     androidResources {
-        localeFilters += setOf("en", "hi", "te")
+        localeFilters += setOf("en")
     }
 }
 
