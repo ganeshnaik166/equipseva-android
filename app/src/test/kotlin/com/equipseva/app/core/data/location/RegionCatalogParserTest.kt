@@ -53,8 +53,8 @@ class RegionCatalogParserTest {
 
     @Test
     fun `codes, names and kinds follow the server constraints`() {
-        rejects(mutate("{ \"code\": \"901\", \"name\": \"Alpha State\"", "{ \"code\": \"9011\", \"name\": \"Alpha State\""), "invalid State/UT code")
-        rejects(mutate("{ \"code\": \"90101\", \"state\": \"901\"", "{ \"code\": \"9010199\", \"state\": \"901\""), "invalid district code")
+        rejects(mutate("\"code\": \"901\"", "\"code\": \"9011\""), "invalid State/UT code")
+        rejects(mutate("\"code\": \"90101\"", "\"code\": \"9010199\""), "invalid district code")
         rejects(mutate("\"name\": \"Riverton\"", "\"name\": \" Riverton\""), "invalid name")
         rejects(mutate("\"name\": \"Riverton\"", "\"name\": \"${"R".repeat(65)}\""), "invalid name")
         rejects(mutate("\"kind\": \"union_territory\"", "\"kind\": \"territory\""), "invalid kind")
@@ -62,10 +62,10 @@ class RegionCatalogParserTest {
 
     @Test
     fun `codes and names must be unique`() {
-        rejects(mutate("{ \"code\": \"902\", \"name\": \"Beta Territory\"", "{ \"code\": \"901\", \"name\": \"Beta Territory\""), "duplicate State/UT code")
+        rejects(mutate("\"code\": \"902\"", "\"code\": \"901\""), "duplicate State/UT code")
         rejects(mutate("\"name\": \"Beta Territory\"", "\"name\": \"alpha  state\""), "duplicate State/UT name")
-        rejects(mutate("{ \"code\": \"90102\", \"state\": \"901\"", "{ \"code\": \"90101\", \"state\": \"901\""), "duplicate district code")
-        rejects(mutate("\"code\": \"90103\", \"state\": \"901\"", "\"code\": \"90101\", \"state\": \"901\""), "duplicate district code")
+        rejects(mutate("\"code\": \"90102\"", "\"code\": \"90101\""), "duplicate district code")
+        rejects(mutate("\"code\": \"90103\"", "\"code\": \"90101\""), "duplicate district code")
         rejects(mutate("\"name\": \"Riverton\"", "\"name\": \"NORTHFIELD\""), "duplicate district name")
     }
 
@@ -78,24 +78,22 @@ class RegionCatalogParserTest {
 
     @Test
     fun `every district needs a known parent and replacements must be known`() {
-        rejects(mutate("{ \"code\": \"90102\", \"state\": \"901\"", "{ \"code\": \"90102\", \"state\": \"999\""), "unknown State/UT")
-        rejects(mutate("\"replaced_by\": [\"90104\", \"90105\"]", "\"replaced_by\": [\"90104\", \"99999\"]"), "unknown replacement")
-        rejects(mutate("\"replaced_by\": [\"90104\", \"90105\"]", "\"replaced_by\": [\"90103\"]"), "unknown replacement")
+        // The first "state": "902" in the file is district 90201's parent.
+        rejects(mutate("\"state\": \"902\"", "\"state\": \"999\""), "unknown State/UT")
+        rejects(mutate("\"replaced_by\": [", "\"replaced_by\": [\"99999\","), "unknown replacement")
+        rejects(mutate("\"replaced_by\": [", "\"replaced_by\": [\"90103\","), "unknown replacement")
     }
 
     @Test
     fun `aliases must be normalised and point at an active district of their own State or UT`() {
         rejects(mutate("\"alias\": \"old riverton\"", "\"alias\": \"Old Riverton\""), "not stored normalised")
         rejects(mutate("\"alias\": \"old riverton\"", "\"alias\": \"old  riverton\""), "not stored normalised")
-        rejects(mutate("\"alias\": \"hill crest\", \"district\": \"90202\"", "\"alias\": \"hill crest\", \"district\": \"90101\""), "does not point at an active district of 902")
-        rejects(mutate("\"alias\": \"old riverton\", \"district\": \"90102\"", "\"alias\": \"old riverton\", \"district\": \"90103\""), "does not point at an active district")
+        // "district": "90202" occurs only in the "hill crest" alias of 902; 90101 belongs to 901.
+        rejects(mutate("\"district\": \"90202\"", "\"district\": \"90101\""), "does not point at an active district of 902")
+        // "district": "90102" occurs only in the "old riverton" alias; 90103 is retired.
+        rejects(mutate("\"district\": \"90102\"", "\"district\": \"90103\""), "does not point at an active district")
         rejects(mutate("\"kind\": \"common_spelling\"", "\"kind\": \"guess\""), "invalid alias kind")
-        rejects(
-            mutate(
-                "{ \"state\": \"901\", \"alias\": \"lakeside\", \"district\": \"90105\", \"kind\": \"legacy_bundled\" }",
-                "{ \"state\": \"901\", \"alias\": \"lakeside\", \"district\": \"90104\", \"kind\": \"legacy_bundled\" }",
-            ),
-            "duplicate alias",
-        )
+        // The second "lakeside" alias becomes a copy of the first.
+        rejects(mutate("\"district\": \"90105\"", "\"district\": \"90104\""), "duplicate alias")
     }
 }

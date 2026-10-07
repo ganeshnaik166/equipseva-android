@@ -1,0 +1,5 @@
+state_code,alias,district_code,kind
+901,lakeside,90104,legacy_bundled
+901,lakeside,90105,legacy_bundled
+901,old riverton,90102,renamed
+902,hill crest,90202,common_spelling
