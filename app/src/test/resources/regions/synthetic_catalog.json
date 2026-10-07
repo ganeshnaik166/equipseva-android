@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "version": "synthetic-v2",
+  "synthetic": true,
+  "source": {
+    "url": "synthetic://fixture/v2",
+    "retrieved_on": "2026-06-01",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "states": [
+    { "code": "902", "name": "Beta Territory", "kind": "union_territory" },
+    { "code": "901", "name": "Alpha State", "kind": "state" }
+  ],
+  "districts": [
+    { "code": "90101", "state": "901", "name": "Northfield" },
+    { "code": "90102", "state": "901", "name": "Riverton" },
+    { "code": "90104", "state": "901", "name": "Lakeside East" },
+    { "code": "90105", "state": "901", "name": "Lakeside West" },
+    { "code": "90201", "state": "902", "name": "Northfield" },
+    { "code": "90202", "state": "902", "name": "Hillcrest" }
+  ],
+  "retired_districts": [
+    { "code": "90103", "state": "901", "name": "Lakeside", "replaced_by": ["90104", "90105"] },
+    { "code": "90301", "state": "903", "name": "Old Town", "replaced_by": [] }
+  ],
+  "aliases": [
+    { "state": "901", "alias": "old riverton", "district": "90102", "kind": "renamed" },
+    { "state": "901", "alias": "lakeside", "district": "90104", "kind": "legacy_bundled" },
+    { "state": "901", "alias": "lakeside", "district": "90105", "kind": "legacy_bundled" },
+    { "state": "902", "alias": "hill crest", "district": "90202", "kind": "common_spelling" }
+  ]
+}
