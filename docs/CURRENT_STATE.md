@@ -2,18 +2,18 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
-## WP18.T01 English only on main — Claude, 7 October 2026, in progress
+## WP18.T01 English only on main — Claude, 7 October 2026, locally verified; merge needs the owner
 
-Owner decision of 23 September 2026 (English only) is still not on main: `values-hi`/`values-te`, `StringsParityTest` and `localeFilters += setOf("en", "hi", "te")` remain at main `49c163eb`. This slice ports only the English-only source commits — the original `a6e58067` from `claudedev-build-20260923`, as re-prepared test-first by Codex on 1 October with five guards (bounded critic 9.6 / QA 9.6 on that scope) — onto a fresh branch from main. It is the first task of the programme because every later package that adds or edits strings depends on it.
+Owner decision of 23 September 2026 (English only) is still not on main: `values-hi`/`values-te`, `StringsParityTest` and `localeFilters += setOf("en", "hi", "te")` remain at main `49c163eb`. Branch `claudedev-english-only-20261007` ports only the English-only source commits — Claude's original `a6e58067`, as re-prepared test-first by Codex on 1 October with five guards (test file and build script byte-identical to that candidate) — and then closes the gaps the critic found in the guards. It is the first task of the programme because every later change that adds or edits strings depends on it. [Handoff](HANDOFF_WP18_T01_ENGLISH_ONLY_2026-10-07.md).
 
 | Item | Value |
 |---|---|
-| Branch | `claudedev-english-only-20261007` from fetched main `49c163ebfe9bacc6b693b95a5218c9c1ac749dd8` (Claude, this laptop, `C:/Users/lokes/equipseva-android`) |
-| Owned files | `app/src/test/kotlin/com/equipseva/app/i18n/EnglishOnlyResourcesTest.kt` (new, five guards), `app/src/main/res/values-hi/**` and `values-te/**` (deleted), `app/build.gradle.kts` `androidResources.localeFilters` block only, `app/src/test/kotlin/com/equipseva/app/i18n/StringsParityTest.kt` (deleted), plus the continuity records |
-| Not touched | Every other resource, string, screen, test, golden, SQL, Edge or web file. The nine workaround `translatable="false"` markers in `values/strings.xml` stay (dropping them needs owner agreement); `razorpay_api_key` stays |
-| Evidence plan | Guard test RED on main (3 of 5 cases expected to fail), GREEN after the port, then the full bar under the shared build slot, then independent critic and QA |
-
-Nothing here is merged; merging to main needs the owner's go-ahead.
+| Branch / code head | `claudedev-english-only-20261007` from fetched main `49c163ebfe9bacc6b693b95a5218c9c1ac749dd8`; verified code head **`6460ee89c49545154cb0cd3dc8b860f254d413ca`** (Claude, this laptop, `C:/Users/lokes/equipseva-android`) |
+| Changed | `EnglishOnlyResourcesTest.kt` (new, five guards: no locale-qualified resource directory of any type in any source set; ≥ 500-string default catalogue; exactly one `localeFilters += setOf("en")` directly inside `androidResources`, with no `resourceConfigurations`; no Devanagari/Telugu code point, Unicode escape or character reference in resource XML; no script-named font); `values-hi/**`, `values-te/**` and `StringsParityTest.kt` deleted; `app/build.gradle.kts` `localeFilters` block; one stale comment in `values/strings.xml` (comment only); continuity records |
+| Not touched | Every string key/value, screen, other test, golden, SQL, Edge and web file. The nine workaround `translatable="false"` markers stay (dropping them needs owner agreement); `razorpay_api_key` stays; `hi-IN` default-`Locale` formatting tests stay |
+| Evidence | RED on main plus the guard commit: **5 tests / 3 failures** (locale directories, `localeFilters`, native script). Full bar on `6460ee89` (`PRECHECK_LOOSE=1 ./gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --console=plain`, exit 0): **2,989 tests / 350 suites / 0 failures / 0 errors / 0 skipped**, guard **5/0**, lint **0 errors / 86 warnings / 2 hints**, debug APK built; the unit-test task was then re-executed with `--rerun` on the same head (**2,989 / 0**). Probes, removed afterwards: a `src/debug/res/raw-te` directory and an escaped U+0939 string each failed only their own guard (**5/1**) |
+| Reviews | Independent critic **9.5/10** on the port, then **9.7/10** on the whole scope after the guard fixes, no blockers; independent QA **9.6/10** on `00a30ef5`, no blockers (its own probes — a `values-hi` and an empty `drawable-b+te+IN` directory, a literal character in a comment, hex and decimal character references — were each caught by the right guard only). The final head differs from the reviewed one only by writing three test literals as Kotlin escapes, which compile to identical classes |
+| Next | Owner go-ahead to open the PR to `main` and merge after hosted Android/goldens/Gitleaks checks pass on the PR head |
 
 ## A3 inbox observed-owner fence — merged main, 28 September 2026
 
@@ -162,7 +162,7 @@ Current app checkout on this laptop: `C:/Users/lokes/Documents/Codex/2026-09-07/
 
 ## Owner decisions after the plan
 
-- **23 September 2026 — English only.** The owner wrote: "no need of Hindi, Telugu translations or words, all should be in English; update this in GitHub memory urgently." Recorded in [AGENTS.md](../AGENTS.md) (standing decisions), [PRODUCT_PLAN.md](../PRODUCT_PLAN.md), the delivery ledger, the page plan and the UX plan. Consequence for code: `app/src/main/res/values-hi` and `values-te` are deleted and `localeFilters` is `en` only (branch `claudedev-build-20260923`; measured before deletion: 724 of 759 hi/te entries were verbatim English copies, so devices set to Hindi/Telugu had been seeing a mixed 35-word translation). Nobody should start translation, language-picker or locale-config work.
+- **23 September 2026 — English only.** The owner wrote: "no need of Hindi, Telugu translations or words, all should be in English; update this in GitHub memory urgently." Recorded in [AGENTS.md](../AGENTS.md) (standing decisions), [PRODUCT_PLAN.md](../PRODUCT_PLAN.md), the delivery ledger, the page plan and the UX plan. Consequence for code: `app/src/main/res/values-hi` and `values-te` are deleted and `localeFilters` is `en` only (ported for main on branch `claudedev-english-only-20261007`, see the section at the top; first done on `claudedev-build-20260923`; measured before deletion: 724 of 759 hi/te entries were verbatim English copies, so devices set to Hindi/Telugu had been seeing a mixed 35-word translation). Nobody should start translation, language-picker or locale-config work.
 
 ## Parallel branch: `claudedev-build-20260923` (Claude, opened 23 September 2026)
 
@@ -170,7 +170,7 @@ Based on `main` `70c06420`; pushed to origin under that name; no PR yet. It does
 
 | Slice | Files owned on this branch | Status |
 |---|---|---|
-| English-only resource cleanup | `app/src/main/res/values-hi/**`, `values-te/**` (deleted), `app/build.gradle.kts` `localeFilters` line, `app/src/test/kotlin/com/equipseva/app/i18n/StringsParityTest.kt` (replaced by an English-only guard) | in progress |
+| English-only resource cleanup | `app/src/main/res/values-hi/**`, `values-te/**` (deleted), `app/build.gradle.kts` `localeFilters` line, `app/src/test/kotlin/com/equipseva/app/i18n/StringsParityTest.kt` (replaced by an English-only guard) | superseded on 7 October 2026 by `claudedev-english-only-20261007` |
 | P2.2 client foundation: bundled region catalog reconciliation | `app/src/main/kotlin/com/equipseva/app/core/data/location/**` and its tests only; no UI, schema or RPC change | planned |
 
 Evidence, test counts and reviews for this branch are recorded in its handoff when each slice freezes; nothing here is main integration or release acceptance.
