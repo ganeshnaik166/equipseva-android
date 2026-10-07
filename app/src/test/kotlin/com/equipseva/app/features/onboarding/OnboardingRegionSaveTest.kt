@@ -160,6 +160,31 @@ class OnboardingHomeRegionTest {
         )
         val network = IOException("timeout")
         assertEquals(OnboardingHomeRegion.Outcome.Failed(network), outcomeFor(network))
+        // A signed-out or missing profile is not something to choose again: it fails.
+        assertTrue(outcomeFor(refusal("not_authenticated")) is OnboardingHomeRegion.Outcome.Failed)
+        assertTrue(outcomeFor(refusal("profile_not_found")) is OnboardingHomeRegion.Outcome.Failed)
+    }
+
+    @Test
+    fun `the server's catalogue version is asked for only on a refusal, and a failed check keeps the refusal`() = runTest {
+        suspend fun run(result: Result<HomeRegionSaved>?, status: Result<RegionCatalogStatus>? = null): Pair<OnboardingHomeRegion.Outcome, Int> {
+            val repo = FakeRegionRepository().apply {
+                if (result != null) homeResult = { result }
+                if (status != null) this.status = status
+            }
+            val region = OnboardingHomeRegion(catalogSource(SyntheticRegions.json), repo)
+            region.load()
+            region.selectState("Alpha State")
+            region.selectDistrict("Riverton")
+            return region.save() to repo.statusCalls
+        }
+        assertEquals(0, run(null).second)
+        assertEquals(OnboardingHomeRegion.Outcome.LegacyOnly to 0, run(Result.failure(refusal("region_catalog_version_unsupported"))))
+        assertEquals(OnboardingHomeRegion.Outcome.Refused(RegionWriteError.CodeUnknown) to 1, run(Result.failure(refusal("region_code_unknown"))))
+        assertEquals(
+            OnboardingHomeRegion.Outcome.Refused(RegionWriteError.DistrictRetired) to 1,
+            run(Result.failure(refusal("region_district_retired")), status = Result.failure(IOException("offline"))),
+        )
     }
 }
 
@@ -325,5 +350,87 @@ class OnboardingRegionSaveTest {
         vm.onSubmit()
         assertEquals(listOf(FakeRegionRepository.HomeCall("902", "90202", "synthetic-v2")), regions.homeCalls)
         assertEquals("Hillcrest", profiles.updateBasicInfoCalls.single().district)
+    }
+
+    @Test
+    fun `the engineer screen keeps a refused pick on screen and saves nothing`() = runTest {
+        regions.homeResult = { Result.failure(refusal("region_district_retired")) }
+        val vm = EngineerOnboardingViewModel(auth, profiles, OnboardingHomeRegion(catalogSource(SyntheticRegions.json), regions))
+        vm.state.first { it.stateOptions.size == 2 }
+        vm.onPhoneChange("+919876543210")
+        vm.onStateChange("Beta Territory")
+        vm.onDistrictChange("Hillcrest")
+        vm.onSubmit()
+        assertEquals(OnboardingHomeRegion.REFUSED_MESSAGE, vm.state.value.error)
+        assertFalse(vm.state.value.saving)
+        assertTrue(profiles.updateBasicInfoCalls.isEmpty())
+        assertEquals("Hillcrest", vm.state.value.district)
+    }
+
+    @Test
+    fun `unknown and retired codes are refused through the screen, and a corrected pick then saves`() = runTest {
+        for (code in listOf("region_code_unknown", "region_district_retired")) {
+            regions.homeResult = { Result.failure(refusal(code)) }
+            val vm = hospital(SyntheticRegions.json)
+            vm.state.first { it.stateOptions.size == 2 }
+            val effects = effectsOf(vm)
+            vm.fill("Alpha State", "Riverton")
+            vm.onSubmit()
+            assertEquals(code, OnboardingHomeRegion.REFUSED_MESSAGE, vm.state.value.error)
+            assertTrue(code, profiles.updateBasicInfoCalls.isEmpty())
+
+            regions.homeResult = FakeRegionRepository().homeResult
+            vm.onDistrictChange("Northfield")
+            vm.onSubmit()
+            assertEquals(code, "Northfield", profiles.updateBasicInfoCalls.single().district)
+            assertTrue(code, HospitalOnboardingViewModel.Effect.Done in effects)
+            profiles.updateBasicInfoCalls.clear()
+        }
+    }
+
+    @Test
+    fun `a refusal from a newer server catalogue still completes onboarding with labels`() = runTest {
+        regions.homeResult = { Result.failure(refusal("region_district_retired")) }
+        regions.status = Result.success(RegionCatalogStatus(currentVersion = "synthetic-v3", supportedVersions = listOf("synthetic-v3")))
+        val vm = hospital(SyntheticRegions.json)
+        vm.state.first { it.stateOptions.size == 2 }
+        val effects = effectsOf(vm)
+        vm.fill("Alpha State", "Riverton")
+        vm.onSubmit()
+        assertEquals("Riverton", profiles.updateBasicInfoCalls.single().district)
+        assertTrue(HospitalOnboardingViewModel.Effect.Done in effects)
+    }
+
+    @Test
+    fun `codes saved but the profile save failing keeps the user on the screen, and a retry completes`() = runTest {
+        profiles.updateBasicInfoResult = Result.failure(IOException("Unable to resolve host"))
+        val vm = hospital(SyntheticRegions.json)
+        vm.state.first { it.stateOptions.size == 2 }
+        val effects = effectsOf(vm)
+        vm.fill("Alpha State", "Riverton")
+        vm.onSubmit()
+        assertEquals(1, regions.homeCalls.size)
+        assertTrue(vm.state.value.error != null)
+        assertFalse(vm.state.value.saving)
+        assertFalse(HospitalOnboardingViewModel.Effect.Done in effects)
+
+        profiles.updateBasicInfoResult = null
+        vm.onSubmit()
+        assertEquals("the code save is simply repeated", 2, regions.homeCalls.size)
+        assertEquals(regions.homeCalls[0], regions.homeCalls[1])
+        assertTrue(HospitalOnboardingViewModel.Effect.Done in effects)
+    }
+
+    @Test
+    fun `submitting before the catalogue has loaded saves the labels only`() = runTest {
+        val notYet = RegionCatalogSource(RegionAssetReader { SyntheticRegions.json }, RegionCatalogPolicy(allowSynthetic = true)) { throw AssertionError(it) }
+            .apply { ioDispatcher = StandardTestDispatcher(testScheduler) }
+        val vm = HospitalOnboardingViewModel(auth, profiles, OnboardingHomeRegion(notYet, regions))
+        val effects = effectsOf(vm)
+        vm.fill("Telangana", IndiaLocations.districtsFor("Telangana").first())
+        vm.onSubmit()
+        assertTrue(regions.homeCalls.isEmpty())
+        assertEquals("Telangana", profiles.updateBasicInfoCalls.single().state)
+        assertTrue(HospitalOnboardingViewModel.Effect.Done in effects)
     }
 }

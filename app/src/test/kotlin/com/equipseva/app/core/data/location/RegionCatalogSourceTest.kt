@@ -3,6 +3,9 @@ package com.equipseva.app.core.data.location
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -75,8 +78,28 @@ class BundledRegionAssetTest {
         val files = dir.listFiles()?.filter { it.isFile }.orEmpty()
         files.forEach { f ->
             assertEquals("only ${AndroidRegionAssetReader.ASSET_PATH} may be bundled", "india_regions.json", f.name)
-            val catalog = RegionCatalogParser.parse(f.readText(Charsets.UTF_8))
+            val text = f.readText(Charsets.UTF_8)
+            val catalog = RegionCatalogParser.parse(text)
             assertFalse("a synthetic catalogue must never be bundled", catalog.isSynthetic)
+            // The server must hold exactly this data: an asset regenerated under an unchanged
+            // version label without its seed would make valid picks look like refusals.
+            val digest = Json.parseToJsonElement(text).jsonObject["source"]!!.jsonObject["sha256"]!!.jsonPrimitive.content
+            val seeds = File(module.parentFile, "supabase/migrations")
+                .listFiles { m -> m.name.contains("_region_catalog_seed_") }.orEmpty()
+            assertTrue(
+                "the bundled catalogue ${catalog.version} needs the seed generated from the same snapshot ($digest)",
+                seeds.any { s -> s.readText().let { it.contains("-- Snapshot sha256: $digest.") && it.contains("VALUES ('${catalog.version}',") } },
+            )
         }
+    }
+
+    @Test
+    fun `the seed check recognises the generator's seed header`() {
+        // Pins the two strings the bundled-asset check looks for in a generated seed.
+        val module = listOf(File("app"), File("."), File("../app")).map { it.canonicalFile }.distinct()
+            .single { it.name == "app" && File(it, "build.gradle.kts").isFile }
+        val generator = File(module.parentFile, "scripts/regions/build_region_catalog.mjs").readText()
+        assertTrue(generator.contains("add(`-- Snapshot sha256: \${cat.digest}."))
+        assertTrue(generator.contains("add(`VALUES (\${v}, "))
     }
 }
