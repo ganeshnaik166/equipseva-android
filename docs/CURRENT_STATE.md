@@ -8,9 +8,10 @@ Branch `claudedev-reliability-20261007` is stacked on `claudedev-english-only-20
 
 | Task | Owned files | Status |
 |---|---|---|
-| WP22.T01 request-service submit re-entry guard | `features/hospital/RequestServiceViewModel.kt` (`onSubmit` first line only) and a new `RequestServiceSubmitGuardTest` | in progress |
+| WP22.T01 request-service submit re-entry guard | `features/hospital/RequestServiceViewModel.kt` (`onSubmit` first line only) and a new `RequestServiceSubmitReentryTest` (the plan's named test plus a retry and a success control) | built: RED on the unfixed body **3 tests / 1 failure** (three `create` calls); GREEN **3/0**; full bar **2,992 tests / 351 suites / 0 failures**, lint **0 errors**, debug APK built; reviews pending |
+| WP24.T01 shared validators (phone, PIN, VPA) | `core/util/Validators.kt`, `features/profile/forms/AddressFormScreen.kt` (`validateAddressForm` only), `features/founder/FounderEngineerPayoutsScreen.kt` (`looksLikeVpa` and the UPI pay target), `features/payouts/EngineerPayoutMethodViewModel.kt` (`vpaValid`), `ValidatorsTest`, `AddressFormValidatorTest`, new `VpaValidatorParityTest` | next |
 
-No server, string or screen change. Nothing here is merged.
+No server or string-resource change. Nothing here is merged. PR #1877 (open, 661 files) also touches `Validators.kt` and `AddressFormScreen.kt`; whichever lands second rebases.
 
 ## WP18.T01 English only on main — Claude, 7 October 2026, locally verified; merge needs the owner
 

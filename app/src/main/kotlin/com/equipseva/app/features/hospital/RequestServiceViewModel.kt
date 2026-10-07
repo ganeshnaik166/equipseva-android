@@ -491,6 +491,9 @@ class RequestServiceViewModel @Inject constructor(
     }
 
     fun onSubmit(selectedSlot: Int = -1) {
+        // WP22.T01 — a second tap can arrive before the button recomposes as
+        // disabled; without this it would post a duplicate job.
+        if (_state.value.submitting) return
         val uid = userId
         if (uid == null) {
             _state.update { it.copy(errorMessage = "Sign in again and retry.") }
