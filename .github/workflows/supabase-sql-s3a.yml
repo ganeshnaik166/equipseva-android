@@ -1,6 +1,7 @@
 name: supabase-sql-s3a
 
-# Offline, synthetic PGlite proof for the round3828 service-only grants.
+# Offline, synthetic PGlite proofs: the round3828 service-only grants and the
+# round3830 region catalogue.
 # No linked Supabase project or provider credentials are used.
 on:
   pull_request:
@@ -9,14 +10,16 @@ on:
       - "supabase/migrations/20260723000000_round471_razorpay_webhook_events.sql"
       - "supabase/migrations/20260724000000_round472_payment_verify_events.sql"
       - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
+      - "supabase/migrations/20263915000000_round3830_region_catalog_v1.sql"
       - ".github/workflows/supabase-sql-s3a.yml"
   push:
-    branches: [main, "codex/**"]
+    branches: [main, "codex/**", "claudedev-**"]
     paths:
       - "supabase/tests/**"
       - "supabase/migrations/20260723000000_round471_razorpay_webhook_events.sql"
       - "supabase/migrations/20260724000000_round472_payment_verify_events.sql"
       - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
+      - "supabase/migrations/20263915000000_round3830_region_catalog_v1.sql"
       - ".github/workflows/supabase-sql-s3a.yml"
   workflow_dispatch:
 
@@ -55,3 +58,5 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify service-only money RPC grants
         run: pnpm run test:s3a
+      - name: Verify region catalogue v1
+        run: pnpm run test:regions
