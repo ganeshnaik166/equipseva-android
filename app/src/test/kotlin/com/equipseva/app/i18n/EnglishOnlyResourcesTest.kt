@@ -14,34 +14,40 @@ import javax.xml.parsers.DocumentBuilderFactory
 /**
  * Owner decision, 23 September 2026: application resources are English only.
  * Reconciles the three source guards from a6e58067 with the current checkout,
- * plus script-content/font guards. This scans source, not merged APK resources.
+ * plus script-content/font guards. This scans every source set's res directory,
+ * not merged APK resources (the localeFilters guard covers dependency resources).
  * The catalogue floor prevents a missing or unrelated resource tree passing.
  */
 class EnglishOnlyResourcesTest {
     @Test
-    fun `no locale-qualified values directory exists under res`() {
+    fun `no locale-qualified resource directory exists in any source set`() {
         // UI modes and other Android qualifiers can be short language-like words.
         val ordinary = listOf(
             "values", "values-night", "values-land", "values-v26", "values-sw600dp",
-            "values-tv", "values-car", "values-television", "values-night-land-v26",
+            "values-car", "values-television", "values-night-land-v26",
             "values-mcc310-mnc004-ldrtl-sw600dp-w820dp-h480dp-large-long-round-" +
                 "widecg-highdr-land-car-night-tvdpi-finger-keyshidden-qwerty-navhidden-dpad-v26",
+            "drawable", "drawable-xxxhdpi", "mipmap-anydpi-v26", "font", "xml", "raw-night",
         )
         ordinary.forEach { assertFalse("ordinary qualifier misclassified: $it", isLocaleQualified(it)) }
+        // "tv" is not a UI mode (that is "television"); aapt reads it as a language.
         val localized = listOf(
-            "values-hi", "values-te", "values-en", "values-fil", "values-en-rIN",
+            "values-hi", "values-te", "values-tv", "values-en", "values-fil", "values-en-rIN",
             "values-fr-rFR", "values-b+sr+Latn", "values-b+en+US", "values-night-hi",
             "values-v26-zh-rCN", "values-land-b+en+US", "values-night-en-rGB",
             "values-mcc310-te-rIN", "values-night-rIN", "values-night-unknown",
+            "drawable-hi", "raw-te", "xml-b+te+IN", "mipmap-hi-anydpi-v26", "font-te",
         )
         localized.forEach { assertTrue("locale or unsupported qualifier missed: $it", isLocaleQualified(it)) }
 
-        val resDir = resourceRoot()
-        val children = resDir.listFiles() ?: throw AssertionError("Cannot list ${resDir.absolutePath}")
-        val translated = children.filter { it.isDirectory && isLocaleQualified(it.name) }
-            .map { it.name }.sorted()
+        val module = moduleRoot()
+        val translated = resourceRoots().flatMap { resDir ->
+            (resDir.listFiles() ?: throw AssertionError("Cannot list ${resDir.absolutePath}"))
+                .filter { it.isDirectory && isLocaleQualified(it.name) }
+                .map { it.relativeTo(module).invariantSeparatorsPath }
+        }.sorted()
         assertTrue(
-            "English only: remove locale-qualified or unsupported values directories, found $translated",
+            "English only: remove locale-qualified or unsupported resource directories, found $translated",
             translated.isEmpty(),
         )
     }
@@ -71,7 +77,14 @@ class EnglishOnlyResourcesTest {
             "androidResources { localeFilters += configuredLocales }",
             "androidResources { localeFilters += setOf(\"en\", \"en\") }",
             "androidResources { localeFilters += setOf(\"en\") /* unclosed",
+            // Dead or nested blocks do not configure the filter.
+            "androidResources { if (false) { localeFilters += setOf(\"en\") } }",
+            "androidResources { run { localeFilters += setOf(\"en\") } }",
+            // The deprecated resourceConfigurations filter must not re-add locales.
+            "android { defaultConfig { resourceConfigurations += setOf(\"hi\") }\n" +
+                "androidResources { localeFilters += setOf(\"en\") } }",
         ).forEach { assertFalse("unsafe or missing locale filter accepted: $it", isEnglishOnlyFilter(it)) }
+        assertTrue(isEnglishOnlyFilter("android {\n    androidResources {\n        localeFilters += setOf(\"en\")\n    }\n}"))
 
         resourceRoot()
         val buildScript = File(moduleRoot(), "build.gradle.kts")
@@ -84,29 +97,40 @@ class EnglishOnlyResourcesTest {
 
     @Test
     fun `no Devanagari or Telugu code points in any res xml`() {
-        val resDir = resourceRoot()
-        val files = sourceFiles(resDir).filter { it.extension.equals("xml", ignoreCase = true) }
-        assertTrue("No resource XML found under ${resDir.absolutePath}", files.isNotEmpty())
+        // Literal characters and the \uXXXX escapes aapt decodes into them.
+        listOf("\u0939", "\u0C24", "Pay \\u0939\\u093F", "\\u0c24", "\\u097F").forEach {
+            assertTrue("native script missed: $it", hasNativeScript(it))
+        }
+        // Rupee sign and dashes are English copy; incomplete escapes are not decoded by aapt.
+        listOf("Pay \\u20B9 \\u2014 now", "\u20B9", "u0939", "\\u093", "\\u08FF \\u0980").forEach {
+            assertFalse("non-native text misclassified: $it", hasNativeScript(it))
+        }
+
+        val module = moduleRoot()
+        val files = resourceRoots().flatMap(::sourceFiles).filter { it.extension.equals("xml", ignoreCase = true) }
+        assertTrue("No resource XML found under ${module.absolutePath}", files.isNotEmpty())
         val violations = files.filter { file ->
             // Raw text also includes comments; DOM catches numeric character references.
             val raw = readUtf8(file)
             hasNativeScript(raw) || nodeHasNativeScript(secureXml().parse(file))
-        }.map { it.relativeTo(resDir).invariantSeparatorsPath }
+        }.map { it.relativeTo(module).invariantSeparatorsPath }
         assertTrue("English only: native script in resource XML: $violations", violations.isEmpty())
     }
 
     @Test
     fun `no Devanagari or Telugu font files under res font`() {
-        val resDir = resourceRoot()
-        val fontDir = File(resDir, "font")
+        val fontDir = File(resourceRoot(), "font")
         assertTrue("Missing source font directory: ${fontDir.absolutePath}", fontDir.isDirectory)
-        val fontRoots = (resDir.listFiles() ?: throw AssertionError("Cannot list $resDir"))
-            .filter { it.isDirectory && (it.name == "font" || it.name.startsWith("font-")) }
+        val fontRoots = resourceRoots().flatMap { resDir ->
+            (resDir.listFiles() ?: throw AssertionError("Cannot list $resDir"))
+                .filter { it.isDirectory && (it.name == "font" || it.name.startsWith("font-")) }
+        }
         val fonts = fontRoots.flatMap(::sourceFiles)
         assertTrue("No source font files found under ${fontDir.absolutePath}", fonts.isNotEmpty())
         val forbidden = Regex("devanagari|telugu", RegexOption.IGNORE_CASE)
+        val module = moduleRoot()
         val violations = fonts.filter { forbidden.containsMatchIn(it.name) }
-            .map { it.relativeTo(resDir).invariantSeparatorsPath }.sorted()
+            .map { it.relativeTo(module).invariantSeparatorsPath }.sorted()
         assertTrue("English only: remove script-named font files: $violations", violations.isEmpty())
     }
 
@@ -120,6 +144,17 @@ class EnglishOnlyResourcesTest {
 
     private fun resourceRoot(): File = File(moduleRoot(), "src/main/res").also {
         defaultCatalogue(it)
+    }
+
+    /** The validated main res directory plus every other source set's (debug, release...). */
+    private fun resourceRoots(): List<File> {
+        val main = resourceRoot()
+        val src = File(moduleRoot(), "src")
+        val sourceSets = src.listFiles() ?: throw AssertionError("Cannot list ${src.absolutePath}")
+        val others = sourceSets.filter { it.isDirectory && it.name != "main" }
+            .map { File(it, "res") }.filter { it.isDirectory }
+            .sortedBy { it.invariantSeparatorsPath }
+        return listOf(main) + others
     }
 
     private fun defaultCatalogue(resDir: File) {
@@ -159,9 +194,11 @@ class EnglishOnlyResourcesTest {
         isExpandEntityReferences = false
     }.newDocumentBuilder()
 
-    private fun hasNativeScript(text: String): Boolean = text.any {
-        it.code in 0x0900..0x097f || it.code in 0x0c00..0x0c7f
-    }
+    private fun hasNativeScript(text: String): Boolean = text.any { isNativeScript(it.code) } ||
+        // aapt turns \uXXXX in string resources into the real character at build time.
+        UNICODE_ESCAPE.findAll(text).any { isNativeScript(it.groupValues[1].toInt(16)) }
+
+    private fun isNativeScript(code: Int): Boolean = code in 0x0900..0x097f || code in 0x0c00..0x0c7f
 
     private fun nodeHasNativeScript(node: Node): Boolean {
         if (hasNativeScript(node.nodeValue.orEmpty())) return true
@@ -171,10 +208,10 @@ class EnglishOnlyResourcesTest {
     }
 
     private fun isLocaleQualified(dirName: String): Boolean {
-        if (!dirName.startsWith("values-")) return false
-        // Check every token; locale qualifiers must not hide after night/mcc/etc.
+        // Any resource type (values, drawable, raw, xml, font...) can carry a locale.
+        // Check every qualifier after the type; locales must not hide after night/mcc/etc.
         // Unknown qualifiers fail closed instead of being treated as English.
-        return dirName.removePrefix("values-").split('-').any { qualifier ->
+        return dirName.split('-').drop(1).any { qualifier ->
             qualifier !in NON_LOCALE_QUALIFIERS && !NUMERIC_QUALIFIER.matches(qualifier)
         }
     }
@@ -185,6 +222,7 @@ class EnglishOnlyResourcesTest {
         val tokens = kotlinTokens(source) ?: return false
         val references = tokens.indices.filter { tokens[it].identifier && tokens[it].text == "localeFilters" }
         if (references.size != 1) return false
+        if (tokens.any { it.identifier && it.text == "resourceConfigurations" }) return false
         val start = references.single()
         val scopes = mutableListOf<String?>()
         for (index in 0 until start) {
@@ -193,7 +231,8 @@ class EnglishOnlyResourcesTest {
                 "}" -> if (scopes.isEmpty()) return false else scopes.removeAt(scopes.lastIndex)
             }
         }
-        if ("androidResources" !in scopes) return false
+        // Directly inside androidResources: an if/run/lambda block may never execute.
+        if (scopes.lastOrNull() != "androidResources") return false
         val expected = listOf("localeFilters", "+=", "setOf", "(", "\"en\"", ")")
         if (tokens.drop(start).take(expected.size).map { it.text } != expected) return false
         val end = start + expected.size - 1
@@ -261,11 +300,12 @@ class EnglishOnlyResourcesTest {
     }
 
     private companion object {
+        val UNICODE_ESCAPE = Regex("""\\u([0-9a-fA-F]{4})""")
         val NUMERIC_QUALIFIER = Regex("mcc[0-9]{3}|mnc[0-9]{1,3}|(?:sw|w|h)[0-9]+dp|[0-9]+dpi|[0-9]+x[0-9]+|v[0-9]+")
         val NON_LOCALE_QUALIFIERS = setOf(
             "ldltr", "ldrtl", "small", "normal", "large", "xlarge", "long", "notlong",
             "round", "notround", "widecg", "nowidecg", "highdr", "lowdr", "port", "land",
-            "car", "desk", "television", "tv", "appliance", "watch", "vrheadset", "night", "notnight",
+            "car", "desk", "television", "appliance", "watch", "vrheadset", "night", "notnight",
             "ldpi", "mdpi", "tvdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi", "nodpi", "anydpi",
             "notouch", "finger", "keysexposed", "keyshidden", "keyssoft", "nokeys", "qwerty", "12key",
             "navexposed", "navhidden", "nonav", "dpad", "trackball", "wheel",
