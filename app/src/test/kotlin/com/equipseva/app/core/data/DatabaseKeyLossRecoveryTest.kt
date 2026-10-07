@@ -1,7 +1,13 @@
 package com.equipseva.app.core.data
 
+import com.equipseva.app.core.data.secure.DbPassphraseStore
+import com.equipseva.app.core.data.secure.FakeSealer
 import java.io.File
+import javax.crypto.AEADBadTagException
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -79,6 +85,63 @@ class DatabaseKeyLossRecoveryTest {
         writePlain()
         assertEquals(DatabaseFilesPrep.PlainTextRemoved, prepareDatabaseFiles(db, mintedFresh = false))
         assertEquals(emptyList<String>(), existing())
+    }
+
+    // ---- the order provideDatabase runs: unseal or mint, record, discard, then store ----
+
+    private val sealedFile get() = File(tmp.root, DbPassphraseStore.SEALED_FILE)
+    private val stash get() = File(tmp.root, "photo-outbox")
+    private val original = ByteArray(32) { it.toByte() }
+
+    private fun sealOriginal() = sealedFile.writeBytes(FakeSealer.MARKER + original)
+
+    @Test
+    fun `after a key loss the notice is recorded first, the old files go, and only then the new key is stored`() {
+        sealOriginal()
+        writeEncrypted()
+        File(stash, "job-1.jpg").apply { parentFile!!.mkdirs(); writeBytes(ByteArray(10)) }
+        val seenAtRecord = mutableListOf<Pair<List<String>, Boolean>>()
+
+        val (bytes, prep) = passphraseForDatabase(
+            store = DbPassphraseStore(tmp.root, FakeSealer(AEADBadTagException("tag"))),
+            database = db,
+            photoStash = stash,
+            markReset = { seenAtRecord += existing() to sealedFile.readBytes().contentEquals(FakeSealer.MARKER + original) },
+        )
+
+        assertEquals(DatabaseFilesPrep.DiscardedAfterKeyLoss, prep)
+        assertEquals(
+            "recorded once, while the old database and the old sealed copy were both still there",
+            listOf(listOf("equipseva.db", "equipseva.db-wal", "equipseva.db-shm") to true),
+            seenAtRecord,
+        )
+        assertEquals(emptyList<String>(), existing())
+        assertFalse("the orphaned photo stash goes with the outbox", stash.exists())
+        assertArrayEquals("the new key is stored", FakeSealer.MARKER + bytes, sealedFile.readBytes())
+    }
+
+    @Test
+    fun `a healthy start changes nothing`() {
+        sealOriginal()
+        writeEncrypted()
+        File(stash, "job-1.jpg").apply { parentFile!!.mkdirs(); writeBytes(ByteArray(10)) }
+        var records = 0
+        val (bytes, prep) = passphraseForDatabase(DbPassphraseStore(tmp.root, FakeSealer()), db, stash) { records++ }
+        assertEquals(DatabaseFilesPrep.Unchanged, prep)
+        assertArrayEquals(original, bytes)
+        assertEquals(0, records)
+        assertEquals(listOf("equipseva.db", "equipseva.db-wal", "equipseva.db-shm"), existing())
+        assertTrue(File(stash, "job-1.jpg").exists())
+        assertArrayEquals(FakeSealer.MARKER + original, sealedFile.readBytes())
+    }
+
+    @Test
+    fun `a first install stores a key and records nothing`() {
+        var records = 0
+        val (bytes, prep) = passphraseForDatabase(DbPassphraseStore(tmp.root, FakeSealer()), db, stash) { records++ }
+        assertEquals(DatabaseFilesPrep.Unchanged, prep)
+        assertEquals(0, records)
+        assertArrayEquals(FakeSealer.MARKER + bytes, sealedFile.readBytes())
     }
 
     @Test

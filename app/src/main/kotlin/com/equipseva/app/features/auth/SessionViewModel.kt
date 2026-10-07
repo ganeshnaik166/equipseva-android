@@ -43,7 +43,7 @@ class SessionViewModel @Inject constructor(
 
     /**
      * WP22.T03 — true until the one-time "offline changes could not be
-     * recovered" notice has been shown after the local database had to be
+     * recovered" notice has been dismissed after the local database had to be
      * discarded (its Keystore key was lost).
      */
     val localDataResetPending: StateFlow<Boolean> = localDataReset.pending

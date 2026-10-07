@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * One-time notice that the encrypted local database had to be discarded because its Keystore
  * key was lost, so offline changes that had not synced yet are gone. The flag is written
- * synchronously when the files are discarded and stays set until the notice has been shown,
+ * synchronously before the files are discarded and stays set until the user dismisses the notice,
  * so a process death in between shows it again on the next launch.
  */
 @Singleton

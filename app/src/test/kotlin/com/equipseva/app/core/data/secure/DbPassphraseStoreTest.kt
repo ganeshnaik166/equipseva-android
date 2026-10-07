@@ -29,20 +29,6 @@ import org.robolectric.annotation.Config
 class DbPassphraseStoreTest {
     @get:Rule val tmp = TemporaryFolder()
 
-    /** Seals by prefixing a marker; unseal answers from [unsealScript] first, then decodes. */
-    private class FakeSealer(vararg unsealScript: Throwable) : PassphraseSealer {
-        val script = ArrayDeque(unsealScript.toList())
-        var unsealCalls = 0
-        override fun seal(plain: ByteArray): ByteArray = MARKER + plain
-        override fun unseal(sealed: ByteArray): ByteArray {
-            unsealCalls++
-            script.removeFirstOrNull()?.let { throw it }
-            require(sealed.size > MARKER.size && sealed.copyOfRange(0, MARKER.size).contentEquals(MARKER))
-            return sealed.copyOfRange(MARKER.size, sealed.size)
-        }
-        companion object { val MARKER = "sealed:".toByteArray() }
-    }
-
     private val sealedFile get() = File(tmp.root, DbPassphraseStore.SEALED_FILE)
     private val strikesFile get() = File(tmp.root, DbPassphraseStore.STRIKES_FILE)
     private val original = ByteArray(32) { it.toByte() }
@@ -52,12 +38,15 @@ class DbPassphraseStoreTest {
 
     @Test
     fun `first run mints a passphrase and seals it on commit`() {
-        val p = store(FakeSealer()).getOrCreate()
+        val sealer = FakeSealer()
+        val p = store(sealer).getOrCreate()
         assertTrue(p.mintedFresh)
         assertEquals(32, p.bytes.size)
         assertFalse("nothing is stored before commit", sealedFile.exists())
+        assertEquals("a first run has no key to discard", 0, sealer.discards)
         p.commit()
         assertArrayEquals(FakeSealer.MARKER + p.bytes, sealedFile.readBytes())
+        assertFalse(File(tmp.root, "${DbPassphraseStore.SEALED_FILE}.tmp").exists())
     }
 
     @Test
@@ -71,12 +60,11 @@ class DbPassphraseStoreTest {
     }
 
     @Test
-    fun `a permanent unseal failure mints a fresh passphrase and a new sealed file`() {
+    fun `a clearly permanent unseal failure mints under a fresh key without a retry`() {
         listOf(
             AEADBadTagException("tag mismatch"),
             KeyPermanentlyInvalidatedException(),
-            UnrecoverableKeyException("gone"),
-            IllegalArgumentException("bad base-64"),
+            CorruptSealedPassphrase("bad base-64"),
             ProviderException("keystore", KeyPermanentlyInvalidatedException()),
         ).forEach { failure ->
             sealOriginal()
@@ -85,9 +73,39 @@ class DbPassphraseStoreTest {
             assertTrue("$failure", p.mintedFresh)
             assertFalse("$failure", p.bytes.contentEquals(original))
             assertEquals("$failure is not retried", 1, sealer.unsealCalls)
+            assertEquals("$failure: the old key is discarded", 1, sealer.discards)
             assertArrayEquals("$failure: the old copy stays until commit", FakeSealer.MARKER + original, sealedFile.readBytes())
             p.commit()
             assertArrayEquals("$failure", FakeSealer.MARKER + p.bytes, sealedFile.readBytes())
+        }
+    }
+
+    @Test
+    fun `a broken key entry that also fails sealing is discarded, so the app recovers`() {
+        // On Android an unreadable or invalidated key entry fails getKey/init for sealing too.
+        sealOriginal()
+        val sealer = FakeSealer(KeyPermanentlyInvalidatedException(), brokenKey = true)
+        val p = store(sealer).getOrCreate()
+        assertTrue(p.mintedFresh)
+        assertEquals(1, sealer.discards)
+        p.commit()
+        assertArrayEquals(FakeSealer.MARKER + p.bytes, sealedFile.readBytes())
+    }
+
+    @Test
+    fun `an unrecognised failure is retried once, then treated as permanent`() {
+        listOf(UnrecoverableKeyException("Failed to obtain information about key"), IllegalStateException("unknown")).forEach { failure ->
+            sealOriginal()
+            val sealer = FakeSealer(failure, failure)
+            val p = store(sealer).getOrCreate()
+            assertTrue("$failure", p.mintedFresh)
+            assertEquals("$failure", 2, sealer.unsealCalls)
+            assertEquals("$failure", 1, sealer.discards)
+
+            sealOriginal()
+            val recovered = FakeSealer(failure)
+            assertFalse("$failure clearing on the retry keeps the key", store(recovered).getOrCreate().mintedFresh)
+            assertEquals(0, recovered.discards)
         }
     }
 
@@ -102,30 +120,35 @@ class DbPassphraseStoreTest {
     }
 
     @Test
-    fun `a transient Keystore failure followed by success keeps the sealed file`() {
+    fun `a transient Keystore failure followed by success keeps the sealed file and clears strikes`() {
         listOf(KeyStoreException("busy"), ProviderException("keystore restarting")).forEach { failure ->
             sealOriginal()
+            strikesFile.writeText("1")
             val sealer = FakeSealer(failure)
             val p = store(sealer).getOrCreate()
             assertFalse("$failure", p.mintedFresh)
             assertArrayEquals("$failure", original, p.bytes)
             assertArrayEquals("$failure", FakeSealer.MARKER + original, sealedFile.readBytes())
             assertEquals("$failure", 2, sealer.unsealCalls)
+            assertEquals("$failure", 0, sealer.discards)
+            assertFalse("$failure: a success clears earlier strikes", strikesFile.exists())
         }
     }
 
     @Test
-    fun `a Keystore that stays down throws and keeps the database key, until the third launch`() {
+    fun `a Keystore that stays down throws and keeps everything, until the third attempt`() {
         sealOriginal()
-        repeat(DbPassphraseStore.MAX_TRANSIENT_STRIKES - 1) { launch ->
-            assertThrows(ProviderException::class.java) {
-                store(FakeSealer(ProviderException("down"), ProviderException("down"))).getOrCreate()
-            }
-            assertArrayEquals("launch $launch", FakeSealer.MARKER + original, sealedFile.readBytes())
-            assertEquals("${launch + 1}", strikesFile.readText())
+        repeat(DbPassphraseStore.MAX_TRANSIENT_STRIKES - 1) { attempt ->
+            val sealer = FakeSealer(ProviderException("down"), ProviderException("down"))
+            assertThrows(ProviderException::class.java) { store(sealer).getOrCreate() }
+            assertEquals(0, sealer.discards)
+            assertArrayEquals("attempt $attempt", FakeSealer.MARKER + original, sealedFile.readBytes())
+            assertEquals("${attempt + 1}", strikesFile.readText())
         }
-        val p = store(FakeSealer(ProviderException("down"), ProviderException("down"))).getOrCreate()
+        val sealer = FakeSealer(ProviderException("down"), ProviderException("down"))
+        val p = store(sealer).getOrCreate()
         assertTrue(p.mintedFresh)
+        assertEquals(1, sealer.discards)
         p.commit()
         assertFalse(strikesFile.exists())
     }
@@ -143,12 +166,12 @@ class DbPassphraseStoreTest {
     }
 
     @Test
-    fun `the real sealer treats a corrupt or empty file as permanent before touching the Keystore`() {
+    fun `the real sealer reports a corrupt or short file as corrupt before touching the Keystore`() {
         val sealer = KeystorePassphraseSealer()
         listOf("not base64 !!".toByteArray(), ByteArray(0), "AQ==".toByteArray()).forEach { bytes ->
             val error = runCatching { sealer.unseal(bytes) }.exceptionOrNull()
-            assertTrue("${error?.javaClass}", error is IllegalArgumentException)
-            assertFalse(DbPassphraseStore.isTransient(error!!))
+            assertTrue("${error?.javaClass}", error is CorruptSealedPassphrase)
+            assertTrue(DbPassphraseStore.isPermanent(error!!))
         }
     }
 
@@ -158,6 +181,40 @@ class DbPassphraseStoreTest {
         assertTrue(DbPassphraseStore.isTransient(ProviderException("restarting")))
         assertTrue(DbPassphraseStore.isTransient(RuntimeException("wrap", ProviderException("restarting"))))
         assertFalse(DbPassphraseStore.isTransient(ProviderException("x", AEADBadTagException("tag"))))
+        assertFalse(DbPassphraseStore.isTransient(UnrecoverableKeyException("gone")))
         assertFalse(DbPassphraseStore.isTransient(IllegalStateException("unknown")))
+        assertTrue(DbPassphraseStore.isPermanent(ProviderException("x", KeyPermanentlyInvalidatedException())))
+        assertFalse(DbPassphraseStore.isPermanent(UnrecoverableKeyException("gone")))
     }
+}
+
+/**
+ * Seals by prefixing a marker; unseal answers from [unsealScript] first, then decodes. With
+ * [brokenKey], sealing fails like a broken Keystore entry until [discardKey] is called.
+ */
+internal class FakeSealer(vararg unsealScript: Throwable, private var brokenKey: Boolean = false) : PassphraseSealer {
+    private val script = ArrayDeque(unsealScript.toList())
+    var unsealCalls = 0
+    var discards = 0
+
+    override fun seal(plain: ByteArray): ByteArray {
+        if (brokenKey) throw UnrecoverableKeyException("Failed to obtain information about key")
+        return MARKER + plain
+    }
+
+    override fun unseal(sealed: ByteArray): ByteArray {
+        unsealCalls++
+        script.removeFirstOrNull()?.let { throw it }
+        if (sealed.size <= MARKER.size || !sealed.copyOfRange(0, MARKER.size).contentEquals(MARKER)) {
+            throw CorruptSealedPassphrase("not sealed by the fake")
+        }
+        return sealed.copyOfRange(MARKER.size, sealed.size)
+    }
+
+    override fun discardKey() {
+        discards++
+        brokenKey = false
+    }
+
+    companion object { val MARKER = "sealed:".toByteArray() }
 }
