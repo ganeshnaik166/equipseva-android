@@ -492,7 +492,8 @@ class RequestServiceViewModel @Inject constructor(
 
     fun onSubmit(selectedSlot: Int = -1) {
         // WP22.T01 — a second tap can arrive before the button recomposes as
-        // disabled; without this it would post a duplicate job.
+        // disabled; without this it would post a duplicate job. Main thread
+        // only: nothing suspends between this check and `submitting = true`.
         if (_state.value.submitting) return
         val uid = userId
         if (uid == null) {

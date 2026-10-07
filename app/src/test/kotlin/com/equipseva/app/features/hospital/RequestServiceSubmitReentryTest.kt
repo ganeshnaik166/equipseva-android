@@ -34,7 +34,9 @@ import org.junit.Test
 /**
  * WP22.T01 (SYNC-10): a second tap on Submit while the first request is still in flight must not
  * post a second job. The screen's canSubmit guard is not enough on its own: two taps can land
- * before the button recomposes as disabled.
+ * before the button recomposes as disabled. The named test also adds a third tap while the post
+ * is suspended. Duplicates from a retry after a lost response, process death or a missed
+ * Submitted effect need the server-side idempotency key (WP22.T07) and are not covered here.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RequestServiceSubmitReentryTest {
@@ -105,6 +107,55 @@ class RequestServiceSubmitReentryTest {
         vm.onSubmit(selectedSlot = 0)
         advanceUntilIdle()
         coVerify(exactly = 2) { jobs.create(any()) }
+    }
+
+    @Test
+    fun onSubmit_whileInFlight_changesNothing() = runTest(dispatcher) {
+        // Pins the guard before validation: a tap during the post must not surface form errors.
+        val firstCallMayFinish = CompletableDeferred<Unit>()
+        val jobs = mockk<RepairJobRepository>(relaxed = true)
+        coEvery { jobs.create(any()) } coAnswers {
+            firstCallMayFinish.await()
+            Result.failure<RepairJob>(IOException("Unable to resolve host"))
+        }
+        val vm = viewModel(jobs)
+        advanceUntilIdle()
+
+        vm.onSubmit(selectedSlot = 0)
+        runCurrent()
+        val inFlight = vm.state.value
+        vm.onSubmit(selectedSlot = -1)
+        vm.onIssueChange("short")
+        vm.onSubmit(selectedSlot = 0)
+        runCurrent()
+
+        assertNull(vm.state.value.errorMessage)
+        assertNull(vm.state.value.issueError)
+        assertEquals(inFlight.copy(issue = "short"), vm.state.value)
+        coVerify(exactly = 1) { jobs.create(any()) }
+        firstCallMayFinish.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun onSubmit_doubleTapThatSucceeds_postsOnceAndNavigatesOnce() = runTest(dispatcher) {
+        val job = mockk<RepairJob> {
+            every { id } returns "job-1"
+            every { jobNumber } returns "RJ-0001"
+        }
+        val jobs = mockk<RepairJobRepository>(relaxed = true)
+        coEvery { jobs.create(any()) } returns Result.success(job)
+        val vm = viewModel(jobs)
+        val effects = mutableListOf<RequestServiceViewModel.Effect>()
+        backgroundScope.launch { vm.effects.collect { effects += it } }
+        advanceUntilIdle()
+
+        vm.onSubmit(selectedSlot = 0)
+        vm.onSubmit(selectedSlot = 0)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { jobs.create(any()) }
+        assertEquals(1, effects.count { it is RequestServiceViewModel.Effect.Submitted })
     }
 
     @Test
