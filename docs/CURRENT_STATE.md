@@ -2,6 +2,16 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## Reliability fixes (WP22.T01 first) — Claude, 7 October 2026, in progress
+
+Branch `claudedev-reliability-20261007` is stacked on `claudedev-english-only-20261007` (`d8f85fcf`); worktree `C:/Users/lokes/equipseva-reliability`. Small, independent client fixes from the plan's ready list, each test-first, with the full bar, then critic and QA:
+
+| Task | Owned files | Status |
+|---|---|---|
+| WP22.T01 request-service submit re-entry guard | `features/hospital/RequestServiceViewModel.kt` (`onSubmit` first line only) and a new `RequestServiceSubmitGuardTest` | in progress |
+
+No server, string or screen change. Nothing here is merged.
+
 ## WP18.T01 English only on main — Claude, 7 October 2026, locally verified; merge needs the owner
 
 Owner decision of 23 September 2026 (English only) is still not on main: `values-hi`/`values-te`, `StringsParityTest` and `localeFilters += setOf("en", "hi", "te")` remain at main `49c163eb`. Branch `claudedev-english-only-20261007` ports only the English-only source commits — Claude's original `a6e58067`, as re-prepared test-first by Codex on 1 October with five guards (test file and build script byte-identical to that candidate) — and then closes the gaps the critic found in the guards. It is the first task of the programme because every later change that adds or edits strings depends on it. [Handoff](HANDOFF_WP18_T01_ENGLISH_ONLY_2026-10-07.md).
