@@ -7,10 +7,12 @@ import org.junit.Test
 
 /**
  * Pins the user-address form validator. India-only flow — the pincode
- * is exactly 6 ASCII digits (the cascading city/state picker is wired
- * to Indian states). The previous 4..10 window was too loose and let
- * international postal codes through to the AddressRepository which
- * couldn't actually deliver to them; pin the tight gate.
+ * is exactly 6 ASCII digits not starting with 0, and the phone is an
+ * Indian mobile number, both by the shared rules in Validators (the
+ * cascading city/state picker is wired to Indian states). The previous
+ * 4..10 window was too loose and let international postal codes through
+ * to the AddressRepository which couldn't actually deliver to them; pin
+ * the tight gate.
  */
 class AddressFormValidatorTest {
 
@@ -149,7 +151,7 @@ class AddressFormValidatorTest {
     }
 
     @Test fun `phone must be an Indian mobile number`() {
-        val error = "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+        val error = "Enter a 10-digit mobile number starting with 6, 7, 8, or 9."
         assertEquals(error, validateAddressForm(form(phone = "12345")))
         assertEquals(error, validateAddressForm(form(phone = "+914012345678")))
         assertEquals(error, validateAddressForm(form(phone = "04023456789")))
@@ -164,7 +166,7 @@ class AddressFormValidatorTest {
             validateAddressForm(form(fullName = "", phone = "12345")),
         )
         assertEquals(
-            "Enter a 10-digit mobile number starting with 6, 7, 8 or 9.",
+            "Enter a 10-digit mobile number starting with 6, 7, 8, or 9.",
             validateAddressForm(form(phone = "12345", pincode = "012345")),
         )
     }

@@ -31,6 +31,8 @@ class VpaValidatorParityTest {
             val shared = Validators.vpaIsValid(x)
             assertEquals("looksLikeVpa(\"$x\")", shared, looksLikeVpa(x))
             assertEquals("vpaValid(\"$x\")", shared, EngineerPayoutMethodViewModel.vpaValid(x))
+            // The founder screen decides "Pay via UPI" through upiPayTarget.
+            assertEquals("upiPayTarget(\"$x\")", shared, upiPayTarget(x) != null)
         }
     }
 

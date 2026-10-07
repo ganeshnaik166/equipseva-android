@@ -310,7 +310,7 @@ fun AddressFormScreen(
             FormField(state.form.fullName, "Full name") { v ->
                 viewModel.update { it.copy(fullName = v.take(200)) }
             }
-            FormField(state.form.phone, "Phone", keyboardType = KeyboardType.Phone) { v ->
+            FormField(state.form.phone, "Mobile number", keyboardType = KeyboardType.Phone) { v ->
                 // ASCII-digit filter (Kotlin's Char.isDigit() also accepts
                 // Devanagari/Arabic digits and the DB ends up storing
                 // non-ASCII strings). At most one leading '+' so callers
@@ -411,9 +411,10 @@ fun AddressFormScreen(
             // so the user sees the button as disabled instead of tapping
             // through to a generic "fields are required" toast.
             val f = state.form
-            // VM.save() rejects anything other than exactly 6 digits (India-only
-            // flow). The earlier 4..10 window let the button look enabled for
-            // a 4-digit pincode and only failed at submit-time toast.
+            // This is the shape check only: 6 ASCII digits and a non-blank phone.
+            // The finer rules (an Indian mobile number, no leading 0 in the
+            // pincode) are left to validateAddressForm on Save, which names the
+            // exact problem instead of leaving the button silently disabled.
             val canSave = f.fullName.isNotBlank() && f.phone.isNotBlank() &&
                 f.line1.isNotBlank() && f.city.isNotBlank() &&
                 f.state.isNotBlank() &&
@@ -527,12 +528,11 @@ internal fun validateAddressForm(f: AddressFormViewModel.Form): String? {
         return "Name, phone, line 1, city, state, pincode are required."
     }
     if (Validators.indiaMobileError(f.phone) != null) {
-        return "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+        return "Enter a 10-digit mobile number starting with 6, 7, 8, or 9."
     }
     val pincode = f.pincode.trim()
     if (Validators.pincodeError(pincode) != null) {
-        val sixDigits = pincode.length == 6 && pincode.all { it in '0'..'9' }
-        return if (sixDigits) "Pincode can't start with 0." else "Pincode must be 6 digits."
+        return if (pincode.startsWith('0')) "Pincode can't start with 0." else "Pincode must be 6 digits."
     }
     return null
 }

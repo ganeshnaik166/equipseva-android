@@ -61,7 +61,8 @@ object Validators {
     /**
      * The national digits (ASCII only) of a freely typed Indian mobile number. "91" is read as
      * the country code only after a '+' or when exactly 12 digits were typed, so a bare
-     * 10-digit number that itself starts with 91 keeps all its digits (WP24.T01).
+     * 10-digit number that itself starts with 91 keeps all its digits; otherwise all the
+     * ASCII digits are returned (WP24.T01).
      */
     fun indiaMobileNationalDigits(value: String): String {
         val trimmed = value.trim()
@@ -73,6 +74,8 @@ object Validators {
     /** Empty = not required at this layer; non-empty must match the India mobile shape. */
     fun indiaMobileError(value: String): String? {
         if (value.isBlank()) return null
+        // Other scripts' digits would be invisible to the ASCII count and stored as typed.
+        if (value.any { it.isDigit() && it !in '0'..'9' }) return "Use the digits 0 to 9 only"
         val digits = indiaMobileNationalDigits(value)
         if (digits.length != 10) return "Enter 10 digits"
         if (!INDIA_MOBILE_DIGITS.matches(digits)) return "Indian mobile must start with 6, 7, 8, or 9"

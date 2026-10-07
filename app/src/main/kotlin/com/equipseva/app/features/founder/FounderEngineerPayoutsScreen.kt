@@ -897,7 +897,7 @@ private fun DestinationActionRow(
         return
     }
     val upiVpa = upiPayTarget(destination)
-    val isUpi = upiVpa != null
+    val shown = upiVpa ?: destination
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -908,7 +908,7 @@ private fun DestinationActionRow(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            if (isUpi) stringResource(R.string.founder_payouts_upi_prefix, destination) else destination,
+            if (upiVpa != null) stringResource(R.string.founder_payouts_upi_prefix, upiVpa) else destination,
             fontSize = 14.sp,
             color = SevaInk900,
             fontWeight = FontWeight.SemiBold,
@@ -916,7 +916,7 @@ private fun DestinationActionRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EsBtn(
                 text = "Copy",
-                onClick = { copyToClipboard(context, destination, "EquipSeva destination") },
+                onClick = { copyToClipboard(context, shown, "EquipSeva destination") },
                 kind = EsBtnKind.Secondary,
             )
             if (upiVpa != null) {
@@ -943,7 +943,7 @@ private fun DestinationActionRow(
 internal fun looksLikeVpa(s: String): Boolean = Validators.vpaIsValid(s)
 
 /** The UPI ID to pay, trimmed, when [destination] is one; null for bank labels and free text. */
-internal fun upiPayTarget(destination: String): String? = destination.trim().takeIf(Validators::vpaIsValid)
+internal fun upiPayTarget(destination: String): String? = destination.trim().takeIf(::looksLikeVpa)
 
 /**
  * UPI deeplink per NPCI spec: upi://pay?pa=<vpa>&pn=<name>&am=<amount>&cu=INR&tn=<note>
