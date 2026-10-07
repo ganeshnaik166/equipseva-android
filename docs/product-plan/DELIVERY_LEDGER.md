@@ -98,3 +98,12 @@ Planning reviews assess completeness, feasibility, source reconciliation, threat
 Independent [critic](reviews/CRITIC.md) **9.5/10** and [QA](reviews/QA.md) **9.6/10** accepted the bounded plan on 19 September 2026. Their reports pin the reviewed requirement content and explain that subsequent publication metadata is not an implementation review. Resolved findings include canonical stage IDs, consistent team navigation, explicit hospital-site scopes, personal-engineer ownership without organisation subscription, one subscription-access state contract, local-only launch demo, realistic offline revocation and human tasks for all four personas.
 
 The PDF overview is a separate rendered summary of this plan; it requires visual inspection and is not included in those agents' documentation scores. Publication is recorded in [PUBLICATION.md](PUBLICATION.md); no app candidate, production schema, paid entitlement or map-removal rollout is accepted by publishing these documents.
+
+## Public website (separate from app completion)
+
+| Slice | Implementation/evidence | Delivery status |
+|---|---|---|
+| WEB-H01 — 3D homepage | Source `41cdeec4`; independent critic 9.5 / QA 9.6; 34 browser checks, 4 text-spacing checks, 0 axe violations; [handoff](../HANDOFF_HOMEPAGE_2026-10-07.md) | PR1911 pending final-head checks, main and live verification; does not advance app release acceptance |
+
+
+WEB-H01 superseding checkpoint, 7 October: immersive source `4ac9253a` is **WIP / owner stopped**, QA65/86 and unresolved gates; earlier9.5/9.6scores do not apply. [Stop handoff](../HANDOFF_HOMEPAGE_IMMERSIVE_WIP_2026-10-07.md). No deployment.

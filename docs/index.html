@@ -1,0 +1,246 @@
+---
+layout: null
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b1714" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests"
+    />
+    <title>EquipSeva — Care is a connection.</title>
+    <meta
+      name="description"
+      content="An interactive journey into better-connected medical-equipment service. For hospitals, biomedical engineers and engineering teams across India. In development."
+    />
+    <link rel="canonical" href="https://equipseva.com/" />
+    <meta property="og:title" content="EquipSeva — Care is a connection." />
+    <meta
+      property="og:description"
+      content="Meet the people behind every working hospital. A new connection for medical-equipment care in India."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://equipseva.com/" />
+    <link rel="icon" type="image/svg+xml" href="/assets/homepage/logo.svg" />
+    <link
+      rel="preload"
+      href="/assets/homepage/fonts/space_grotesk_variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/assets/homepage/home.css" />
+    <script type="module" src="/assets/homepage/scene.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#story">Skip to the story</a>
+    <div class="world" aria-hidden="true">
+      <div class="world-glow"></div>
+      <img
+        class="world-fallback"
+        src="/assets/homepage/sculpture.svg"
+        alt=""
+        width="800"
+        height="800"
+      /><canvas id="care-scene"></canvas>
+      <div class="vignette"></div>
+    </div>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="header">
+      <a class="brand" href="#beginning" aria-label="EquipSeva beginning"
+        ><img
+          src="/assets/homepage/logo.svg"
+          width="34"
+          height="34"
+          alt=""
+        /><span>equip<strong>seva</strong></span></a
+      >
+      <nav class="chapter-track" aria-label="Story chapters">
+        <a
+          href="#beginning"
+          aria-label="Chapter 1: The connection"
+          aria-current="location"
+          ><span>01</span></a
+        ><a href="#hospitals" aria-label="Chapter 2: Hospitals"
+          ><span>02</span></a
+        ><a href="#engineers" aria-label="Chapter 3: Engineers"
+          ><span>03</span></a
+        ><a href="#teams" aria-label="Chapter 4: Teams"><span>04</span></a
+        ><a href="#connect" aria-label="Chapter 5: Connect"><span>05</span></a>
+      </nav>
+      <span class="development"><i></i> IN DEVELOPMENT</span>
+    </header>
+    <div class="experience-controls">
+      <button id="sound-toggle" type="button" aria-pressed="false" hidden>
+        <span class="sound-bars" aria-hidden="true"
+          ><i></i><i></i><i></i><i></i></span
+        ><span class="sound-label">Sound off</span></button
+      ><button id="motion-toggle" type="button" aria-pressed="false" hidden>
+        <span aria-hidden="true" class="motion-icon">Ⅱ</span
+        ><span class="motion-label">Pause motion</span>
+      </button>
+    </div>
+    <aside class="scene-caption" aria-hidden="true">
+      <span>ES / CARE CONNECTION</span
+      ><span class="scene-index">001 — THE BEGINNING</span>
+    </aside>
+    <main id="story">
+      <section
+        class="chapter beginning"
+        id="beginning"
+        aria-labelledby="hero-title"
+      >
+        <div class="chapter-inner">
+          <p class="eyebrow">
+            <span class="spark">✳</span> BEHIND EVERY WORKING HOSPITAL
+          </p>
+          <h1 id="hero-title">Care is a<br /><em>connection.</em></h1>
+          <p class="chapter-copy">
+            Between the equipment that matters.<br />And the people who keep it
+            working.
+          </p>
+          <a class="explore" href="#hospitals"
+            >SCROLL TO DISCOVER <span aria-hidden="true">↓</span></a
+          >
+        </div>
+        <span class="chapter-watermark" aria-hidden="true">equipseva</span>
+      </section>
+      <section
+        class="chapter hospitals"
+        id="hospitals"
+        aria-labelledby="hospitals-title"
+      >
+        <div class="chapter-inner">
+          <p class="eyebrow">01 / FOR HOSPITALS</p>
+          <h2 id="hospitals-title">
+            Behind a machine.<br /><em>A life in motion.</em>
+          </h2>
+          <p class="chapter-copy">
+            Equipment issues shouldn't leave you chasing answers.<br />We're
+            building a clearer connection to biomedical expertise.
+          </p>
+          <p class="chapter-detail">FOR HOSPITAL OWNERS & MANAGERS</p>
+          <a class="text-link" href="#connect"
+            >Discuss your hospital's needs <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+      <section
+        class="chapter engineers"
+        id="engineers"
+        aria-labelledby="engineers-title"
+      >
+        <div class="chapter-inner">
+          <p class="eyebrow">02 / FOR BIOMEDICAL ENGINEERS</p>
+          <h2 id="engineers-title">
+            Expert hands.<br /><em>Extraordinary impact.</em>
+          </h2>
+          <p class="chapter-copy">
+            Your skill keeps care moving.<br />Connect with service needs in the
+            places you work.
+          </p>
+          <p class="chapter-detail">
+            YOUR STATE. YOUR DISTRICT. YOUR EXPERTISE.
+          </p>
+          <a class="text-link" href="#connect"
+            >Talk about engineer access <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+      <section class="chapter teams" id="teams" aria-labelledby="teams-title">
+        <div class="chapter-inner">
+          <p class="eyebrow">03 / FOR ENGINEERING TEAMS</p>
+          <h2 id="teams-title">Great work.<br /><em>Connected people.</em></h2>
+          <p class="chapter-copy">
+            Bring engineers and service work into one shared view.<br />Built
+            for organisations that keep hospitals running.
+          </p>
+          <p class="chapter-detail">
+            TEAM WORKSPACES, SUBSCRIPTIONS & DEMOS ARE PLANNED
+          </p>
+          <a class="text-link" href="#connect"
+            >Discuss your team <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+      <section
+        class="chapter connection"
+        id="connect"
+        aria-labelledby="connect-title"
+      >
+        <div class="chapter-inner">
+          <p class="eyebrow">THE NEXT CHAPTER STARTS WITH YOU</p>
+          <h2 id="connect-title">
+            Better connected.<br /><em>Better equipped.</em>
+          </h2>
+          <p class="chapter-copy">
+            Hospital, biomedical engineer or team lead?<br />Help shape a better
+            service experience for India.
+          </p>
+          <a class="contact-button" href="mailto:support@equipseva.com"
+            >Talk to EquipSeva <span aria-hidden="true">↗</span></a
+          >
+          <p class="access-note">
+            In development. Registration and demos are not available here
+            yet.<br />The contact button opens your email app.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <a class="brand" href="#beginning" aria-label="Back to beginning"
+        >equip<strong>seva</strong></a
+      >
+      <p>Medical equipment. Human expertise. Better connected.</p>
+      <nav aria-label="Legal">
+        <a href="/privacy/">Privacy</a><a href="/terms/">Terms</a
+        ><a href="/refunds/">Refunds</a
+        ><a href="mailto:security@equipseva.com">Security contact</a>
+      </nav>
+      <span>© 2026 EquipSeva · Made for India.</span
+      ><span class="audio-credit">Original visuals & ambient score.</span>
+    </footer>
+    <div class="dock">
+      <a href="#beginning" class="dock-orb" aria-label="Back to beginning"
+        ><span aria-hidden="true">✳</span></a
+      ><a class="dock-cta" href="#connect"
+        ><span>Find your connection</span><span aria-hidden="true">↗</span></a
+      ><button
+        type="button"
+        class="menu-toggle"
+        aria-expanded="false"
+        aria-controls="chapter-menu"
+        aria-label="Open chapter menu"
+        hidden
+      >
+        <span></span><span></span></button
+      ><a class="no-script-menu" href="#hospitals">Explore ↓</a>
+    </div>
+    <nav
+      id="chapter-menu"
+      class="chapter-menu"
+      aria-label="Explore EquipSeva"
+      hidden
+    >
+      <p class="eyebrow">FIND YOUR CONNECTION</p>
+      <a href="#beginning"
+        ><span>01</span>The beginning <i aria-hidden="true">↗</i></a
+      ><a href="#hospitals"
+        ><span>02</span>For hospitals <i aria-hidden="true">↗</i></a
+      ><a href="#engineers"
+        ><span>03</span>For engineers <i aria-hidden="true">↗</i></a
+      ><a href="#teams"><span>04</span>For teams <i aria-hidden="true">↗</i></a
+      ><a href="#connect"
+        ><span>05</span>Let's connect <i aria-hidden="true">↗</i></a
+      >
+      <p class="menu-note">
+        A new connection for medical-equipment care.<br />Designed for the
+        states and districts of India.
+      </p>
+    </nav>
+  </body>
+</html>
