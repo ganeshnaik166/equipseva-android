@@ -61,6 +61,10 @@ data class MyRegionProfile(
     @SerialName("legacy_preview") val legacyPreview: LegacyPreview? = null,
     @SerialName("is_engineer") val isEngineer: Boolean = false,
     @SerialName("service_districts") val serviceDistricts: List<ServiceDistrict> = emptyList(),
+    /** `engineer` (chosen in the app), `legacy_backfill` (derived from old text) or `none`. */
+    @SerialName("service_source") val serviceSource: String = "none",
+    /** An engineer-chosen set whose service-area text was later edited by an older app version. */
+    @SerialName("service_stale") val serviceStale: Boolean = false,
     @SerialName("current_catalog_version") val currentCatalogVersion: String? = null,
 ) {
     @Serializable

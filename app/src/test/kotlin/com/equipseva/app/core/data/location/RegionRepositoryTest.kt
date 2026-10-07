@@ -53,8 +53,11 @@ class RegionRepositoryTest {
                "home_stale":true,"legacy_state_label":"Alpha State","legacy_district_label":"Riverton",
                "legacy_preview":{"status":"resolved","state_code":"901","district_code":"90102","reason":null,"candidate_codes":["90102"],"catalog_version":"synthetic-v2"},
                "is_engineer":true,"service_districts":[{"district_code":"90101","catalog_version":"synthetic-v2","source":"legacy_backfill"}],
+               "service_source":"legacy_backfill","service_stale":false,
                "current_catalog_version":"synthetic-v2"}""",
         )
+        assertEquals("legacy_backfill", coded.serviceSource)
+        assertFalse(coded.serviceStale)
         assertTrue(coded.home!!.isResolved)
         assertTrue(coded.homeStale)
         assertEquals("90102", coded.legacyPreview!!.districtCode)
@@ -63,9 +66,10 @@ class RegionRepositoryTest {
         val legacyOnly = json.decodeFromString<MyRegionProfile>(
             """{"home":null,"home_stale":false,"legacy_state_label":"Alpha State","legacy_district_label":"Lakeside",
                "legacy_preview":{"status":"needs_confirmation","state_code":"901","district_code":null,"reason":"ambiguous","candidate_codes":["90104","90105"],"catalog_version":"synthetic-v2"},
-               "is_engineer":false,"service_districts":[],"current_catalog_version":"synthetic-v2"}""",
+               "is_engineer":false,"service_districts":[],"service_source":"none","service_stale":false,"current_catalog_version":"synthetic-v2"}""",
         )
         assertNull(legacyOnly.home)
+        assertEquals("none", legacyOnly.serviceSource)
         assertEquals("ambiguous", legacyOnly.legacyPreview!!.reason)
         assertEquals("Lakeside", legacyOnly.legacyDistrictLabel)
 
