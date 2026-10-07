@@ -16,7 +16,7 @@
 
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -105,6 +105,20 @@ await property('snapshot rules refuse bad input, never repair it', async () => {
   refuses(variant(v2, (f, p) => { p.text = p.text.replace('- retrieved_on: 2026-06-01', '- retrieved_on: 1 June 2026'); }), /retrieved_on must be a real YYYY-MM-DD date/);
   refuses(variant(v2, (f, p) => { p.text = p.text.replace('- version: synthetic-v2', '- version: Synthetic V2'); }), /invalid version/);
   refuses(variant(v2, (f, p) => { p.text = p.text.replace('- synthetic: true', '- synthetic: maybe'); }), /synthetic must be true or false/);
+  // Duplicated provenance lines are refused instead of "last one wins".
+  refuses(variant(v2, (f, p) => { p.text += '- version: synthetic-v9\n'; }), /more than one "- version:" line/);
+  refuses(variant(v2, (f, p) => { p.text += `${p.text.match(/^- sha256 states\.csv: .*$/m)[0]}\n`; }), /more than one sha256 line for states\.csv/);
+  // Every file is required, so a missing aliases.csv can never withdraw the server's aliases...
+  refuses(variant(v2, (f, p) => { f['aliases.csv'] = null; p.text = p.text.replace(/^- sha256 aliases\.csv: .*\n/m, ''); }), /aliases\.csv is missing/);
+  // ...and a misspelled file name is refused rather than ignored.
+  const misspelled = variant(v2, () => {});
+  writeFileSync(path.join(misspelled, 'retired_district.csv'), 'code,state_code,name,replaced_by\n');
+  refuses(misspelled, /unexpected file retired_district\.csv/);
+  // A row holding only "" is a row with one empty field, not a blank line.
+  refuses(variant(v2, (f) => { f['districts.csv'] += '""\n'; }), /row 8 has 1 fields/);
+  // Letters the device, the server and this script would lower-case differently.
+  refuses(variant(v2, (f) => { f['districts.csv'] += `90199,901,${String.fromCodePoint(0x130)}stanbul\n`; }), /unsupported character U\+0130/);
+  refuses(variant(v2, (f) => { f['states.csv'] += `909,${String.fromCodePoint(0x3a3)}OFO${String.fromCodePoint(0x3a3)},state\n`; }), /unsupported character U\+03A3/);
 });
 
 await property('quoted fields, CRLF files and a byte-order mark are read exactly', async () => {
@@ -113,13 +127,47 @@ await property('quoted fields, CRLF files and a byte-order mark are read exactly
   assert.equal(gen.sha256('a\r\nb\n'), gen.sha256('a\nb\n'), 'checksums ignore CRLF versus LF');
 });
 
+// The path guard is exercised in a throwaway copy of the repository layout, so a regression in
+// it can never leave synthetic data in this working tree.
+const SHIPPING_DIRS = ['app/src/main/assets', 'app/src/release/assets', 'app/src/debug/assets', 'supabase/migrations'];
+function fakeRepo() {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'region-repo-'));
+  cpSync(path.join(repo, 'scripts/regions'), path.join(root, 'scripts/regions'), { recursive: true });
+  for (const d of SHIPPING_DIRS) mkdirSync(path.join(root, d), { recursive: true });
+  return root;
+}
+const shippedFiles = (root) => SHIPPING_DIRS.flatMap((d) => readdirSync(path.join(root, d), { recursive: true }));
+
 await property('synthetic catalogues can never be written where they would ship', async () => {
-  const snapshot = path.join(fixtures, 'synthetic-v2');
-  assert.throws(() => gen.build({ snapshot, jsonOut: path.join(repo, 'app/src/main/assets/regions/india_regions.json') }), /shipped asset path/);
-  for (const sqlOut of ['supabase/migrations', 'supabase/migrations/x.sql']) {
-    assert.throws(() => gen.build({ snapshot, sqlOut: path.join(repo, sqlOut), migrationVersion: '20263999000000', round: '9999' }), /supabase\/migrations/);
-  }
-  assert.throws(() => gen.build({ snapshot, sqlOut: os.tmpdir(), migrationVersion: '2026', round: '1' }), /14 digits/);
+  const root = fakeRepo();
+  try {
+    const snapshot = path.join(root, 'scripts/regions/fixtures/synthetic-v2');
+    for (const set of ['main', 'release', 'debug']) {
+      assert.throws(() => gen.build({ snapshot, jsonOut: path.join(root, `app/src/${set}/assets/regions/india_regions.json`) }), /shipped asset path/);
+    }
+    for (const sqlOut of ['supabase/migrations', 'supabase/migrations/x.sql']) {
+      assert.throws(() => gen.build({ snapshot, sqlOut: path.join(root, sqlOut), migrationVersion: '20263999000000', round: '9999' }), /supabase\/migrations/);
+    }
+    assert.deepEqual(shippedFiles(root), [], 'nothing was written to a shipping path');
+    assert.throws(() => gen.build({ snapshot, sqlOut: os.tmpdir(), migrationVersion: '2026', round: '1' }), /14 digits/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+await property('the --hash lines printed for an Excel CSV (byte-order mark, CRLF) are the ones the build accepts', async () => {
+  const dir = variant('synthetic-v2', () => {});
+  try {
+    const bom = String.fromCharCode(0xfeff);
+    for (const f of ['states.csv', 'districts.csv', 'aliases.csv']) {
+      writeFileSync(path.join(dir, f), bom + lf(read(path.join(dir, f))).replace(/\n/g, '\r\n'));
+    }
+    const printed = execFileSync(process.execPath, [path.join(repo, 'scripts/regions/build_region_catalog.mjs'), '--hash', dir],
+      { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }).toString();
+    const kept = lf(read(path.join(dir, 'PROVENANCE.md'))).split('\n').filter((l) => !l.startsWith('- sha256 '));
+    writeFileSync(path.join(dir, 'PROVENANCE.md'), [...kept, ...lf(printed).trim().split('\n')].join('\n') + '\n');
+    const fromExcel = gen.loadSnapshot(dir);
+    const plain = gen.loadSnapshot(path.join(fixtures, 'synthetic-v2'));
+    for (const k of ['states', 'districts', 'retiredDistricts', 'aliases']) assert.deepEqual(fromExcel[k], plain[k], k);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 await property('the generated synthetic-v2 asset is the Android test fixture, byte for byte', async () => {
@@ -234,7 +282,8 @@ await property('labels normalise exactly like the server: ASCII whitespace only'
 });
 
 await property('no current directory, path form or partial run lets synthetic data reach a shipping path', async () => {
-  const script = path.join(repo, 'scripts/regions/build_region_catalog.mjs');
+  const root = fakeRepo();
+  const script = path.join(root, 'scripts/regions/build_region_catalog.mjs');
   const node = process.execPath;
   const run = (cwd, args) => {
     try {
@@ -242,13 +291,14 @@ await property('no current directory, path form or partial run lets synthetic da
       return 0;
     } catch (e) { return e.status ?? 1; }
   };
-  // From scripts/regions with relative paths into this repository.
-  const regionsDir = path.join(repo, 'scripts/regions');
+  // From scripts/regions of a copy of the repository, with relative paths into it.
+  const regionsDir = path.join(root, 'scripts/regions');
   assert.equal(run(regionsDir, ['--snapshot', 'fixtures/synthetic-v2', '--json-out', '../../app/src/main/assets/regions/india_regions.json']), 1);
+  assert.equal(run(regionsDir, ['--snapshot', 'fixtures/synthetic-v2', '--json-out', '../../app/src/release/assets/regions/india_regions.json']), 1);
   assert.equal(run(regionsDir, ['--snapshot', 'fixtures/synthetic-v2', '--json-out', path.join(os.tmpdir(), 'r.json'),
     '--sql-out', '../../supabase/migrations', '--migration-version', '20263999000000', '--round', '9999']), 1);
-  assert.equal(existsSync(path.join(repo, 'app/src/main/assets/regions')), false, 'nothing was written to the asset path');
-  assert.equal(readdirSync(path.join(repo, 'supabase/migrations')).some((f) => f.includes('region_catalog_seed_synthetic')), false);
+  assert.deepEqual(shippedFiles(root), [], 'nothing was written to a shipping path');
+  rmSync(root, { recursive: true, force: true });
   // Any repository's shipping paths are refused by path segment.
   const elsewhere = mkdtempSync(path.join(os.tmpdir(), 'region-elsewhere-'));
   const snapshot = path.join(fixtures, 'synthetic-v2');
@@ -326,6 +376,26 @@ await property('a seed refuses different data under an existing version label', 
   await assert.rejects(() => db3.exec(sneaky), /synthetic-v2: this version already exists with different data/);
   await db3.exec('ROLLBACK');
   assert.equal((await one(db3, "SELECT name_en FROM public.region_districts WHERE code = '90202'")).name_en, 'Hillcrest');
+});
+
+await property('names and aliases holding quote characters or two dollar signs seed safely', async () => {
+  const db3 = await atV2();
+  const dollar = '$' + '$';
+  const seed3 = seedOf((f, p) => {
+    asV3(p);
+    // The second alias holds the default tag itself, so the seed must pick another one.
+    f['aliases.csv'] += `901,lake${dollar}side,90104,common_spelling\n901,the $seed$ end,90105,common_spelling\n`;
+    // A function replacement: a replacement string would turn the two dollar signs into one.
+    f['districts.csv'] = f['districts.csv'].replace('90202,902,Hillcrest', () => `90202,902,"Hill's ${dollar}crest"`);
+  }, '9997');
+  await db3.exec(seed3);
+  await db3.exec(seed3);
+  const cand = async (st, label) => (await db3.query('SELECT public.region_district_candidates($1, $2) AS c', [st, label])).rows[0].c;
+  assert.deepEqual(await cand('901', `Lake${dollar}side`), ['90104']);
+  assert.deepEqual(await cand('901', 'The $seed$ End'), ['90105']);
+  assert.ok(seed3.includes('DO $seed1$'), 'the seed chose a tag no alias contains');
+  assert.equal((await one(db3, "SELECT name_en FROM public.region_districts WHERE code = '90202'")).name_en, `Hill's ${dollar}crest`);
+  assert.equal((await one(db3, 'SELECT public.region_current_version() AS v')).v, 'synthetic-v3');
 });
 
 await property('renames that swap or reuse names apply in one seed', async () => {

@@ -22,20 +22,21 @@ The script refuses to write a synthetic snapshot to the shipped asset path or to
 
 1. **Get the data.** Obtain the district list from the Local Government Directory (lgdirectory.gov.in) or another source the owner approves. Record its URL, retrieval date and licence or attribution terms.
 2. **Create the folder.** Make `data/regions/<version>/`, for example `data/regions/lgd-2026-10-15/`. The version must match `^[a-z0-9][a-z0-9._-]{2,63}$`.
-3. **Write the CSVs.** All files are UTF-8, with a header row, and fields are quoted only when they contain a comma or quote.
+3. **Write the CSVs.** All five files are required, UTF-8 (a byte-order mark, as Excel writes, is fine), with a header row; for an empty list keep just the header row. Fields are quoted only when they contain a comma or quote. No other `.csv` file may be in the folder.
 
    | File | Columns | Notes |
    |---|---|---|
    | `states.csv` | `code,name,kind` | Active States/UTs. `kind` is `state` or `union_territory`; codes are 1–3 digits |
    | `districts.csv` | `code,state_code,name` | Active districts; codes are 1–6 digits. Names are 1–64 characters and unique within a State/UT |
-   | `retired_states.csv` | `code,name,kind` | Optional |
-   | `retired_districts.csv` | `code,state_code,name,replaced_by` | Optional. `replaced_by` lists codes separated by `;` |
-   | `aliases.csv` | `state_code,alias,district_code,kind` | Optional. `alias` is stored normalised: lower case, single spaces. `kind` is `official`, `legacy_bundled`, `renamed` or `common_spelling` |
+   | `retired_states.csv` | `code,name,kind` | Header only when there are none |
+   | `retired_districts.csv` | `code,state_code,name,replaced_by` | Header only when there are none. `replaced_by` lists codes separated by `;` |
+   | `aliases.csv` | `state_code,alias,district_code,kind` | Header only when there are none (a missing file is refused, because the seed makes the server's alias set equal to this file). `alias` is stored normalised: lower case, single spaces. `kind` is `official`, `legacy_bundled`, `renamed` or `common_spelling` |
 
    Rules for the data:
    - A rename keeps its code: change the name and add a `renamed` alias for the old one.
    - A district that moves to another State/UT keeps its code: list it under the new State/UT and move its aliases too. The seed moves the stored codes with it.
    - Names are compared after lower-casing and collapsing ASCII whitespace only. A non-breaking space is a different character, so clean such characters out of the source data.
+   - Names and aliases may use printable ASCII and the Latin-1 letters only: other letters (for example a dotted capital I or a Greek sigma) are lower-cased differently by the device and the server, so the build refuses them.
    - A split or merger retires the old code with `replaced_by`.
    - Never invent codes.
    - Add aliases only for exact, reviewed spellings. The `legacy_bundled` aliases come from names the old app saved.

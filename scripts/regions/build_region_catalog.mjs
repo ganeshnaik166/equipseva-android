@@ -16,11 +16,12 @@
 //                          UTF-8 text with CRLF normalised to LF)
 //   states.csv             code,name,kind                       (active States/UTs)
 //   districts.csv          code,state_code,name                 (active districts)
-//   retired_states.csv     code,name,kind                       (optional)
-//   retired_districts.csv  code,state_code,name,replaced_by     (optional; replaced_by
-//                                                                 is ';'-separated)
-//   aliases.csv            state_code,alias,district_code,kind  (optional; alias stored
-//                                                                 normalised)
+//   retired_states.csv     code,name,kind                       (header only when none)
+//   retired_districts.csv  code,state_code,name,replaced_by     (header only when none;
+//                                                                 replaced_by is ';'-separated)
+//   aliases.csv            state_code,alias,district_code,kind  (header only when none;
+//                                                                 alias stored normalised)
+// All five files are required and no other CSV file may be in the folder.
 //
 // Every rule the server and the device enforce is checked here first; any problem
 // stops the build with a message. Nothing is repaired, guessed or fuzzily matched.
@@ -33,7 +34,7 @@
 //   node scripts/regions/build_region_catalog.mjs --hash <dir>   (prints sha256 lines)
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,7 +46,6 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const KINDS = new Set(['state', 'union_territory']);
 const ALIAS_KINDS = new Set(['official', 'legacy_bundled', 'renamed', 'common_spelling']);
 const CSV_FILES = ['states.csv', 'districts.csv', 'retired_states.csv', 'retired_districts.csv', 'aliases.csv'];
-const REQUIRED_FILES = new Set(['states.csv', 'districts.csv']);
 const HEADERS = {
   'states.csv': ['code', 'name', 'kind'],
   'districts.csv': ['code', 'state_code', 'name'],
@@ -74,11 +74,13 @@ export const sha256 = (text) => createHash('sha256').update(lf(text), 'utf8').di
 /** Minimal RFC 4180 reader: quoted fields, doubled quotes, LF or CRLF rows. */
 export function parseCsv(text, file) {
   const rows = [];
-  let row = [], field = '', i = 0, quoted = false, closed = false;
+  const blank = []; // only a line with no characters at all is skipped, never one holding ""
+  let row = [], field = '', i = 0, quoted = false, closed = false, content = false;
   const raw = lf(text);
   const src = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw; // drop a UTF-8 byte-order mark
   while (i < src.length) {
     const c = src[i];
+    if (!(c === '\n' && !quoted)) content = true;
     if (quoted) {
       if (c === '"') {
         if (src[i + 1] === '"') { field += '"'; i += 2; continue; }
@@ -87,7 +89,10 @@ export function parseCsv(text, file) {
       field += c; i++; continue;
     }
     if (c === ',') { row.push(field); field = ''; closed = false; i++; continue; }
-    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; closed = false; i++; continue; }
+    if (c === '\n') {
+      row.push(field); rows.push(row); blank.push(!content);
+      row = []; field = ''; closed = false; content = false; i++; continue;
+    }
     // Anything between a closing quote and the next separator is refused, never joined on.
     if (closed) fail(`${file}: text after a closing quote in row ${rows.length + 1}`);
     if (c === '"') {
@@ -97,8 +102,8 @@ export function parseCsv(text, file) {
     field += c; i++;
   }
   if (quoted) fail(`${file}: unterminated quote`);
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  const nonEmpty = rows.filter((r) => !(r.length === 1 && r[0] === ''));
+  if (content) { row.push(field); rows.push(row); blank.push(false); }
+  const nonEmpty = rows.filter((r, n) => !blank[n]);
   if (!nonEmpty.length) fail(`${file}: empty`);
   const [header, ...body] = nonEmpty;
   const expected = HEADERS[file];
@@ -113,9 +118,16 @@ export function parseProvenance(text) {
   const out = { sha256: {} };
   for (const line of lf(text).split('\n')) {
     const hash = /^- sha256 ([a-z_]+\.csv): ([0-9a-f]{64})\s*$/.exec(line);
-    if (hash) { out.sha256[hash[1]] = hash[2]; continue; }
+    if (hash) {
+      if (hash[1] in out.sha256) fail(`PROVENANCE.md: more than one sha256 line for ${hash[1]}`);
+      out.sha256[hash[1]] = hash[2];
+      continue;
+    }
     const kv = /^- (version|source_url|retrieved_on|licence|synthetic): (.+?)\s*$/.exec(line);
-    if (kv) out[kv[1]] = kv[2];
+    if (kv) {
+      if (kv[1] in out) fail(`PROVENANCE.md: more than one "- ${kv[1]}:" line`);
+      out[kv[1]] = kv[2];
+    }
   }
   for (const key of ['version', 'source_url', 'retrieved_on', 'licence', 'synthetic']) {
     if (!out[key]) fail(`PROVENANCE.md: missing "- ${key}: ..."`);
@@ -147,10 +159,26 @@ export function isCalendarDate(text) {
 // differently, and nothing legitimate needs them in a place name.
 const CONTROL_OR_FORMAT = /[\p{Cc}\p{Cf}]/u;
 
+/**
+ * The first character outside printable ASCII and the Latin-1 letters, or null. Only these are
+ * lowercased identically by the device (Kotlin), the server (PostgreSQL lower()) and this
+ * script; letters such as U+0130 or a final sigma are not, and LGD English names never need them.
+ */
+export function unsupportedChar(text) {
+  for (const ch of text) {
+    const c = ch.codePointAt(0);
+    const ok = (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff && c !== 0xd7 && c !== 0xf7);
+    if (!ok) return `U+${c.toString(16).toUpperCase().padStart(4, '0')}`;
+  }
+  return null;
+}
+
 function checkName(name, what) {
   if (typeof name !== 'string' || name.length < 1 || name.length > 64 || name.trim() !== name || CONTROL_OR_FORMAT.test(name)) {
     fail(`invalid name for ${what}: ${JSON.stringify(name)}`);
   }
+  const bad = unsupportedChar(name);
+  if (bad) fail(`unsupported character ${bad} in the name for ${what}`);
 }
 
 /** Reads a file as strict UTF-8; a file in another encoding is refused, never guessed. */
@@ -168,14 +196,17 @@ export function loadSnapshot(dir) {
   const provPath = path.join(dir, 'PROVENANCE.md');
   if (!existsSync(provPath)) fail(`${dir}: PROVENANCE.md is missing`);
   const prov = parseProvenance(readUtf8(provPath, 'PROVENANCE.md'));
+  // Every file must be present (a header-only file for an empty list): a missing or misspelled
+  // aliases.csv would otherwise make the seed withdraw every alias on the server.
+  for (const name of readdirSync(dir)) {
+    if (name.toLowerCase().endsWith('.csv') && !CSV_FILES.includes(name)) fail(`${dir}: unexpected file ${name}`);
+  }
   const data = {};
   for (const file of CSV_FILES) {
     const p = path.join(dir, file);
     if (!existsSync(p)) {
-      if (REQUIRED_FILES.has(file)) fail(`${dir}: ${file} is missing`);
       if (prov.sha256[file]) fail(`PROVENANCE.md lists ${file}, which is missing`);
-      data[file] = [];
-      continue;
+      fail(`${dir}: ${file} is missing (use a file with only the header line for an empty list)`);
     }
     const text = readUtf8(p, file);
     if (!prov.sha256[file]) fail(`PROVENANCE.md has no sha256 for ${file}`);
@@ -254,6 +285,8 @@ export function validate(prov, data) {
     if (a.alias.length < 1 || a.alias.length > 64 || normalizeLabel(a.alias) !== a.alias || CONTROL_OR_FORMAT.test(a.alias)) {
       fail(`alias "${a.alias}" is not stored normalised`);
     }
+    const bad = unsupportedChar(a.alias);
+    if (bad) fail(`unsupported character ${bad} in alias "${a.alias}"`);
     if (!ALIAS_KINDS.has(a.kind)) fail(`invalid alias kind "${a.kind}"`);
     const target = activeDistricts.get(a.district_code);
     if (!target || target.state_code !== a.state_code) {
@@ -302,6 +335,8 @@ export function toAssetJson(cat) {
   return JSON.stringify(asset, null, 2) + '\n';
 }
 
+// Placeholder for the DO blocks' dollar-quote tag; a NUL can never be part of a validated name.
+const DQ = String.fromCharCode(0) + 'DQ' + String.fromCharCode(0);
 const q = (v) => (v == null ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
 const arr = (list) => `ARRAY[${list.map(q).join(', ')}]::text[]`;
 
@@ -335,7 +370,7 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add();
   add('-- Refuse before changing anything: different data under an existing version label, or a');
   add('-- retirement the snapshot does not list (for example a truncated export).');
-  add('DO $$');
+  add(`DO ${DQ}`);
   add('DECLARE');
   add('  v_unlisted text[];');
   add('BEGIN');
@@ -352,7 +387,7 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add('  IF v_unlisted IS NOT NULL THEN');
   add(`    RAISE EXCEPTION 'region seed ${cat.version}: States/UTs would be retired without being listed in retired_states.csv: %', v_unlisted USING ERRCODE = 'P0001';`);
   add('  END IF;');
-  add('END $$;');
+  add(`END ${DQ};`);
   add();
   add('INSERT INTO public.region_catalog_versions (version, source_url, retrieved_on, sha256, is_current, accepts_writes, is_synthetic)');
   add(`VALUES (${v}, ${q(cat.source.url)}, DATE ${q(cat.source.retrieved_on)}, ${digest}, false, true, ${cat.synthetic})`);
@@ -400,7 +435,7 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add(`UPDATE public.region_catalog_versions SET is_current = false WHERE is_current AND version <> ${v};`);
   add(`UPDATE public.region_catalog_versions SET is_current = true, accepts_writes = true WHERE version = ${v};`);
   add();
-  add('DO $$');
+  add(`DO ${DQ}`);
   add('DECLARE');
   add('  v_bad text[] := ARRAY[]::text[];');
   add('BEGIN');
@@ -438,10 +473,15 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add('  IF array_length(v_bad, 1) IS NOT NULL THEN');
   add(`    RAISE EXCEPTION 'region seed ${cat.version}: not as intended: %', v_bad USING ERRCODE = 'P0001';`);
   add('  END IF;');
-  add('END $$;');
+  add(`END ${DQ};`);
   add();
   add('COMMIT;');
-  return lines.join('\n') + '\n';
+  // The DO blocks embed names and aliases, so their dollar-quote tag must be one that no text
+  // in this snapshot contains (an alias may legally contain two dollar signs).
+  const sql = lines.join('\n') + '\n';
+  let tag = '$seed$';
+  for (let n = 1; sql.includes(tag); n++) tag = `$seed${n}$`;
+  return sql.split(DQ).join(tag);
 }
 
 /** The repository this script lives in, whatever the current directory is. */
@@ -463,13 +503,14 @@ function realish(p) {
 }
 
 /**
- * Whether [p] is a place synthetic data must never reach: any module's src/main/assets, or
- * supabase/migrations — matched by path segment after resolving links, so neither the current
- * directory nor a junction can get around it.
+ * Whether [p] is a place synthetic data must never reach: any module's src/<source set>/assets,
+ * or supabase/migrations — matched by path segment after resolving links, so neither the
+ * current directory nor a junction can get around it.
  */
 export function isShippingPath(p) {
   const segments = `/${realish(p).split(path.sep).join('/').toLowerCase()}/`;
-  return segments.includes('/src/main/assets/') || segments.includes('/supabase/migrations/');
+  // Assets of any source set ship in some build (main, release, debug, flavours).
+  return /\/src\/[^/]+\/assets\//.test(segments) || segments.includes('/supabase/migrations/');
 }
 
 export function seedFileName(cat, { migrationVersion, round }) {
@@ -519,9 +560,11 @@ function cli(argv) {
     i++;
   }
   if (args.hash) {
+    // Decoded exactly as loadSnapshot decodes (strict UTF-8, byte-order mark dropped), so the
+    // printed lines always match what the build checks.
     for (const file of CSV_FILES) {
       const p = path.join(args.hash, file);
-      if (existsSync(p)) console.log(`- sha256 ${file}: ${sha256(readFileSync(p, 'utf8'))}`);
+      if (existsSync(p)) console.log(`- sha256 ${file}: ${sha256(readUtf8(p, file))}`);
     }
     return;
   }

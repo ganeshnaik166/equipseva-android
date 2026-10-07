@@ -29,6 +29,7 @@
 
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -455,6 +456,13 @@ const PROPERTIES = [
     // An alias to a retired district is allowed in history but never resolves.
     await db.query("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'lake old', '90103', 'legacy_bundled')");
     assert.deepEqual((await one(db, "SELECT public.region_district_candidates('901', 'Lake Old') AS c")).c, []);
+    // ...but the legacy resolver treats it like the retired name: replacements are suggested.
+    const pair = (s, d) => one(db, 'SELECT status, reason, candidate_codes FROM public.region_resolve_legacy_pair($1, $2)', [s, d]);
+    assert.deepEqual(await pair('Alpha State', 'Lake Old'), { status: 'needs_confirmation', reason: 'retired', candidate_codes: ['90104', '90105'] });
+    // A replacement that cannot be chosen (its State/UT is retired) is never suggested.
+    await db.query("INSERT INTO public.region_districts (code, state_code, name_en, active, retired_in, replaced_by) VALUES ('90107', '901', 'Southmoor', false, $1, '{90101,90401}')", [V2]);
+    assert.deepEqual(await pair('Alpha State', 'Southmoor'), { status: 'needs_confirmation', reason: 'retired', candidate_codes: ['90101'] });
+    await db.query("DELETE FROM public.region_districts WHERE code = '90107'");
     assert.deepEqual((await one(db, "SELECT public.region_district_candidates('904', 'Eastgate') AS c")).c, [], 'a retired State/UT resolves nothing');
     assert.deepEqual((await one(db, "SELECT public.region_district_candidates('901', 'Old Riverton') AS c")).c, ['90102']);
   } },
@@ -551,10 +559,12 @@ const PROPERTIES = [
     assert.deepEqual([westmoor.status, westmoor.district_code], ['needs_confirmation', null]);
     assert.deepEqual((await items(userId(35), 'profile_home')).map((i) => [i.reason, i.candidates]), [['retired', ['90101', '90102']]]);
 
-    // A resolving text closes its items as resolved, not superseded.
+    // New text that resolves closes the item for the old text as superseded, as for engineer
+    // labels; 'resolved' is kept for an item whose own text now resolves.
     await db.query("UPDATE public.profiles SET district = 'Northfield' WHERE id = $1", [userId(35)]);
     await backfill();
-    assert.deepEqual((await items(userId(35), 'profile_home')).map((i) => i.status), ['resolved']);
+    assert.deepEqual((await items(userId(35), 'profile_home')).map((i) => i.status), ['superseded']);
+    assert.equal((await homeRow(db, userId(35))).district_code, '90101');
 
     // Service text naming a retired district gets the same 'retired' suggestion as home text.
     await addEngineer(db, 36, { profileState: null, kycState: 'Alpha State', areas: ['Westmoor', 'Northfield'] });
@@ -627,7 +637,12 @@ const PROPERTIES = [
     await addEngineer(db, 50, { profileState: null, kycState: 'Alpha State', areas: ['Nowhere Fifty', 'Riverton'] });
     // An engineer whose text fully resolves: only the version re-stamp can change its rows.
     await addEngineer(db, 52, { profileState: null, kycState: 'Alpha State', areas: ['Northfield'] });
+    // An over-cap engineer: its single too_many item must follow the version too.
+    await addEngineer(db, 53, { profileState: null, kycState: 'Alpha State', areas: MANY_NAMES });
     await backfill();
+    const tooMany = async () => one(db, `SELECT catalog_version FROM public.region_resolution_queue
+                                          WHERE subject_user_id = $1 AND reason = 'too_many' AND status = 'open'`, [userId(53)]);
+    assert.equal((await tooMany()).catalog_version, V2);
 
     // Only the spelling of the scope State/UT changes: the item follows the text.
     await db.query("UPDATE public.engineers SET state = 'ALPHA STATE' WHERE id = $1", [engId(50)]);
@@ -649,6 +664,9 @@ const PROPERTIES = [
       assert.equal((await homeRow(db, U.leg(4))).catalog_version, 'synthetic-v3');
       // An open profile item for unchanged, still-unresolved text moves to the new version too.
       assert.equal((await one(db, "SELECT catalog_version FROM public.region_resolution_queue WHERE subject_user_id = $1 AND status = 'open'", [U.leg(7)])).catalog_version, 'synthetic-v3');
+      assert.equal((await tooMany()).catalog_version, 'synthetic-v3', 'the too_many item is re-stamped');
+      const settled = await backfill();
+      assert.equal(settled.queue_rows_updated, 0, 'and then it is current');
     } finally {
       await db.query("UPDATE public.region_catalog_versions SET is_current = false WHERE is_current");
       await db.query(`UPDATE public.region_catalog_versions SET is_current = true WHERE version = '${V2}'`);
@@ -668,6 +686,15 @@ const PROPERTIES = [
       assert.deepEqual(after.service_districts.map((d) => [d.district_code, d.active]), [['90101', true], ['90202', false]]);
     } finally {
       await db.query("UPDATE public.region_districts SET active = true, retired_in = NULL WHERE code = '90202'");
+    }
+    // Retiring the State/UT alone (district row still active) flags the choice as well.
+    await db.query("UPDATE public.region_states SET active = false, retired_in = $1 WHERE code = '902'", [V2]);
+    try {
+      const after = (await asUser(db, userId(51), MY_REGION)).rows[0].r;
+      assert.equal(after.home.district_active, false);
+      assert.deepEqual(after.service_districts.map((d) => [d.district_code, d.active]), [['90101', true], ['90202', false]]);
+    } finally {
+      await db.query("UPDATE public.region_states SET active = true, retired_in = NULL WHERE code = '902'");
     }
   } },
 
@@ -742,6 +769,49 @@ const PROPERTIES = [
       }
     }
     await db.exec(selfCheck);
+  } },
+  { kind: 'new-only', name: 'text of any length is queued without blocking anyone else, and profile items close like engineer labels', run: async (db) => {
+    const backfill = async (apply) => (await as(db, 'service_role', `SELECT * FROM public.region_legacy_backfill_report(${apply})`)).rows[0];
+    const item = async (user, label) => one(db, `SELECT status, reason, length(raw_state_label) AS state_len FROM public.region_resolution_queue
+                                                  WHERE subject_user_id = $1 AND raw_district_label IS NOT DISTINCT FROM $2 ORDER BY id DESC LIMIT 1`, [user, label]);
+    // Incompressible text far above the ~2.7 kB btree key limit: engineers.service_areas and
+    // engineers.state have no length limit and engineers write their own rows.
+    const huge = randomBytes(6000).toString('base64');
+    assert.equal(huge.length, 8000);
+    await addEngineer(db, 60, { profileState: null, kycState: 'Alpha State', areas: [huge] });
+    await addEngineer(db, 61, { profileState: null, kycState: huge, areas: MANY_NAMES });
+    // Far beyond the cap: still one too_many item, and collection stops at the 31st label.
+    await addEngineer(db, 62, { profileState: null, kycState: 'Alpha State',
+                                areas: Array.from({ length: 20000 }, (_, i) => `Area ${i}`) });
+    await addProfile(db, 63, 'Alpha State', 'Riverton');
+    const dry = await backfill(false);
+    const applied = await backfill(true);
+    assert.deepEqual(applied, dry);
+    assert.equal((await homeRow(db, userId(63))).district_code, '90102', 'other users are still converted');
+    assert.equal((await item(userId(60), huge)).reason, 'no_match');
+    assert.deepEqual(await item(userId(61), null), { status: 'open', reason: 'too_many', state_len: 8000 });
+    assert.equal((await item(userId(62), null)).reason, 'too_many');
+    assert.equal((await backfill(false)).queue_rows_added, 0, 'and it settles');
+
+    // A profile whose text changes to text that resolves: the old item was about other text.
+    await addProfile(db, 64, 'Alpha State', 'Zed');
+    await backfill(true);
+    assert.equal((await item(userId(64), 'Zed')).status, 'open');
+    await db.query("UPDATE public.profiles SET district = 'Northfield' WHERE id = $1", [userId(64)]);
+    await backfill(true);
+    assert.equal((await item(userId(64), 'Zed')).status, 'superseded');
+    // The same text resolving later (a new version adds an alias) resolves its own item.
+    await addProfile(db, 65, 'Alpha State', 'Riverside Old');
+    await backfill(true);
+    assert.equal((await item(userId(65), 'Riverside Old')).status, 'open');
+    await db.query("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'riverside old', '90102', 'common_spelling')");
+    try {
+      await backfill(true);
+      assert.equal((await item(userId(65), 'Riverside Old')).status, 'resolved');
+      assert.equal((await homeRow(db, userId(65))).district_code, '90102');
+    } finally {
+      await db.query("DELETE FROM public.region_district_aliases WHERE alias_normalized = 'riverside old'");
+    }
   } },
   { kind: 'new-only', name: 'deleting a profile cascades its region row and queue items (never blocks account deletion)', run: async (db) => {
     const user = U.leg(5);

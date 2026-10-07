@@ -52,10 +52,20 @@
 --     reports service_stale so the app can ask the engineer to confirm.
 -- A district that moves to another State/UT under the same code carries its
 -- aliases and stored home pairs with it (composite foreign keys cascade).
+-- Moves and renames never rewrite the mirrored label text: profiles.state/
+-- district and engineers.service_areas keep the names last saved until the
+-- user saves again, and home_stale stays false because that text has not
+-- changed. Readers that need current names use the codes.
+-- State/UT text matches the catalogue name only (there are no State/UT
+-- aliases), so a legacy State/UT spelling that differs from the snapshot is
+-- queued as state_unknown.
 --
 -- Resolution queue: the backfill opens an item per unresolved text and closes
--- its own items as 'superseded' when the text changes or goes, or 'resolved'
--- when it resolves; a choice made in the app also closes them as 'resolved'.
+-- its own items as 'resolved' when the item's own text now resolves and as
+-- 'superseded' when the text changed or went (for profiles and engineer labels
+-- alike); a choice made in the app also closes them as 'resolved'. Items are
+-- unique per subject and text through digests, so text of any length can be
+-- queued.
 -- Operators close an item with 'dismissed' to stop that text (for too_many: any
 -- over-cap list of that engineer) from being queued again, even if it goes and
 -- later comes back. Other operator edits to items are outside this contract.
@@ -226,9 +236,12 @@ CREATE TABLE IF NOT EXISTS public.region_resolution_queue (
 );
 CREATE INDEX IF NOT EXISTS region_resolution_queue_subject_idx
   ON public.region_resolution_queue (subject_user_id, subject_kind);
+-- Keyed on digests of the raw text: engineers.service_areas and engineers.state
+-- have no length limit, and a btree key over the text itself fails above ~2.7 kB,
+-- which would let one oversized label abort every backfill apply.
 CREATE UNIQUE INDEX IF NOT EXISTS region_resolution_queue_one_open
   ON public.region_resolution_queue
-     (subject_kind, subject_user_id, coalesce(raw_state_label, ''), coalesce(raw_district_label, ''))
+     (subject_kind, subject_user_id, md5(coalesce(raw_state_label, '')), md5(coalesce(raw_district_label, '')))
   WHERE status = 'open';
 
 -- ---------------------------------------------------------------------
@@ -380,6 +393,7 @@ AS $$
 DECLARE
   v_state text;
   v_candidates text[];
+  v_retired text[];
   v_replacements text[];
 BEGIN
   IF public.region_normalize_label(p_state_label) IS NULL
@@ -396,16 +410,22 @@ BEGIN
   IF cardinality(v_candidates) = 1 THEN
     RETURN QUERY SELECT 'resolved'::text, v_state, v_candidates[1], NULL::text, v_candidates;
   ELSIF cardinality(v_candidates) = 0 THEN
-    -- A retired district's own name: suggest its active replacements, never pick one.
-    IF EXISTS (SELECT 1 FROM public.region_districts d
-                WHERE d.state_code = v_state AND NOT d.active
-                  AND public.region_normalize_label(d.name_en) = public.region_normalize_label(p_district_label)) THEN
+    -- A retired district's own name or alias: suggest its replacements that can still
+    -- be chosen (active, in an active State/UT), never pick one.
+    SELECT array_agg(d.code) INTO v_retired
+      FROM public.region_districts d
+     WHERE d.state_code = v_state AND NOT d.active
+       AND (public.region_normalize_label(d.name_en) = public.region_normalize_label(p_district_label)
+            OR EXISTS (SELECT 1 FROM public.region_district_aliases a
+                        WHERE a.district_code = d.code AND a.state_code = d.state_code
+                          AND a.alias_normalized = public.region_normalize_label(p_district_label)));
+    IF v_retired IS NOT NULL THEN
       SELECT coalesce(array_agg(DISTINCT x.code ORDER BY x.code), '{}') INTO v_replacements
         FROM public.region_districts d
         CROSS JOIN LATERAL unnest(d.replaced_by) AS r(code)
         JOIN public.region_districts x ON x.code = r.code AND x.active
-       WHERE d.state_code = v_state AND NOT d.active
-         AND public.region_normalize_label(d.name_en) = public.region_normalize_label(p_district_label);
+        JOIN public.region_states xs ON xs.code = x.state_code AND xs.active
+       WHERE d.code = ANY (v_retired);
       RETURN QUERY SELECT 'needs_confirmation'::text, v_state, NULL::text, 'retired'::text, v_replacements;
     ELSE
       RETURN QUERY SELECT 'needs_confirmation'::text, v_state, NULL::text, 'no_match'::text, v_candidates;
@@ -760,7 +780,6 @@ AS $$
 DECLARE
   v_version text := public.region_current_version();
   c_max constant integer := 30;
-  c_too_many constant text := '(too many districts)';
   v_p_considered integer := 0; v_p_current integer := 0; v_p_resolved integer := 0;
   v_p_needs integer := 0; v_p_cleared integer := 0;
   v_e_considered integer := 0; v_e_chosen integer := 0; v_e_current integer := 0; v_e_over integer := 0;
@@ -771,8 +790,8 @@ DECLARE
   v_row public.profile_regions%ROWTYPE; v_has_row boolean; v_same_text boolean;
   r record;
   v_user uuid; v_kyc_state text; v_profile_state text; v_areas text[];
-  v_scope text; v_scope_label text;
-  v_label text; v_norm text; v_seen text[]; v_candidates text[];
+  v_scope_label text;
+  v_label text; v_norm text; v_seen text[];
   v_resolved text[]; v_resolved_labels text[]; v_target text[]; v_existing text[];
   v_labels text[]; v_resolved_norms text[];
   v_restamp boolean;
@@ -889,8 +908,13 @@ BEGIN
        WHERE x.source <> 'user'
           OR NOT (public.region_labels_equal(x.legacy_state_label, EXCLUDED.legacy_state_label)
                   AND public.region_labels_equal(x.legacy_district_label, EXCLUDED.legacy_district_label));
+      -- 'resolved' only for an item whose own text now resolves; an item for
+      -- other text is 'superseded', exactly as for engineer labels.
       UPDATE public.region_resolution_queue q
-         SET status = CASE WHEN r.status = 'resolved' THEN 'resolved' ELSE 'superseded' END,
+         SET status = CASE WHEN r.status = 'resolved'
+                                AND public.region_labels_equal(q.raw_state_label, v_state_label)
+                                AND public.region_labels_equal(q.raw_district_label, v_district_label)
+                           THEN 'resolved' ELSE 'superseded' END,
              resolved_at = now()
        WHERE q.subject_kind = 'profile_home' AND q.subject_user_id = v_id AND q.status = 'open'
          AND (r.status = 'resolved'
@@ -963,17 +987,19 @@ BEGIN
     v_scope_label := CASE WHEN public.region_normalize_label(v_kyc_state) IS NOT NULL
                           THEN v_kyc_state ELSE v_profile_state END;
 
-    -- Distinct labels of the current text, first spelling kept.
+    -- Distinct labels of the current text, first spelling kept. Collection stops at the
+    -- first label over the cap, so the work per engineer is linear in the array length.
     v_seen := '{}'; v_labels := '{}';
     FOREACH v_label IN ARRAY coalesce(v_areas, '{}'::text[]) LOOP
       v_norm := public.region_normalize_label(v_label);
       CONTINUE WHEN v_norm IS NULL OR v_norm = ANY (v_seen);
       v_seen := v_seen || v_norm;
       v_labels := v_labels || v_label;
+      EXIT WHEN cardinality(v_labels) > c_max;
     END LOOP;
 
     -- More labels than the 30-district cap can never be saved as codes: one too_many item,
-    -- no rows and no per-label items (this also bounds the work done per engineer).
+    -- no rows and no per-label items.
     v_over := cardinality(v_labels) > c_max;
     v_resolved := '{}'; v_resolved_labels := '{}'; v_resolved_norms := '{}';
     v_un_labels := '{}'; v_un_reasons := '{}'; v_un_candidates := '[]'::jsonb;
