@@ -22,7 +22,8 @@ import com.equipseva.app.core.data.location.IndiaLocations
 
 /**
  * Shared State + District inputs used by both onboarding flows (hospital
- * + engineer). Same UX: state is a single dropdown over [IndiaLocations.STATES];
+ * + engineer). Same UX: state is a single dropdown over [options] (the bundled
+ * region catalogue's names when one ships, otherwise [IndiaLocations.STATES]);
  * district is a dropdown when bundled data exists for the picked state,
  * otherwise a free-text fallback so users in uncovered states (Bihar, UP, …)
  * can still progress without being blocked on data we haven't shipped yet.
@@ -39,6 +40,7 @@ fun OnboardingStateDropdown(
     value: String,
     enabled: Boolean,
     onValueChange: (String) -> Unit,
+    options: List<String> = IndiaLocations.STATES,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
@@ -60,7 +62,7 @@ fun OnboardingStateDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            IndiaLocations.STATES.forEach { st ->
+            options.forEach { st ->
                 DropdownMenuItem(
                     text = { Text(st) },
                     onClick = {

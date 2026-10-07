@@ -6,6 +6,7 @@ import java.io.FileNotFoundException
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -52,6 +53,9 @@ class RegionCatalogSource @Inject constructor(
 ) {
     private val mutex = Mutex()
 
+    /** Where the asset is read; tests may run it inline. */
+    internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+
     @Volatile
     private var loaded = false
     private var cached: RegionCatalog? = null
@@ -60,7 +64,7 @@ class RegionCatalogSource @Inject constructor(
         if (loaded) return cached
         return mutex.withLock {
             if (!loaded) {
-                cached = withContext(Dispatchers.IO) { load() }
+                cached = withContext(ioDispatcher) { load() }
                 loaded = true
             }
             cached

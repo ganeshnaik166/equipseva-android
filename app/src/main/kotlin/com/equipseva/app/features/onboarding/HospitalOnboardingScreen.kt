@@ -71,6 +71,7 @@ import kotlinx.coroutines.launch
 class HospitalOnboardingViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val homeRegion: OnboardingHomeRegion,
 ) : ViewModel() {
 
     data class UiState(
@@ -78,6 +79,7 @@ class HospitalOnboardingViewModel @Inject constructor(
         val state: String = "",
         val district: String = "",
         val districtOptions: List<String> = emptyList(),
+        val stateOptions: List<String> = IndiaLocations.STATES,
         val saving: Boolean = false,
         val error: String? = null,
     ) {
@@ -99,12 +101,36 @@ class HospitalOnboardingViewModel @Inject constructor(
     private val _effects = MutableSharedFlow<Effect>(extraBufferCapacity = 4)
     val effects: kotlinx.coroutines.flow.Flow<Effect> = _effects
 
+    init {
+        // With a bundled region catalogue the pickers list its names and the choice is
+        // saved as codes; without one (today) nothing changes. A pick made before the
+        // catalogue finished loading is kept only if the catalogue has the same names.
+        viewModelScope.launch {
+            if (homeRegion.load() == null) return@launch
+            val current = _state.value
+            val keepState = current.state in homeRegion.stateOptions()
+            if (keepState) homeRegion.selectState(current.state)
+            val districts = if (keepState) homeRegion.districtOptions(current.state) else emptyList()
+            val keepDistrict = keepState && current.district in districts
+            if (keepDistrict) homeRegion.selectDistrict(current.district)
+            _state.update {
+                it.copy(
+                    stateOptions = homeRegion.stateOptions(),
+                    state = if (keepState) current.state else "",
+                    district = if (keepDistrict) current.district else "",
+                    districtOptions = districts,
+                )
+            }
+        }
+    }
+
     fun onPhoneChange(value: String) {
         _state.update { it.copy(phone = normalizeIndiaMobileInput(value), error = null) }
     }
 
     fun onStateChange(value: String) {
-        val districts = IndiaLocations.districtsFor(value)
+        val districts = homeRegion.districtOptions(value)
+        homeRegion.selectState(value)
         _state.update {
             it.copy(
                 state = value,
@@ -120,6 +146,7 @@ class HospitalOnboardingViewModel @Inject constructor(
     }
 
     fun onDistrictChange(value: String) {
+        homeRegion.selectDistrict(value)
         _state.update { it.copy(district = value, error = null) }
     }
 
@@ -133,6 +160,18 @@ class HospitalOnboardingViewModel @Inject constructor(
             if (userId == null) {
                 _state.update { it.copy(saving = false, error = "Sign in again to save.") }
                 return@launch
+            }
+            // Codes first (the RPC also writes the name labels); then the existing phone/label save.
+            when (val outcome = homeRegion.save()) {
+                is OnboardingHomeRegion.Outcome.Refused -> {
+                    _state.update { it.copy(saving = false, error = OnboardingHomeRegion.REFUSED_MESSAGE) }
+                    return@launch
+                }
+                is OnboardingHomeRegion.Outcome.Failed -> {
+                    _state.update { it.copy(saving = false, error = outcome.error.toUserMessage()) }
+                    return@launch
+                }
+                OnboardingHomeRegion.Outcome.Saved, OnboardingHomeRegion.Outcome.LegacyOnly -> Unit
             }
             profileRepository.updateBasicInfo(
                 userId = userId,
@@ -220,6 +259,7 @@ fun HospitalOnboardingScreen(
 
             OnboardingStateDropdown(
                 value = s.state,
+                options = s.stateOptions,
                 enabled = !s.saving,
                 onValueChange = viewModel::onStateChange,
             )
