@@ -2,11 +2,16 @@ package com.equipseva.app.core.data.secure
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.io.File
 import java.security.KeyStore
+import java.security.KeyStoreException
+import java.security.ProviderException
 import java.security.SecureRandom
+import java.security.UnrecoverableKeyException
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -18,30 +23,115 @@ import javax.crypto.spec.GCMParameterSpec
  * written to app-private storage; the raw key material never leaves the TEE /
  * StrongBox on devices that support it.
  *
- * On Keystore failure (OEM quirks, user wipe, restored backup) the caller
- * should wipe the encrypted Room DB and call [freshPassphrase] — the DB is a
- * cache + outbox, not canonical state.
+ * When the sealed copy can never be unwrapped again (key invalidated, restored
+ * backup, corrupt file) a new passphrase is minted and the caller must discard
+ * the encrypted Room DB — it is a cache + outbox, not canonical state — and then
+ * [Passphrase.commit] the new one. [Passphrase.mintedFresh] is how the caller
+ * learns that it has to. A Keystore failure that may pass (busy or restarting
+ * keystore daemon) is retried once and otherwise thrown, so it never costs the
+ * user their queued offline changes; after [MAX_TRANSIENT_STRIKES] launches in a
+ * row fail that way it is treated as permanent, so a device whose Keystore keeps
+ * failing cannot crash-loop.
+ *
+ * `Passphrase(mintedFresh)` is ported from PR #1877 (commit e51e948d).
  */
-class DbPassphraseStore(private val context: Context) {
+class DbPassphraseStore internal constructor(
+    private val dir: File,
+    private val sealer: PassphraseSealer,
+) {
 
-    fun getOrCreate(): ByteArray {
-        val sealedFile = File(context.filesDir, SEALED_FILE)
+    constructor(context: Context) : this(context.filesDir, KeystorePassphraseSealer())
+
+    /**
+     * [bytes] plus whether they were minted now rather than unwrapped from
+     * the sealed copy. The flag travels with the passphrase so a caller
+     * cannot take the bytes and silently miss the obligation to discard a
+     * database the old key encrypted.
+     */
+    class Passphrase internal constructor(
+        val bytes: ByteArray,
+        val mintedFresh: Boolean,
+        private val persist: () -> Unit = {},
+    ) {
+        /**
+         * Stores a freshly minted passphrase (a no-op otherwise). Call it only once the
+         * database files the old key encrypted are gone: a crash before it leaves the old
+         * sealed copy in place, so the next launch mints and discards again instead of
+         * pairing a new key with an old database.
+         */
+        fun commit() = persist()
+    }
+
+    fun getOrCreate(): Passphrase {
+        val sealedFile = File(dir, SEALED_FILE)
+        val strikesFile = File(dir, STRIKES_FILE)
         if (sealedFile.exists()) {
-            runCatching { unseal(sealedFile.readBytes()) }
-                .onSuccess { return it }
-                .onFailure { sealedFile.delete() }
+            val sealed = sealedFile.readBytes()
+            var failure = runCatching { sealer.unseal(sealed) }
+                .onSuccess { strikesFile.delete(); return Passphrase(it, mintedFresh = false) }
+                .exceptionOrNull()!!
+            if (isTransient(failure)) {
+                failure = runCatching { sealer.unseal(sealed) }
+                    .onSuccess { strikesFile.delete(); return Passphrase(it, mintedFresh = false) }
+                    .exceptionOrNull()!!
+            }
+            if (isTransient(failure)) {
+                val strikes = readStrikes(strikesFile) + 1
+                if (strikes < MAX_TRANSIENT_STRIKES) {
+                    strikesFile.writeText(strikes.toString())
+                    throw failure
+                }
+            }
         }
-        return freshPassphrase()
-    }
-
-    fun freshPassphrase(): ByteArray {
+        // Either there was never a sealed copy, or it can never be unwrapped
+        // again. Both leave a passphrase that cannot open an already-encrypted
+        // database file, which is why the flag is set even on first run.
         val passphrase = ByteArray(PASSPHRASE_BYTES).also { SecureRandom().nextBytes(it) }
-        val sealed = seal(passphrase)
-        File(context.filesDir, SEALED_FILE).writeBytes(sealed)
-        return passphrase
+        val sealed = sealer.seal(passphrase)
+        return Passphrase(passphrase, mintedFresh = true) {
+            sealedFile.writeBytes(sealed)
+            strikesFile.delete()
+        }
     }
 
-    private fun seal(plain: ByteArray): ByteArray {
+    private fun readStrikes(file: File): Int =
+        runCatching { file.readText().trim().toInt() }.getOrDefault(0).coerceAtLeast(0)
+
+    internal companion object {
+        const val SEALED_FILE = "db-passphrase.bin"
+        const val STRIKES_FILE = "db-passphrase.strikes"
+        const val MAX_TRANSIENT_STRIKES = 3
+        private const val PASSPHRASE_BYTES = 32
+
+        /**
+         * A Keystore failure that may pass on retry. A permanent cause anywhere in
+         * the chain wins, so a ProviderException wrapping an invalidated key is
+         * permanent; anything unrecognised is permanent too, as before.
+         */
+        fun isTransient(error: Throwable): Boolean {
+            val chain = generateSequence(error) { it.cause }.take(8).toList()
+            if (chain.any { it.isPermanentKeystoreFailure() }) return false
+            return chain.any { it is KeyStoreException || it is ProviderException }
+        }
+
+        private fun Throwable.isPermanentKeystoreFailure(): Boolean =
+            this is AEADBadTagException ||
+                this is KeyPermanentlyInvalidatedException ||
+                this is UnrecoverableKeyException ||
+                this is IllegalArgumentException
+    }
+}
+
+/** Wraps and unwraps the passphrase; a seam so JVM tests can force each failure. */
+interface PassphraseSealer {
+    fun seal(plain: ByteArray): ByteArray
+    fun unseal(sealed: ByteArray): ByteArray
+}
+
+/** AES-256/GCM under an Android Keystore key; output is Base64 of [iv len][iv][ciphertext+tag]. */
+internal class KeystorePassphraseSealer : PassphraseSealer {
+
+    override fun seal(plain: ByteArray): ByteArray {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         val iv = cipher.iv
@@ -56,9 +146,12 @@ class DbPassphraseStore(private val context: Context) {
         return Base64.encode(raw, Base64.NO_WRAP)
     }
 
-    private fun unseal(sealedB64: ByteArray): ByteArray {
-        val raw = Base64.decode(sealedB64, Base64.NO_WRAP)
+    override fun unseal(sealed: ByteArray): ByteArray {
+        // A corrupt file (bad Base64, or too short for its header) is permanent.
+        val raw = Base64.decode(sealed, Base64.NO_WRAP)
+        require(raw.isNotEmpty()) { "sealed passphrase is empty" }
         val ivLen = raw[0].toInt() and 0xFF
+        require(raw.size > 1 + ivLen) { "sealed passphrase is truncated" }
         val iv = raw.copyOfRange(1, 1 + ivLen)
         val ct = raw.copyOfRange(1 + ivLen, raw.size)
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -89,7 +182,5 @@ class DbPassphraseStore(private val context: Context) {
         const val KEY_ALIAS = "equipseva.db.passphrase.v1"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val GCM_TAG_BITS = 128
-        const val PASSPHRASE_BYTES = 32
-        const val SEALED_FILE = "db-passphrase.bin"
     }
 }

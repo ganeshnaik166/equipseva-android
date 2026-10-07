@@ -942,4 +942,6 @@
     <string name="dsr_serial_row">Equipment serial</string>
     <string name="dsr_serial_missing">Not recorded</string>
     <string name="dsr_entry_cta_hospital">Review / sign report</string>
+    <!-- WP22.T03: shown once after the local database had to be discarded because its Keystore key was lost. -->
+    <string name="local_data_reset_notice" translatable="false">The secure storage on this phone was reset, so changes made offline that had not synced yet were lost. Please check your recent messages, bids and job updates.</string>
 </resources>

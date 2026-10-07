@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -17,12 +18,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.equipseva.app.R
 import com.equipseva.app.features.auth.SessionState
 import com.equipseva.app.features.auth.SessionViewModel
 import kotlinx.coroutines.launch
@@ -47,6 +50,22 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
     LaunchedEffect(sessionViewModel) {
         sessionViewModel.messages.collect { msg -> showSnackbar(msg) }
+    }
+
+    // WP22.T03 — shown once after the local database had to be discarded; it
+    // is acknowledged only after it was on screen, so a process death first
+    // shows it again on the next launch.
+    val localDataResetPending by sessionViewModel.localDataResetPending.collectAsStateWithLifecycle()
+    val localDataResetMessage = stringResource(R.string.local_data_reset_notice)
+    LaunchedEffect(localDataResetPending) {
+        if (localDataResetPending) {
+            snackbarHost.showSnackbar(
+                localDataResetMessage,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long,
+            )
+            sessionViewModel.onLocalDataResetNoticeShown()
+        }
     }
 
     // Re-fetch the profile on each foreground except the very first.
