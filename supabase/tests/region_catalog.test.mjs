@@ -127,6 +127,10 @@ async function addEngineer(db, n, { profileState, kycState, areas }) {
   await db.query('INSERT INTO public.engineers (id, user_id, state, service_areas) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING',
     [engId(n), userId(n), kycState, areas]);
 }
+async function addProfile(db, n, state, district) {
+  await db.query('INSERT INTO public.profiles (id, full_name, role, state, district) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING',
+    [userId(n), `User ${n}`, 'hospital_admin', state, district]);
+}
 const MANY_CODES = Array.from({ length: 31 }, (_, i) => String(90501 + i));
 const MANY_NAMES = MANY_CODES.map((_, i) => `Many District ${String(i + 1).padStart(2, '0')}`);
 async function addManyDistricts(db) {
@@ -214,12 +218,10 @@ const PROPERTIES = [
     assert.equal((await one(db, 'SELECT count(*)::int AS n FROM public.region_resolution_queue')).n, 0, 'dry run queued');
 
     const applied = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
-    const { queue_rows_added: dryQueued, queue_rows_closed: dryClosed, ...dryCounts } = dry.rows[0];
-    const { queue_rows_added: appliedQueued, queue_rows_closed: appliedClosed, ...appliedCounts } = applied;
-    assert.deepEqual(appliedCounts, dryCounts, 'apply must resolve exactly what the dry run counted');
-    assert.equal(dryQueued + dryClosed, 0, 'a dry run changes no queue rows');
+    assert.deepEqual(applied, dry.rows[0], 'apply must do exactly what the dry run reported, queue changes included');
+    const { queue_rows_added: appliedQueued, queue_rows_closed: appliedClosed, queue_rows_updated: appliedUpdated, ...appliedCounts } = applied;
     assert.equal(appliedQueued, applied.profiles_needs_confirmation + applied.service_labels_needs_confirmation);
-    assert.equal(appliedClosed, 0);
+    assert.equal(appliedClosed + appliedUpdated, 0);
     assert.deepEqual(appliedCounts, {
       profiles_considered: 12, profiles_already_current: 1, profiles_resolved: 5, profiles_needs_confirmation: 6,
       profiles_cleared: 0, engineers_considered: 2, engineers_already_chosen: 0, engineers_already_current: 0,
@@ -267,7 +269,7 @@ const PROPERTIES = [
 
     // Re-running is idempotent: nothing new is queued and every profile is current.
     const again = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
-    assert.equal(again.queue_rows_added + again.queue_rows_closed, 0);
+    assert.equal(again.queue_rows_added + again.queue_rows_closed + again.queue_rows_updated, 0);
     assert.equal(again.profiles_already_current, again.profiles_considered);
     assert.equal(again.profiles_resolved + again.profiles_needs_confirmation, 0);
     assert.equal(again.engineers_already_current, again.engineers_considered);
@@ -457,6 +459,140 @@ const PROPERTIES = [
     assert.deepEqual((await one(db, "SELECT public.region_district_candidates('901', 'Old Riverton') AS c")).c, ['90102']);
   } },
 
+  { kind: 'new-only', name: 'queue lifecycle: own closures are superseded, operator dismissals stick, returning text is re-queued, details stay current, dry run equals apply', run: async (db) => {
+    // Every run is a dry run followed by an apply that must report the same counts.
+    const backfill = async () => {
+      const dry = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(false)')).rows[0];
+      const applied = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
+      assert.deepEqual(applied, dry, 'apply differs from its dry run');
+      return applied;
+    };
+    const items = async (user, kind) => (await db.query(
+      `SELECT raw_district_label AS label, reason, status, candidate_codes AS candidates, raw_state_label AS state
+         FROM public.region_resolution_queue WHERE subject_user_id = $1 AND subject_kind = $2 ORDER BY id`, [user, kind])).rows;
+    const open = async (user, kind) => (await items(user, kind)).filter((i) => i.status === 'open').map((i) => i.label);
+    await backfill(); // converge whatever earlier properties left behind
+
+    // Text A -> B -> A: A's item is superseded, then queued again when A returns.
+    await addProfile(db, 30, 'Alpha State', 'Zed One');
+    await backfill();
+    await db.query("UPDATE public.profiles SET district = 'Zed Two' WHERE id = $1", [userId(30)]);
+    await backfill();
+    await db.query("UPDATE public.profiles SET district = 'Zed One' WHERE id = $1", [userId(30)]);
+    await backfill();
+    assert.deepEqual(await open(userId(30), 'profile_home'), ['Zed One']);
+    assert.deepEqual((await items(userId(30), 'profile_home')).map((i) => i.status), ['superseded', 'superseded', 'open']);
+
+    // An operator dismissal for unchanged text sticks.
+    await addProfile(db, 31, 'Alpha State', 'Nowhere Land');
+    await backfill();
+    await db.query("UPDATE public.region_resolution_queue SET status = 'dismissed' WHERE subject_user_id = $1", [userId(31)]);
+    const afterDismiss = await backfill();
+    assert.equal(afterDismiss.queue_rows_added, 0);
+    assert.deepEqual(await open(userId(31), 'profile_home'), []);
+    // ...even when the text goes away and comes back: only the other text is queued meanwhile.
+    await db.query("UPDATE public.profiles SET district = 'Nowhere Land Two' WHERE id = $1", [userId(31)]);
+    await backfill();
+    assert.deepEqual(await open(userId(31), 'profile_home'), ['Nowhere Land Two']);
+    await db.query("UPDATE public.profiles SET district = 'Nowhere Land' WHERE id = $1", [userId(31)]);
+    await backfill();
+    assert.deepEqual(await open(userId(31), 'profile_home'), []);
+    assert.deepEqual((await items(userId(31), 'profile_home')).map((i) => [i.label, i.status]),
+      [['Nowhere Land', 'dismissed'], ['Nowhere Land Two', 'superseded']]);
+
+    // Over the cap -> under -> over: too_many is queued again; a label swallowed while over comes back.
+    await addManyDistricts(db);
+    await addEngineer(db, 32, { profileState: null, kycState: 'Many Districts State', areas: [...MANY_NAMES, 'Nowhere'] });
+    await backfill();
+    assert.deepEqual(await open(userId(32), 'engineer_service'), [null], 'only too_many while over the cap');
+    await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [[...MANY_NAMES.slice(0, 30), 'Nowhere'], engId(32)]);
+    await backfill();
+    assert.equal((await serviceCodes(db, engId(32))).length, 30);
+    assert.deepEqual(await open(userId(32), 'engineer_service'), ['Nowhere']);
+    await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [MANY_NAMES, engId(32)]);
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(32)), []);
+    assert.deepEqual(await open(userId(32), 'engineer_service'), [null]);
+    assert.deepEqual((await items(userId(32), 'engineer_service')).map((i) => i.status), ['superseded', 'superseded', 'open']);
+    // An operator dismissal of an engineer item sticks too.
+    await db.query("UPDATE public.region_resolution_queue SET status = 'dismissed' WHERE subject_user_id = $1 AND status = 'open'", [userId(32)]);
+    const dismissedEngineer = await backfill();
+    assert.equal(dismissedEngineer.queue_rows_added, 0);
+    assert.deepEqual(await open(userId(32), 'engineer_service'), []);
+
+    // A catalogue change refreshes an open item's reason and candidates.
+    await addProfile(db, 33, 'Alpha State', 'Lake');
+    await backfill();
+    assert.deepEqual((await items(userId(33), 'profile_home')).map((i) => [i.reason, i.candidates]), [['no_match', []]]);
+    await db.query("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'lake', '90104', 'legacy_bundled'), ('901', 'lake', '90105', 'legacy_bundled')");
+    const refreshed = await backfill();
+    assert.ok(refreshed.queue_rows_updated >= 1);
+    assert.deepEqual((await items(userId(33), 'profile_home')).map((i) => [i.reason, i.candidates, i.status]), [['ambiguous', ['90104', '90105'], 'open']]);
+
+    // Fixing the KYC State/UT refreshes an engineer item's reason, candidates and State/UT label.
+    await addEngineer(db, 34, { profileState: null, kycState: 'Alpha', areas: ['Lakeside'] });
+    await backfill();
+    assert.deepEqual((await items(userId(34), 'engineer_service')).map((i) => [i.reason, i.state]), [['state_unknown', 'Alpha']]);
+    await db.query("UPDATE public.engineers SET state = 'Alpha State' WHERE id = $1", [engId(34)]);
+    await backfill();
+    assert.deepEqual((await items(userId(34), 'engineer_service')).map((i) => [i.reason, i.candidates, i.state, i.status]),
+      [['ambiguous', ['90104', '90105'], 'Alpha State', 'open']]);
+
+    // Items of someone who is no longer an engineer are superseded.
+    await db.query('DELETE FROM public.engineers WHERE id = $1', [engId(34)]);
+    await backfill();
+    assert.deepEqual(await open(userId(34), 'engineer_service'), []);
+
+    // A retired district's own name suggests its active replacements, never picks one.
+    await db.query("INSERT INTO public.region_districts (code, state_code, name_en, active, retired_in, replaced_by) VALUES ('90106', '901', 'Westmoor', false, $1, '{90101,90102}')", [V2]);
+    await addProfile(db, 35, 'Alpha State', 'Westmoor');
+    await backfill();
+    const westmoor = await homeRow(db, userId(35));
+    assert.deepEqual([westmoor.status, westmoor.district_code], ['needs_confirmation', null]);
+    assert.deepEqual((await items(userId(35), 'profile_home')).map((i) => [i.reason, i.candidates]), [['retired', ['90101', '90102']]]);
+
+    // A resolving text closes its items as resolved, not superseded.
+    await db.query("UPDATE public.profiles SET district = 'Northfield' WHERE id = $1", [userId(35)]);
+    await backfill();
+    assert.deepEqual((await items(userId(35), 'profile_home')).map((i) => i.status), ['resolved']);
+
+    const settled = await backfill();
+    assert.equal(settled.queue_rows_added + settled.queue_rows_closed + settled.queue_rows_updated, 0);
+  } },
+
+  { kind: 'new-only', name: 'service_source and service_stale: a rename alone is not stale, an older-app edit is, a chosen set is never overridden; needs-confirmation rows get a preview', run: async (db) => {
+    const mine = async (user) => (await asUser(db, user, MY_REGION)).rows[0].r;
+    await addEngineer(db, 40, { profileState: null, kycState: 'Alpha State', areas: [] });
+    assert.deepEqual([(await mine(userId(40))).service_source, (await mine(userId(40))).service_stale], ['none', false]);
+    await asUser(db, userId(40), SET_SERVICE, [['90102', '90202'], V2]);
+    assert.deepEqual([(await mine(userId(40))).service_source, (await mine(userId(40))).service_stale], ['engineer', false]);
+
+    // A catalogue rename keeps the code; nothing the engineer wrote changed.
+    await db.query("UPDATE public.region_districts SET name_en = 'Riverton Nagar' WHERE code = '90102'");
+    assert.equal((await mine(userId(40))).service_stale, false);
+    await db.query("UPDATE public.region_districts SET name_en = 'Riverton' WHERE code = '90102'");
+
+    // A repeated name is not a change.
+    await db.query("UPDATE public.engineers SET service_areas = ARRAY['Riverton', 'Hillcrest', 'riverton'] WHERE id = $1", [engId(40)]);
+    assert.equal((await mine(userId(40))).service_stale, false);
+
+    // An older app edits the text: stale, and the backfill leaves the choice alone.
+    await db.query("UPDATE public.engineers SET service_areas = ARRAY['Riverton', 'Northfield'] WHERE id = $1", [engId(40)]);
+    assert.equal((await mine(userId(40))).service_stale, true);
+    const report = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
+    assert.ok(report.engineers_already_chosen >= 1);
+    assert.deepEqual((await db.query("SELECT district_code, source FROM public.engineer_service_districts WHERE engineer_id = $1 ORDER BY district_code", [engId(40)])).rows,
+      [{ district_code: '90102', source: 'engineer' }, { district_code: '90202', source: 'engineer' }]);
+
+    // Backfilled coverage reports its source.
+    assert.equal((await mine(U.leg(12))).service_source, 'legacy_backfill');
+
+    // A row that still needs confirmation carries an exact preview with its candidates.
+    const ambiguous = await mine(U.leg(5));
+    assert.equal(ambiguous.home.status, 'needs_confirmation');
+    assert.deepEqual([ambiguous.legacy_preview.reason, ambiguous.legacy_preview.candidate_codes], ['ambiguous', ['90104', '90105']]);
+  } },
+
   { kind: 'control', mutantMustFail: /^anon can execute public./, name: 'grants_and_definer_shape: client RPCs are definer with a pinned search_path and signed-in-only EXECUTE; the report is service-only; helpers and tables expose nothing extra', run: async (db) => {
     const exec = async (role, sig) => (await one(db, "SELECT has_function_privilege($1, $2, 'EXECUTE') AS ok", [role, sig])).ok;
     const shape = async (sig) => one(db, 'SELECT p.prosecdef, p.proconfig FROM pg_proc p WHERE p.oid = $1::regprocedure', [sig]);
@@ -516,6 +652,9 @@ const PROPERTIES = [
       ['ALTER TABLE public.profile_regions DISABLE ROW LEVEL SECURITY', 'ALTER TABLE public.profile_regions ENABLE ROW LEVEL SECURITY', /rls off: public.profile_regions/],
       ['GRANT UPDATE ON SEQUENCE public.region_resolution_queue_id_seq TO anon', 'REVOKE UPDATE ON SEQUENCE public.region_resolution_queue_id_seq FROM anon', /update granted to anon on public.region_resolution_queue_id_seq/],
       ['GRANT UPDATE (district_code) ON public.profile_regions TO authenticated', 'REVOKE UPDATE (district_code) ON public.profile_regions FROM authenticated', /column update granted to authenticated on public.profile_regions/],
+      ['GRANT SELECT ON SEQUENCE public.region_catalog_versions_ordinal_seq TO authenticated', 'REVOKE SELECT ON SEQUENCE public.region_catalog_versions_ordinal_seq FROM authenticated', /select granted to authenticated on public.region_catalog_versions_ordinal_seq/],
+      ['GRANT SELECT (user_id) ON public.profile_regions TO anon', 'REVOKE SELECT (user_id) ON public.profile_regions FROM anon', /anon select on public.profile_regions/],
+      ['GRANT SELECT (reason) ON public.region_resolution_queue TO authenticated', 'REVOKE SELECT (reason) ON public.region_resolution_queue FROM authenticated', /authenticated select on public.region_resolution_queue/],
     ]) {
       await db.exec(grant);
       try {

@@ -28,6 +28,16 @@ class RegionCatalogSourceTest {
     }
 
     @Test
+    fun `any other reader failure is reported and cached as no catalogue`() = runTest {
+        var reads = 0
+        val s = source(allowSynthetic = true) { reads++; throw IllegalStateException("asset manager closed") }
+        assertNull(s.catalog())
+        assertNull(s.catalog())
+        assertEquals(1, reads)
+        assertEquals(1, problems.size)
+    }
+
+    @Test
     fun `an invalid asset is reported and never partially used`() = runTest {
         val broken = SyntheticRegions.json.replaceFirst("\"alias\": \"old riverton\"", "\"alias\": \"Old Riverton\"")
         assertNull(source(allowSynthetic = true) { broken }.catalog())

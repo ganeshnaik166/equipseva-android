@@ -23,6 +23,19 @@ class RegionCatalogTest {
     }
 
     @Test
+    fun `only ASCII whitespace is folded - non-breaking spaces are kept, as on the server`() {
+        val nbsp = Char(0xA0)
+        val vt = Char(0x0B)
+        assertEquals("alpha state", RegionCatalog.normalizeLabel("Alpha${vt}State"))
+        assertEquals("alpha${nbsp}state", RegionCatalog.normalizeLabel("Alpha${nbsp}State"))
+        assertEquals("${nbsp}alpha", RegionCatalog.normalizeLabel("${nbsp}Alpha "))
+        assertEquals("$nbsp", RegionCatalog.normalizeLabel("$nbsp"))
+        assertNull(c.resolveState("Alpha State$nbsp"))
+        assertEquals(RegionMatch.NoMatch, c.resolveDistrict("901", "Northfield$nbsp"))
+        assertEquals(RegionMatch.NoMatch, c.resolveDistrict("901", "North${nbsp}field"))
+    }
+
+    @Test
     fun `lookups return active records only`() {
         assertEquals("Alpha State", c.state("901")!!.name)
         assertTrue(c.state("902")!!.isUnionTerritory)

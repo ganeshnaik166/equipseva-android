@@ -77,6 +77,10 @@ class RegionCatalogSource @Inject constructor(
         } catch (e: IOException) {
             reporter.report(e)
             return null
+        } catch (e: RuntimeException) {
+            // Any other reader failure is also reported once and cached as "no catalogue".
+            reporter.report(e)
+            return null
         } ?: return null
         val catalog = try {
             RegionCatalogParser.parse(text)

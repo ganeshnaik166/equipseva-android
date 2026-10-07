@@ -12,6 +12,10 @@ on:
       - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
       - "supabase/migrations/20263915000000_round3830_region_catalog_v1.sql"
       - "scripts/regions/**"
+      - "supabase/migrations/20260425063000_allow_self_role_change_except_admin.sql"
+      - "supabase/migrations/20260622100000_v21_medium_six_fixes.sql"
+      - "supabase/migrations/20260428140000_security_trigger_fns_search_path.sql"
+      - "supabase/migrations/20263891000000_round3806_engineers_verification_timestamp.sql"
       - "app/src/test/resources/regions/**"
       - ".github/workflows/supabase-sql-s3a.yml"
   push:
@@ -23,6 +27,10 @@ on:
       - "supabase/migrations/20263905000000_round3828_service_only_money_rpc_grants.sql"
       - "supabase/migrations/20263915000000_round3830_region_catalog_v1.sql"
       - "scripts/regions/**"
+      - "supabase/migrations/20260425063000_allow_self_role_change_except_admin.sql"
+      - "supabase/migrations/20260622100000_v21_medium_six_fixes.sql"
+      - "supabase/migrations/20260428140000_security_trigger_fns_search_path.sql"
+      - "supabase/migrations/20263891000000_round3806_engineers_verification_timestamp.sql"
       - "app/src/test/resources/regions/**"
       - ".github/workflows/supabase-sql-s3a.yml"
   workflow_dispatch:

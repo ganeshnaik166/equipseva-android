@@ -94,6 +94,16 @@ class RegionSelectionDraftTest {
     }
 
     @Test
+    fun `text the server would not resolve never completes on the device`() {
+        val nbsp = Char(0xA0)
+        val trailing = RegionSelectionDraft.fromLegacy(c, "Alpha State", "Northfield$nbsp")
+        assertNull(trailing.districtCode)
+        assertTrue(trailing.needsConfirmation)
+        // A label made only of a non-breaking space is text to the server (state_unknown), not blank.
+        assertTrue(RegionSelectionDraft.fromLegacy(c, "$nbsp", null).needsConfirmation)
+    }
+
+    @Test
     fun `no legacy text means nothing to confirm`() {
         val d = RegionSelectionDraft.fromLegacy(c, null, "  ")
         assertFalse(d.isComplete)

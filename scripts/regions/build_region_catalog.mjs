@@ -57,10 +57,14 @@ const HEADERS = {
 export class CatalogError extends Error {}
 function fail(message) { throw new CatalogError(message); }
 
-/** Mirrors the server's region_normalize_label and RegionCatalog.normalizeLabel. */
+/**
+ * Mirrors the server's region_normalize_label and RegionCatalog.normalizeLabel: lower case, and
+ * runs of ASCII whitespace (space, tab, newline, carriage return, form feed, vertical tab) collapsed
+ * to one space and trimmed. Non-breaking and other Unicode spaces are kept, as on the server.
+ */
 export function normalizeLabel(raw) {
   if (raw == null) return null;
-  const s = String(raw).replace(/\s+/g, ' ').trim().toLowerCase();
+  const s = String(raw).replace(/[ \t\n\r\f\v]+/g, ' ').replace(/^ | $/g, '').toLowerCase();
   return s === '' ? null : s;
 }
 
@@ -309,24 +313,14 @@ export function toSeedSql(cat, { migrationVersion, round }) {
     ...cat.districts.map((d) => `  (${q(d.code)}, ${q(d.state_code)}, ${q(d.name)}, true, ${v}, NULL, '{}'::text[])`),
     ...cat.retiredDistricts.map((r) => `  (${q(r.code)}, ${q(r.state_code)}, ${q(r.name)}, false, ${v}, ${v}, ${arr(r.replaced_by)})`),
   ];
-  add('-- A district never changes State/UT under the same code; the check below refuses that.');
+  add('-- A district may move to another State/UT under the same code (LGD has done this);');
+  add('-- round3830 cascades the move to its aliases and stored home pairs.');
   add('INSERT INTO public.region_districts (code, state_code, name_en, active, introduced_in, retired_in, replaced_by) VALUES');
   add(districtRows.join(',\n'));
-  add('ON CONFLICT (code) DO UPDATE SET name_en = EXCLUDED.name_en, active = EXCLUDED.active,');
+  add('ON CONFLICT (code) DO UPDATE SET state_code = EXCLUDED.state_code, name_en = EXCLUDED.name_en,');
+  add('  active = EXCLUDED.active,');
   add('  retired_in = CASE WHEN EXCLUDED.active THEN NULL ELSE coalesce(region_districts.retired_in, EXCLUDED.retired_in) END,');
-  add('  replaced_by = EXCLUDED.replaced_by');
-  add('  WHERE region_districts.state_code = EXCLUDED.state_code;');
-  add();
-  const districtPairs = cat.districts.map((d) => `${d.code}:${d.state_code}`);
-  add('-- Stop here, before aliases, if a code already exists under another State/UT.');
-  add('DO $$');
-  add('BEGIN');
-  add(`  IF EXISTS (SELECT 1 FROM unnest(${arr(districtPairs)}) p`);
-  add('             WHERE NOT EXISTS (SELECT 1 FROM public.region_districts d');
-  add("                                WHERE d.code || ':' || d.state_code = p AND d.active)) THEN");
-  add(`    RAISE EXCEPTION 'region seed ${cat.version}: not as intended: {a district changed State/UT or did not land}' USING ERRCODE = 'P0001';`);
-  add('  END IF;');
-  add('END $$;');
+  add('  replaced_by = EXCLUDED.replaced_by;');
   add();
   if (cat.aliases.length) {
     add('INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind, added_in) VALUES');
@@ -354,7 +348,7 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add(`  IF EXISTS (SELECT 1 FROM unnest(${arr(pairs)}) p`);
   add('             WHERE NOT EXISTS (SELECT 1 FROM public.region_districts d');
   add("                                WHERE d.code || ':' || d.state_code = p AND d.active)) THEN");
-  add("    v_bad := v_bad || 'a district changed State/UT or did not land'::text;");
+  add("    v_bad := v_bad || 'a district did not land under its State/UT'::text;");
   add('  END IF;');
   add('  IF EXISTS (SELECT 1 FROM public.region_districts d JOIN public.region_states s ON s.code = d.state_code');
   add('             WHERE d.active AND NOT s.active) THEN');

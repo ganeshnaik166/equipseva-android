@@ -43,7 +43,25 @@ class RegionCatalogParserTest {
         rejects(mutate("\"version\": \"synthetic-v2\"", "\"version\": \"Synthetic V2\""), "invalid version")
         rejects(mutate("\"version\": \"synthetic-v2\"", "\"version\": \"v2\""), "invalid version")
         rejects("{", "not a region catalogue asset")
-        rejects("""{"format":1,"version":"x-empty","source":{"url":"u","retrieved_on":"d","sha256":"s"},"states":[],"districts":[]}""", "empty catalogue")
+        rejects(
+            """{"format":1,"version":"x-empty","source":{"url":"https://example.test","retrieved_on":"2026-01-01","sha256":"${"a".repeat(64)}"},"states":[],"districts":[]}""",
+            "empty catalogue",
+        )
+    }
+
+    @Test
+    fun `the source block follows the server's version-row constraints`() {
+        rejects(mutate("\"sha256\": \"", "\"sha256\": \"X"), "invalid source sha256")
+        rejects(mutate("\"retrieved_on\": \"2026-06-01\"", "\"retrieved_on\": \"1 June 2026\""), "invalid source retrieved_on")
+        rejects(mutate("\"retrieved_on\": \"2026-06-01\"", "\"retrieved_on\": \"2026-02-30\""), "invalid source retrieved_on")
+        rejects(mutate("\"url\": \"synthetic://fixture/v2\"", "\"url\": \"\""), "invalid source url")
+    }
+
+    @Test
+    fun `a catalogue that looks synthetic must say so`() {
+        rejects(mutate("\"synthetic\": true", "\"synthetic\": false"), "synthetic catalogue not marked synthetic")
+        val renamed = mutate("\"version\": \"synthetic-v2\"", "\"version\": \"lgd-2026-06-01\"")
+        rejects(renamed.replaceFirst("\"synthetic\": true", "\"synthetic\": false"), "synthetic catalogue not marked synthetic")
     }
 
     @Test

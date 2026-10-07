@@ -29,7 +29,8 @@ class RegionSelectionDraft private constructor(
 
     /** Legacy text exists that no exact code choice has replaced yet. */
     val needsConfirmation: Boolean
-        get() = !isComplete && (!legacyStateLabel.isNullOrBlank() || !legacyDistrictLabel.isNullOrBlank())
+        get() = !isComplete &&
+            (RegionCatalog.normalizeLabel(legacyStateLabel) != null || RegionCatalog.normalizeLabel(legacyDistrictLabel) != null)
 
     fun selectState(code: String?): RegionSelectionDraft {
         val next = catalog.state(code)?.code

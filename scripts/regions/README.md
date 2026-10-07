@@ -34,6 +34,8 @@ The script refuses to write a synthetic snapshot to the shipped asset path or to
 
    Rules for the data:
    - A rename keeps its code: change the name and add a `renamed` alias for the old one.
+   - A district that moves to another State/UT keeps its code: list it under the new State/UT and move its aliases too. The seed moves the stored codes with it.
+   - Names are compared after lower-casing and collapsing ASCII whitespace only. A non-breaking space is a different character, so clean such characters out of the source data.
    - A split or merger retires the old code with `replaced_by`.
    - Never invent codes.
    - Add aliases only for exact, reviewed spellings. The `legacy_bundled` aliases come from names the old app saved.

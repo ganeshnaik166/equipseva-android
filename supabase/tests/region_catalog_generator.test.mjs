@@ -8,8 +8,8 @@
 // 3. Seeds: the generated synthetic-v1 then synthetic-v2 seed SQL, each applied
 //    twice over round3830 in PGlite, produce the intended history (rename keeps
 //    its code, split with replaced_by, retired State/UT and district, aliases,
-//    version switch), and the RPCs behave on it. The seed's self-check refuses a
-//    district code that would change State/UT.
+//    version switch), and the RPCs behave on it. A district that later moves to
+//    another State/UT under the same code carries its aliases and stored pairs.
 //
 // Run: EQS_PGLITE_PACKAGE=<extracted @electric-sql/pglite@0.5.8/package> \
 //        node supabase/tests/region_catalog_generator.test.mjs
@@ -157,6 +157,10 @@ await property('the synthetic-v1 seed applies twice and becomes current', async 
   assert.equal((await one(db, 'SELECT public.region_current_version() AS v')).v, 'synthetic-v1');
   assert.equal((await one(db, 'SELECT count(*)::int AS n FROM public.region_districts WHERE active')).n, 6);
   assert.equal((await one(db, "SELECT name_en FROM public.region_districts WHERE code = '90102'")).name_en, 'Old Riverton');
+  // Backfill on v1, so the v2 seed below has rows from an older catalogue to re-stamp.
+  await db.query('SELECT * FROM public.region_legacy_backfill_report(true)');
+  assert.equal((await one(db, "SELECT catalog_version FROM public.profile_regions WHERE user_id = 'c0000000-0000-0000-0000-000000000001'")).catalog_version, 'synthetic-v1');
+  assert.equal((await one(db, "SELECT catalog_version FROM public.engineer_service_districts WHERE engineer_id = 'e0000000-0000-0000-0000-000000000012' AND district_code = '90101'")).catalog_version, 'synthetic-v1');
 });
 
 await property('the synthetic-v2 seed renames, splits and retires as intended, twice over', async () => {
@@ -186,21 +190,46 @@ await property('the RPCs work on the generated catalogue, including version memb
   assert.equal((await asUser(db, home, 'SELECT public.set_my_home_region($1, $2, $3) AS r', ['901', '90102', 'synthetic-v1'])).rows[0].r.district_name, 'Riverton');
   const report = (await db.query('SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
   assert.ok(report.profiles_resolved > 0);
+  // Rows written on v1 move to the current catalogue on the next run.
+  assert.equal((await one(db, "SELECT catalog_version FROM public.profile_regions WHERE user_id = 'c0000000-0000-0000-0000-000000000001'")).catalog_version, 'synthetic-v2');
+  assert.equal((await one(db, "SELECT catalog_version FROM public.engineer_service_districts WHERE engineer_id = 'e0000000-0000-0000-0000-000000000012' AND district_code = '90101'")).catalog_version, 'synthetic-v2');
   assert.equal((await one(db, "SELECT district_code FROM public.profile_regions WHERE user_id = 'c0000000-0000-0000-0000-000000000003'")).district_code, '90102', 'Old Riverton resolves through the generated renamed alias');
 });
 
-await property("the seed's self-check refuses a district code that would change State/UT", async () => {
+await property('a district that moves to another State/UT under the same code carries its aliases and stored home pairs', async () => {
   const other = await freshDb();
   await other.exec(seed1);
-  // A conflicting history: 90104 already exists under another State/UT.
-  await other.exec("INSERT INTO public.region_districts (code, state_code, name_en) VALUES ('90104', '902', 'Elsewhere')");
-  await assert.rejects(() => other.exec(seed2), (e) => {
-    assert.match(e.message, /region seed synthetic-v2: not as intended/);
-    assert.match(e.message, /changed State\/UT/);
-    return true;
+  await other.exec(seed2);
+  const home = 'a0000000-0000-0000-0000-000000000002';
+  await asUser(other, home, 'SELECT public.set_my_home_region($1, $2, $3)', ['902', '90202', 'synthetic-v2']);
+  // synthetic-v3: Hillcrest (90202) now belongs to Alpha State (901).
+  const moved = variant('synthetic-v2', (f, p) => {
+    f['districts.csv'] = f['districts.csv'].replace('90202,902,Hillcrest', '90202,901,Hillcrest');
+    f['aliases.csv'] = f['aliases.csv'].replace('902,hill crest,90202,common_spelling', '901,hill crest,90202,common_spelling');
+    p.text = p.text.replace('- version: synthetic-v2', '- version: synthetic-v3').replace('- retrieved_on: 2026-06-01', '- retrieved_on: 2026-09-01');
   });
-  await other.exec('ROLLBACK'); // a migration runner rolls the failed file back; PGlite leaves it open
-  assert.equal((await one(other, 'SELECT public.region_current_version() AS v')).v, 'synthetic-v1', 'a refused seed changes nothing');
+  const seed3 = gen.toSeedSql(gen.loadSnapshot(moved), { migrationVersion: '20263992000000', round: '9992' });
+  rmSync(moved, { recursive: true, force: true });
+  await other.exec(seed3);
+  await other.exec(seed3);
+  assert.equal((await one(other, 'SELECT public.region_current_version() AS v')).v, 'synthetic-v3');
+  assert.equal((await one(other, "SELECT state_code FROM public.region_districts WHERE code = '90202'")).state_code, '901');
+  assert.equal((await one(other, "SELECT state_code FROM public.region_district_aliases WHERE alias_normalized = 'hill crest'")).state_code, '901');
+  assert.deepEqual(await one(other, 'SELECT state_code, district_code FROM public.profile_regions WHERE user_id = $1', [home]), { state_code: '901', district_code: '90202' });
+  assert.deepEqual((await other.query("SELECT public.region_district_candidates('901', 'Hill Crest') AS c")).rows[0].c, ['90202']);
+});
+
+await property('labels normalise exactly like the server: ASCII whitespace only', async () => {
+  const nbsp = String.fromCharCode(0xa0);
+  const tab = String.fromCharCode(9), nl = String.fromCharCode(10), vt = String.fromCharCode(11);
+  const mixed = ` Alpha${tab}${nl}State${vt} `;
+  assert.equal(gen.normalizeLabel(mixed), 'alpha state');
+  assert.equal(gen.normalizeLabel(`Alpha${nbsp}State`), `alpha${nbsp}state`);
+  assert.equal(gen.normalizeLabel(`${nbsp}Alpha`), `${nbsp}alpha`);
+  for (const label of [mixed, `Alpha${nbsp}State`, `${nbsp}Alpha `, 'North  field', 'Dist.', '   ']) {
+    const server = (await db.query('SELECT public.region_normalize_label($1) AS n', [label])).rows[0].n;
+    assert.equal(gen.normalizeLabel(label), server, `label ${JSON.stringify(label)}`);
+  }
 });
 
 const passed = results.filter(Boolean).length;

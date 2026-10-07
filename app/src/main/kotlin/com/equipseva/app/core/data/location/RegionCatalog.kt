@@ -84,15 +84,19 @@ class RegionCatalog internal constructor(
     }
 
     companion object {
-        private val WHITESPACE = Regex("\\s+")
+        /** ASCII whitespace only, as on the server; Unicode spaces such as NBSP are kept. */
+        private val WHITESPACE = Regex("[ \\t\\n\\r\\f\\x0B]+")
 
         /**
-         * Mirrors the server's `region_normalize_label`: lower case, whitespace runs collapsed to
-         * one space, trimmed; null when nothing is left. Punctuation and abbreviations are not
-         * folded, so "Hyderabad Dist." never equals "Hyderabad".
+         * Mirrors the server's `region_normalize_label` exactly: lower case, runs of ASCII
+         * whitespace (space, tab, newline, carriage return, form feed, vertical tab) collapsed to
+         * one space and trimmed; null when nothing is left. Non-breaking and other Unicode spaces,
+         * punctuation and abbreviations are kept, so "Hyderabad Dist." never equals "Hyderabad".
+         * The explicit class also keeps Android's ICU regex (whose \s includes Unicode spaces)
+         * from diverging.
          */
         fun normalizeLabel(raw: String?): String? =
-            raw?.replace(WHITESPACE, " ")?.trim()?.lowercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
+            raw?.replace(WHITESPACE, " ")?.trim(' ')?.lowercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
     }
 }
 

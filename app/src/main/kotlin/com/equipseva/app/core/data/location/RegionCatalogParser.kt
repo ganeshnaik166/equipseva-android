@@ -1,5 +1,6 @@
 package com.equipseva.app.core.data.location
 
+import java.time.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,7 +13,9 @@ import kotlinx.serialization.json.Json
  *  - names 1–64 characters; State/UT names unique; active district names unique per State/UT;
  *  - every code unique; every active district's parent is an active State/UT;
  *  - aliases are stored normalised and point at an active district of the same State/UT;
- *  - retired districts' replacements are known codes.
+ *  - retired districts' replacements are known codes;
+ *  - the source block has a 64-hex checksum, a 1–500 character URL and a YYYY-MM-DD date, and a
+ *    catalogue that looks synthetic (by version or URL) must be marked synthetic.
  * Any violation throws [RegionCatalogFormatException]; nothing is repaired or skipped.
  */
 object RegionCatalogParser {
@@ -22,6 +25,8 @@ object RegionCatalogParser {
     private val VERSION = Regex("^[a-z0-9][a-z0-9._-]{2,63}$")
     private val STATE_CODE = Regex("^[0-9]{1,3}$")
     private val DISTRICT_CODE = Regex("^[0-9]{1,6}$")
+    private val SHA256 = Regex("^[0-9a-f]{64}$")
+    private val DATE = Regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
     private val ALIAS_KINDS = setOf("official", "legacy_bundled", "renamed", "common_spelling")
 
     fun parse(text: String): RegionCatalog {
@@ -36,6 +41,14 @@ object RegionCatalogParser {
     private fun validate(a: AssetDto): RegionCatalog {
         check(a.format == FORMAT) { "unsupported format ${a.format}" }
         check(VERSION.matches(a.version)) { "invalid version" }
+        check(SHA256.matches(a.source.sha256)) { "invalid source sha256" }
+        check(a.source.url.length in 1..500) { "invalid source url" }
+        check(DATE.matches(a.source.retrievedOn) && runCatching { LocalDate.parse(a.source.retrievedOn) }.isSuccess) {
+            "invalid source retrieved_on"
+        }
+        check(a.synthetic || !(a.version.startsWith("synthetic") || a.source.url.startsWith("synthetic:"))) {
+            "synthetic catalogue not marked synthetic"
+        }
         check(a.states.isNotEmpty() && a.districts.isNotEmpty()) { "empty catalogue" }
 
         val stateCodes = HashSet<String>()
