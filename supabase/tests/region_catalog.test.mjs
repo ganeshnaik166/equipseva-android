@@ -63,7 +63,8 @@ INSERT INTO public.region_catalog_versions (version, source_url, retrieved_on, s
 INSERT INTO public.region_states (code, name_en, kind, active, introduced_in, retired_in) VALUES
   ('901', 'Alpha State', 'state', true, '${V1}', NULL),
   ('902', 'Beta Territory', 'union_territory', true, '${V1}', NULL),
-  ('903', 'Gamma Former State', 'state', false, '${V1}', '${V2}');
+  ('903', 'Gamma Former State', 'state', false, '${V1}', '${V2}'),
+  ('904', 'Delta Former Territory', 'union_territory', false, '${V1}', '${V2}');
 INSERT INTO public.region_districts (code, state_code, name_en, active, introduced_in, retired_in, replaced_by) VALUES
   ('90101', '901', 'Northfield', true, '${V1}', NULL, '{}'),
   ('90102', '901', 'Riverton', true, '${V1}', NULL, '{}'),
@@ -72,7 +73,8 @@ INSERT INTO public.region_districts (code, state_code, name_en, active, introduc
   ('90105', '901', 'Lakeside West', true, '${V2}', NULL, '{}'),
   ('90201', '902', 'Northfield', true, '${V1}', NULL, '{}'),
   ('90202', '902', 'Hillcrest', true, '${V1}', NULL, '{}'),
-  ('90301', '903', 'Old Town', false, '${V1}', '${V2}', '{}');
+  ('90301', '903', 'Old Town', false, '${V1}', '${V2}', '{}'),
+  ('90401', '904', 'Eastgate', true, '${V1}', NULL, '{}');  -- active district left under a retired State/UT
 INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind, added_in) VALUES
   ('901', 'old riverton', '90102', 'renamed', '${V2}'),
   ('901', 'lakeside', '90104', 'legacy_bundled', '${V2}'),
@@ -116,6 +118,25 @@ const profile = (db, user) => one(db, 'SELECT state, district FROM public.profil
 const serviceCodes = async (db, engineer) =>
   (await db.query('SELECT district_code FROM public.engineer_service_districts WHERE engineer_id = $1 ORDER BY district_code', [engineer]))
     .rows.map((r) => r.district_code);
+// Extra synthetic users and a 31-district State/UT, created inside the properties that need them.
+const userId = (n) => `d0000000-0000-0000-0000-0000000000${String(n).padStart(2, '0')}`;
+const engId = (n) => `f0000000-0000-0000-0000-0000000000${String(n).padStart(2, '0')}`;
+async function addEngineer(db, n, { profileState, kycState, areas }) {
+  await db.query('INSERT INTO public.profiles (id, full_name, role, state) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING',
+    [userId(n), `Engineer ${n}`, 'engineer', profileState]);
+  await db.query('INSERT INTO public.engineers (id, user_id, state, service_areas) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING',
+    [engId(n), userId(n), kycState, areas]);
+}
+const MANY_CODES = Array.from({ length: 31 }, (_, i) => String(90501 + i));
+const MANY_NAMES = MANY_CODES.map((_, i) => `Many District ${String(i + 1).padStart(2, '0')}`);
+async function addManyDistricts(db) {
+  await db.query("INSERT INTO public.region_states (code, name_en, kind, introduced_in) VALUES ('905', 'Many Districts State', 'state', $1) ON CONFLICT (code) DO NOTHING", [V2]);
+  for (let i = 0; i < MANY_CODES.length; i++) {
+    await db.query("INSERT INTO public.region_districts (code, state_code, name_en, introduced_in) VALUES ($1, '905', $2, $3) ON CONFLICT (code) DO NOTHING",
+      [MANY_CODES[i], MANY_NAMES[i], V2]);
+  }
+}
+
 const SET_HOME = 'SELECT public.set_my_home_region($1, $2, $3) AS r';
 const SET_SERVICE = 'SELECT public.set_my_service_districts($1::text[], $2) AS r';
 const MY_REGION = 'SELECT public.my_region_profile() AS r';
@@ -135,7 +156,7 @@ const PROPERTIES = [
   } },
 
   // ---------------------------------------------------------------- controls
-  { kind: 'control', mutantMustFail: true, name: 'catalog_is_public_read_only: anon and signed-in users can read the catalogue but never write it', run: async (db) => {
+  { kind: 'control', mutantMustFail: /^anon (INSERT|UPDATE|DELETE) region_/, name: 'catalog_is_public_read_only: anon and signed-in users can read the catalogue but never write it', run: async (db) => {
     for (const role of ['anon', 'authenticated']) {
       for (const t of CATALOG_TABLES) {
         const n = (await as(db, role, `SELECT count(*)::int AS n FROM public.${t}`, [], role === 'authenticated' ? U.home : null)).rows[0].n;
@@ -150,7 +171,7 @@ const PROPERTIES = [
       await rejects(() => as(db, role, 'DELETE FROM public.region_district_aliases', [], sub), '42501');
       await rejects(() => as(db, role, `UPDATE public.region_catalog_versions SET is_current = false`, [], sub), '42501');
     }
-    assert.equal((await one(db, "SELECT count(*)::int AS n FROM public.region_districts")).n, 8);
+    assert.equal((await one(db, "SELECT count(*)::int AS n FROM public.region_districts")).n, 9);
   } },
 
   { kind: 'control', name: 'home_region_pair_validation: wrong pairs, unknown and retired codes and unsupported versions are refused; a valid pair is stored with codes and mirrored as labels', run: async (db) => {
@@ -193,15 +214,18 @@ const PROPERTIES = [
     assert.equal((await one(db, 'SELECT count(*)::int AS n FROM public.region_resolution_queue')).n, 0, 'dry run queued');
 
     const applied = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
-    const { queue_rows_added: dryQueued, ...dryCounts } = dry.rows[0];
-    const { queue_rows_added: appliedQueued, ...appliedCounts } = applied;
+    const { queue_rows_added: dryQueued, queue_rows_closed: dryClosed, ...dryCounts } = dry.rows[0];
+    const { queue_rows_added: appliedQueued, queue_rows_closed: appliedClosed, ...appliedCounts } = applied;
     assert.deepEqual(appliedCounts, dryCounts, 'apply must resolve exactly what the dry run counted');
-    assert.equal(dryQueued, 0, 'a dry run queues nothing');
+    assert.equal(dryQueued + dryClosed, 0, 'a dry run changes no queue rows');
     assert.equal(appliedQueued, applied.profiles_needs_confirmation + applied.service_labels_needs_confirmation);
+    assert.equal(appliedClosed, 0);
     assert.deepEqual(appliedCounts, {
-      profiles_with_labels: 12, profiles_already_current: 1, profiles_resolved: 5, profiles_needs_confirmation: 6,
-      engineers_with_service_areas: 2, engineers_already_chosen: 0, service_labels_resolved: 2, service_labels_needs_confirmation: 2,
+      profiles_considered: 12, profiles_already_current: 1, profiles_resolved: 5, profiles_needs_confirmation: 6,
+      profiles_cleared: 0, engineers_considered: 2, engineers_already_chosen: 0, engineers_already_current: 0,
+      engineers_over_cap: 0, service_labels_resolved: 2, service_labels_needs_confirmation: 2,
     });
+    assert.equal((await homeRow(db, U.home)).source, 'user', 'a user-chosen row with unchanged text is never overwritten');
 
     const expect = async (n, status, state, district) => {
       const row = await homeRow(db, U.leg(n));
@@ -243,9 +267,10 @@ const PROPERTIES = [
 
     // Re-running is idempotent: nothing new is queued and every profile is current.
     const again = (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
-    assert.equal(again.queue_rows_added, 0);
-    assert.equal(again.profiles_already_current, again.profiles_with_labels);
+    assert.equal(again.queue_rows_added + again.queue_rows_closed, 0);
+    assert.equal(again.profiles_already_current, again.profiles_considered);
     assert.equal(again.profiles_resolved + again.profiles_needs_confirmation, 0);
+    assert.equal(again.engineers_already_current, again.engineers_considered);
 
     // The caller's view: coded home region, then a stale flag with an exact preview after an old-client edit.
     const mine = (await asUser(db, U.leg(3), MY_REGION)).rows[0].r;
@@ -314,7 +339,125 @@ const PROPERTIES = [
     assert.deepEqual(await serviceCodes(db, ENG1), [], 'deleting the engineer cascades');
   } },
 
-  { kind: 'control', mutantMustFail: true, name: 'grants_and_definer_shape: client RPCs are definer with a pinned search_path and signed-in-only EXECUTE; the report is service-only; helpers and tables expose nothing extra', run: async (db) => {
+  { kind: 'new-only', name: 'the backfill converges on edited text, catalogue changes and the 30-district cap, and never overrides a choice', run: async (db) => {
+    const backfill = async () => (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
+    const openItems = async (user, kind) => (await db.query(
+      `SELECT raw_district_label, reason FROM public.region_resolution_queue
+        WHERE subject_user_id = $1 AND subject_kind = $2 AND status = 'open' ORDER BY raw_district_label`, [user, kind])).rows;
+
+    // An older app shortens the service-area text: the coded set shrinks and the vanished item is dismissed.
+    await db.query("UPDATE public.engineers SET service_areas = ARRAY['Riverton'] WHERE id = $1", [LEG_ENG12]);
+    const shrink = await backfill();
+    assert.deepEqual(await serviceCodes(db, LEG_ENG12), ['90102']);
+    assert.deepEqual(await openItems(U.leg(12), 'engineer_service'), []);
+    assert.ok(shrink.queue_rows_closed >= 1);
+
+    // A catalogue change (a new alias) re-evaluates rows that needed confirmation.
+    await db.query("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind, added_in) VALUES ('901', 'north', '90101', 'common_spelling', $1)", [V2]);
+    await backfill();
+    const north = await homeRow(db, U.leg(10));
+    assert.deepEqual([north.status, north.district_code], ['resolved', '90101']);
+    assert.deepEqual(await openItems(U.leg(10), 'profile_home'), []);
+
+    // New text replaces old text: the old item is closed and the new text resolves.
+    await db.query("UPDATE public.profiles SET state = 'Beta Territory', district = 'Hill crest' WHERE id = $1", [U.leg(11)]);
+    await backfill();
+    const moved = await homeRow(db, U.leg(11));
+    assert.deepEqual([moved.status, moved.state_code, moved.district_code], ['resolved', '902', '90202']);
+    assert.deepEqual(await openItems(U.leg(11), 'profile_home'), []);
+
+    // A case or spacing edit is not a change.
+    await db.query("UPDATE public.profiles SET state = 'ALPHA  STATE', district = 'northfield' WHERE id = $1", [U.leg(1)]);
+    assert.equal((await asUser(db, U.leg(1), MY_REGION)).rows[0].r.home_stale, false);
+    const quiet = await backfill();
+    assert.equal(quiet.profiles_resolved + quiet.profiles_needs_confirmation + quiet.profiles_cleared, 0);
+    assert.equal(quiet.queue_rows_added + quiet.queue_rows_closed, 0);
+
+    // Cleared text removes the derived row and closes its item.
+    await db.query('UPDATE public.profiles SET state = NULL, district = NULL WHERE id = $1', [U.leg(9)]);
+    const cleared = await backfill();
+    assert.equal(cleared.profiles_cleared, 1);
+    assert.equal(await homeRow(db, U.leg(9)), undefined);
+    assert.deepEqual(await openItems(U.leg(9), 'profile_home'), []);
+
+    // The KYC State/UT scopes service areas; the profile's is used only when the KYC one is blank.
+    await addEngineer(db, 15, { profileState: 'Beta Territory', kycState: 'Alpha', areas: ['Northfield'] });
+    await addEngineer(db, 16, { profileState: 'Beta Territory', kycState: '  ', areas: ['Northfield'] });
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(15)), [], 'a partial KYC State/UT never falls back to another State/UT');
+    assert.deepEqual(await openItems(userId(15), 'engineer_service'), [{ raw_district_label: 'Northfield', reason: 'state_unknown' }]);
+    assert.equal((await one(db, "SELECT raw_state_label FROM public.region_resolution_queue WHERE subject_user_id = $1 AND subject_kind = 'engineer_service'", [userId(15)])).raw_state_label, 'Alpha');
+    assert.deepEqual(await serviceCodes(db, engId(16)), ['90201']);
+
+    // More than 30 resolvable districts: no rows and one too_many item; at 30 the set is written and the item closed.
+    await addManyDistricts(db);
+    await addEngineer(db, 17, { profileState: null, kycState: 'Many Districts State', areas: MANY_NAMES });
+    const over = await backfill();
+    assert.equal(over.engineers_over_cap, 1);
+    assert.deepEqual(await serviceCodes(db, engId(17)), []);
+    assert.deepEqual(await openItems(userId(17), 'engineer_service'), [{ raw_district_label: null, reason: 'too_many' }]);
+    await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [MANY_NAMES.slice(0, 30), engId(17)]);
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(17)), MANY_CODES.slice(0, 30));
+    assert.deepEqual(await openItems(userId(17), 'engineer_service'), []);
+    // ...and the engineer can re-save exactly what the server reports.
+    await asUser(db, userId(17), SET_SERVICE, [MANY_CODES.slice(0, 30), V2]);
+    assert.equal((await one(db, "SELECT count(*)::int AS n FROM public.engineer_service_districts WHERE engineer_id = $1 AND source = 'engineer'", [engId(17)])).n, 30);
+
+    // Converged: nothing left to change, and the user's own choice is untouched.
+    const still = await backfill();
+    assert.equal(still.queue_rows_added + still.queue_rows_closed, 0);
+    assert.equal(still.profiles_already_current, still.profiles_considered);
+    assert.equal(still.engineers_already_current + still.engineers_already_chosen, still.engineers_considered);
+    assert.equal((await homeRow(db, U.home)).source, 'user');
+  } },
+
+  { kind: 'new-only', name: 'write RPC edges: 30 valid codes, multi-dimensional lists, a district of a retired State/UT, codes outside the submitted version, a choice closes open items', run: async (db) => {
+    await addManyDistricts(db);
+    await addEngineer(db, 18, { profileState: null, kycState: null, areas: [] });
+    assert.equal((await asUser(db, userId(18), SET_SERVICE, [MANY_CODES.slice(0, 30), V2])).rows[0].r.count, 30);
+    await rejects(() => asUser(db, userId(18), SET_SERVICE, [MANY_CODES, V2]), '22023', /region_service_districts_too_many/);
+    assert.equal((await serviceCodes(db, engId(18))).length, 30);
+    await rejects(() => asUser(db, userId(18), "SELECT public.set_my_service_districts('{{90101},{90102}}'::text[], $1)", [V2]), '22023', /region_code_unknown/);
+
+    // An active district of a retired State/UT is retired for both RPCs and not counted.
+    await rejects(() => asUser(db, U.other, SET_HOME, ['904', '90401', V2]), '22023', /region_district_retired/);
+    await rejects(() => asUser(db, userId(18), SET_SERVICE, [['90401'], V2]), '22023', /region_district_retired/);
+
+    // Codes must exist in the catalogue version they claim.
+    await db.query('UPDATE public.region_catalog_versions SET accepts_writes = true WHERE version = $1', [V1]);
+    try {
+      await rejects(() => asUser(db, U.other, SET_HOME, ['901', '90104', V1]), '22023', /region_code_unknown/);
+      await rejects(() => asUser(db, userId(18), SET_SERVICE, [['90104'], V1]), '22023', /region_code_unknown/);
+      assert.equal((await asUser(db, U.other, SET_HOME, ['901', '90101', V1])).rows[0].r.catalog_version, V1);
+    } finally {
+      await db.query('UPDATE public.region_catalog_versions SET accepts_writes = false WHERE version = $1', [V1]);
+    }
+
+    // Choosing districts closes the engineer's open items.
+    const open13 = async () => (await one(db, "SELECT count(*)::int AS n FROM public.region_resolution_queue WHERE subject_user_id = $1 AND subject_kind = 'engineer_service' AND status = 'open'", [U.leg(13)])).n;
+    assert.ok(await open13() > 0);
+    await asUser(db, U.leg(13), SET_SERVICE, [['90201'], V2]);
+    assert.equal(await open13(), 0);
+    assert.equal((await one(db, "SELECT status FROM public.region_resolution_queue WHERE subject_user_id = $1 AND subject_kind = 'engineer_service'", [U.leg(13)])).status, 'resolved');
+  } },
+
+  { kind: 'new-only', name: 'catalogue integrity: aliases and stored pairs cannot cross States/UTs, aliases are stored normalised, retired targets never resolve', run: async (db) => {
+    const fails = (sql, code) => rejects(() => db.query(sql), code);
+    await fails("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'beta hill', '90202', 'common_spelling')", '23503');
+    await fails("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'Old Riverton', '90102', 'renamed')", '23514');
+    await fails("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'old  riverton', '90102', 'renamed')", '23514');
+    await fails(`INSERT INTO public.profile_regions (user_id, state_code, district_code, catalog_version, status, source) VALUES ('${U.leg(8)}', '901', '90201', '${V2}', 'resolved', 'user')`, '23503');
+    await fails(`INSERT INTO public.profile_regions (user_id, state_code, district_code, catalog_version, status, source) VALUES ('${U.leg(8)}', NULL, '90101', '${V2}', 'needs_confirmation', 'user')`, '23514');
+    await fails(`INSERT INTO public.region_catalog_versions (version, source_url, retrieved_on, sha256, is_current) VALUES ('synthetic-v3', 'x', DATE '2026-07-01', '${'c'.repeat(64)}', true)`, '23505');
+    // An alias to a retired district is allowed in history but never resolves.
+    await db.query("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', 'lake old', '90103', 'legacy_bundled')");
+    assert.deepEqual((await one(db, "SELECT public.region_district_candidates('901', 'Lake Old') AS c")).c, []);
+    assert.deepEqual((await one(db, "SELECT public.region_district_candidates('904', 'Eastgate') AS c")).c, [], 'a retired State/UT resolves nothing');
+    assert.deepEqual((await one(db, "SELECT public.region_district_candidates('901', 'Old Riverton') AS c")).c, ['90102']);
+  } },
+
+  { kind: 'control', mutantMustFail: /^anon can execute public./, name: 'grants_and_definer_shape: client RPCs are definer with a pinned search_path and signed-in-only EXECUTE; the report is service-only; helpers and tables expose nothing extra', run: async (db) => {
     const exec = async (role, sig) => (await one(db, "SELECT has_function_privilege($1, $2, 'EXECUTE') AS ok", [role, sig])).ok;
     const shape = async (sig) => one(db, 'SELECT p.prosecdef, p.proconfig FROM pg_proc p WHERE p.oid = $1::regprocedure', [sig]);
     for (const sig of [...CLIENT_RPCS, SERVICE_RPC]) {
@@ -371,6 +514,8 @@ const PROPERTIES = [
       ['GRANT EXECUTE ON FUNCTION public.region_legacy_backfill_report(boolean) TO authenticated', 'REVOKE EXECUTE ON FUNCTION public.region_legacy_backfill_report(boolean) FROM authenticated', /region_legacy_backfill_report/],
       ['GRANT EXECUTE ON FUNCTION public.region_district_candidates(text,text) TO anon', 'REVOKE EXECUTE ON FUNCTION public.region_district_candidates(text,text) FROM anon', /region_district_candidates/],
       ['ALTER TABLE public.profile_regions DISABLE ROW LEVEL SECURITY', 'ALTER TABLE public.profile_regions ENABLE ROW LEVEL SECURITY', /rls off: public.profile_regions/],
+      ['GRANT UPDATE ON SEQUENCE public.region_resolution_queue_id_seq TO anon', 'REVOKE UPDATE ON SEQUENCE public.region_resolution_queue_id_seq FROM anon', /update granted to anon on public.region_resolution_queue_id_seq/],
+      ['GRANT UPDATE (district_code) ON public.profile_regions TO authenticated', 'REVOKE UPDATE (district_code) ON public.profile_regions FROM authenticated', /column update granted to authenticated on public.profile_regions/],
     ]) {
       await db.exec(grant);
       try {
@@ -402,7 +547,7 @@ const UNSEEDED_PROPERTIES = [
     assert.equal(mine.legacy_preview, null);
     assert.equal(mine.current_catalog_version, null);
     assert.equal(mine.legacy_district_label, 'Northfield');
-    await rejects(() => as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(false)'), 'P0002', /region_catalog_missing/);
+    await rejects(() => as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(false)'), 'P0001', /region_catalog_missing/);
     await rejects(() => as(db, 'anon', 'SELECT * FROM public.region_catalog_current()'), '42501');
   } },
   { name: 'region_catalog_current reports the seeded current version once a seed lands', run: async (db) => {
@@ -450,7 +595,11 @@ for (const p of PROPERTIES.filter((x) => x.mutantMustFail)) {
     await p.run(mutant);
     problems.push(`MUTANT control passed with default privileges in force: ${p.name}`);
     console.log(`UNEXPECTED mutant pass: ${p.name}`);
-  } catch (e) { mutantFailed++; console.log(`FAIL  mutant    control    ${p.name} (expected: ${e.message.split(String.fromCharCode(10))[0]})`); }
+  } catch (e) {
+    const reason = e.message.split(String.fromCharCode(10))[0];
+    if (p.mutantMustFail.test(reason)) { mutantFailed++; console.log(`FAIL  mutant    control    ${p.name} (expected: ${reason})`); }
+    else { problems.push(`MUTANT control failed for the wrong reason: ${p.name}: ${reason}`); console.log(`WRONG mutant failure: ${p.name}: ${reason}`); }
+  }
 }
 for (const p of UNSEEDED_PROPERTIES) {
   try { await p.run(unseeded); unseededPass++; console.log(`PASS  unseeded  new-only   ${p.name}`); }
