@@ -4,7 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "test:s3a": "node service_only_money_rpc_grants.test.mjs"
+    "test:s3a": "node service_only_money_rpc_grants.test.mjs",
+    "test:regions": "node region_catalog.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.8"
