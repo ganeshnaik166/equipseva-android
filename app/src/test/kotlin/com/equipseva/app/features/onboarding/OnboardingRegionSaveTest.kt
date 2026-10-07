@@ -20,8 +20,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -38,11 +40,22 @@ internal class FakeRegionRepository : RegionRepository {
     data class HomeCall(val stateCode: String, val districtCode: String, val version: String)
 
     val homeCalls = mutableListOf<HomeCall>()
-    var homeResult: (HomeCall) -> Result<HomeRegionSaved> = { c ->
-        Result.success(HomeRegionSaved(c.stateCode, "state", c.districtCode, "district", c.version, "resolved"))
-    }
 
-    override suspend fun catalogStatus(): Result<RegionCatalogStatus> = Result.success(RegionCatalogStatus())
+    /** Defaults to the server mirroring the synthetic catalogue's current names. */
+    var homeResult: (HomeCall) -> Result<HomeRegionSaved> = { c ->
+        val catalog = SyntheticRegions.catalog
+        Result.success(
+            HomeRegionSaved(
+                c.stateCode, catalog.state(c.stateCode)!!.name,
+                c.districtCode, catalog.district(c.districtCode)!!.name, c.version, "resolved",
+            ),
+        )
+    }
+    var status: Result<RegionCatalogStatus> =
+        Result.success(RegionCatalogStatus(currentVersion = "synthetic-v2", supportedVersions = listOf("synthetic-v2")))
+    var statusCalls = 0
+
+    override suspend fun catalogStatus(): Result<RegionCatalogStatus> { statusCalls++; return status }
     override suspend fun setMyHomeRegion(stateCode: String, districtCode: String, catalogVersion: String): Result<HomeRegionSaved> {
         val call = HomeCall(stateCode, districtCode, catalogVersion)
         homeCalls += call
@@ -81,8 +94,38 @@ class OnboardingHomeRegionTest {
         assertEquals(listOf("Lakeside East", "Lakeside West", "Northfield", "Riverton"), region.districtOptions("Alpha State"))
         region.selectState("Beta Territory")
         region.selectDistrict("Northfield")
-        assertEquals(OnboardingHomeRegion.Outcome.Saved, region.save())
+        assertEquals(OnboardingHomeRegion.Outcome.Saved("Beta Territory", "Northfield"), region.save())
         assertEquals(listOf(FakeRegionRepository.HomeCall("902", "90201", "synthetic-v2")), repo.homeCalls)
+    }
+
+    @Test
+    fun `the server's current names come back with the save`() = runTest {
+        val repo = FakeRegionRepository().apply {
+            homeResult = { c -> Result.success(HomeRegionSaved(c.stateCode, "Alpha State", c.districtCode, "Riverton Nagar", c.version, "resolved")) }
+        }
+        val region = OnboardingHomeRegion(catalogSource(SyntheticRegions.json), repo)
+        region.load()
+        region.selectState("Alpha State")
+        region.selectDistrict("Riverton")
+        assertEquals(OnboardingHomeRegion.Outcome.Saved("Alpha State", "Riverton Nagar"), region.save())
+    }
+
+    @Test
+    fun `a refusal falls back to labels only when the bundled catalogue is behind the server's`() = runTest {
+        suspend fun outcome(serverCurrent: String?): OnboardingHomeRegion.Outcome {
+            val repo = FakeRegionRepository().apply {
+                homeResult = { Result.failure(refusal("region_district_retired")) }
+                status = Result.success(RegionCatalogStatus(currentVersion = serverCurrent))
+            }
+            val region = OnboardingHomeRegion(catalogSource(SyntheticRegions.json), repo)
+            region.load()
+            region.selectState("Alpha State")
+            region.selectDistrict("Riverton")
+            return region.save()
+        }
+        assertEquals(OnboardingHomeRegion.Outcome.LegacyOnly, outcome("synthetic-v3"))
+        assertEquals(OnboardingHomeRegion.Outcome.Refused(RegionWriteError.DistrictRetired), outcome("synthetic-v2"))
+        assertEquals(OnboardingHomeRegion.Outcome.Refused(RegionWriteError.DistrictRetired), outcome(null))
     }
 
     @Test
@@ -199,6 +242,53 @@ class OnboardingRegionSaveTest {
         assertEquals(1, regions.homeCalls.size)
         assertEquals("Northfield", profiles.updateBasicInfoCalls.single().district)
         assertTrue(HospitalOnboardingViewModel.Effect.Done in effects)
+    }
+
+    @Test
+    fun `the label save reuses the names the server mirrored, not the bundled ones`() = runTest {
+        regions.homeResult = { c -> Result.success(HomeRegionSaved(c.stateCode, "Alpha State", c.districtCode, "Riverton Nagar", c.version, "resolved")) }
+        val vm = hospital(SyntheticRegions.json)
+        vm.state.first { it.stateOptions.size == 2 }
+        vm.fill("Alpha State", "Riverton")
+        vm.onSubmit()
+        val saved = profiles.updateBasicInfoCalls.single()
+        assertEquals(listOf("Alpha State", "Riverton Nagar"), listOf(saved.state, saved.district))
+    }
+
+    @Test
+    fun `a server without the RPC completes onboarding with the picked labels`() = runTest {
+        regions.homeResult = { Result.failure(FakeRest.rest(404, """{"code":"PGRST202","message":"Could not find the function public.set_my_home_region"}""")) }
+        val vm = hospital(SyntheticRegions.json)
+        vm.state.first { it.stateOptions.size == 2 }
+        val effects = effectsOf(vm)
+        vm.fill("Beta Territory", "Hillcrest")
+        vm.onSubmit()
+        assertEquals("Hillcrest", profiles.updateBasicInfoCalls.single().district)
+        assertTrue(HospitalOnboardingViewModel.Effect.Done in effects)
+    }
+
+    @Test
+    fun `a pick made before the catalogue loaded is kept only if the catalogue has the same names`() = runTest {
+        fun delayedSource() = RegionCatalogSource(RegionAssetReader { SyntheticRegions.json }, RegionCatalogPolicy(allowSynthetic = true)) { throw AssertionError(it) }
+            .apply { ioDispatcher = StandardTestDispatcher(testScheduler) }
+
+        val kept = HospitalOnboardingViewModel(auth, profiles, OnboardingHomeRegion(delayedSource(), regions))
+        assertEquals(IndiaLocations.STATES, kept.state.value.stateOptions)
+        kept.onStateChange("Alpha State")
+        kept.onDistrictChange("Riverton")
+        advanceUntilIdle()
+        assertEquals(listOf("Alpha State", "Beta Territory"), kept.state.value.stateOptions)
+        assertEquals(listOf("Alpha State", "Riverton"), listOf(kept.state.value.state, kept.state.value.district))
+        kept.onPhoneChange("+919876543210")
+        kept.onSubmit()
+        assertEquals(FakeRegionRepository.HomeCall("901", "90102", "synthetic-v2"), regions.homeCalls.last())
+
+        val cleared = HospitalOnboardingViewModel(auth, profiles, OnboardingHomeRegion(delayedSource(), regions))
+        cleared.onStateChange("Telangana")
+        cleared.onDistrictChange(IndiaLocations.districtsFor("Telangana").first())
+        advanceUntilIdle()
+        assertEquals(listOf("", ""), listOf(cleared.state.value.state, cleared.state.value.district))
+        assertFalse(cleared.state.value.canSubmit)
     }
 
     @Test

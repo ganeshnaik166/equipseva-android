@@ -33,7 +33,7 @@
 //   node scripts/regions/build_region_catalog.mjs --hash <dir>   (prints sha256 lines)
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -74,7 +74,7 @@ export const sha256 = (text) => createHash('sha256').update(lf(text), 'utf8').di
 /** Minimal RFC 4180 reader: quoted fields, doubled quotes, LF or CRLF rows. */
 export function parseCsv(text, file) {
   const rows = [];
-  let row = [], field = '', i = 0, quoted = false;
+  let row = [], field = '', i = 0, quoted = false, closed = false;
   const raw = lf(text);
   const src = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw; // drop a UTF-8 byte-order mark
   while (i < src.length) {
@@ -82,16 +82,18 @@ export function parseCsv(text, file) {
     if (quoted) {
       if (c === '"') {
         if (src[i + 1] === '"') { field += '"'; i += 2; continue; }
-        quoted = false; i++; continue;
+        quoted = false; closed = true; i++; continue;
       }
       field += c; i++; continue;
     }
+    if (c === ',') { row.push(field); field = ''; closed = false; i++; continue; }
+    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; closed = false; i++; continue; }
+    // Anything between a closing quote and the next separator is refused, never joined on.
+    if (closed) fail(`${file}: text after a closing quote in row ${rows.length + 1}`);
     if (c === '"') {
       if (field !== '') fail(`${file}: stray quote in row ${rows.length + 1}`);
       quoted = true; i++; continue;
     }
-    if (c === ',') { row.push(field); field = ''; i++; continue; }
-    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
     field += c; i++;
   }
   if (quoted) fail(`${file}: unterminated quote`);
@@ -119,16 +121,45 @@ export function parseProvenance(text) {
     if (!out[key]) fail(`PROVENANCE.md: missing "- ${key}: ..."`);
   }
   if (!VERSION.test(out.version)) fail(`PROVENANCE.md: invalid version ${out.version}`);
-  if (!DATE.test(out.retrieved_on) || Number.isNaN(Date.parse(out.retrieved_on))) fail('PROVENANCE.md: retrieved_on must be YYYY-MM-DD');
+  if (!isCalendarDate(out.retrieved_on)) fail('PROVENANCE.md: retrieved_on must be a real YYYY-MM-DD date');
   if (out.source_url.length > 500) fail('PROVENANCE.md: source_url longer than 500 characters');
   if (out.synthetic !== 'true' && out.synthetic !== 'false') fail('PROVENANCE.md: synthetic must be true or false');
   out.synthetic = out.synthetic === 'true';
+  // Same rule as RegionCatalogParser: something that looks synthetic must say so.
+  if (!out.synthetic && (out.version.startsWith('synthetic') || out.source_url.startsWith('synthetic:'))) {
+    fail('PROVENANCE.md: a synthetic-looking catalogue must be marked "synthetic: true"');
+  }
   return out;
 }
 
+/** YYYY-MM-DD naming a real day between 1900 and 2999 (also what the device parser accepts). */
+export function isCalendarDate(text) {
+  const m = DATE.exec(text);
+  if (!m) return false;
+  const [y, mo, d] = text.split('-').map(Number);
+  if (y < 1900 || y > 2999) return false;
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
+}
+
+// Control and format characters (tabs, newlines, U+001C-U+001F, zero-width spaces, BOMs...)
+// are refused outright: the device and the server would otherwise trim or compare them
+// differently, and nothing legitimate needs them in a place name.
+const CONTROL_OR_FORMAT = /[\p{Cc}\p{Cf}]/u;
+
 function checkName(name, what) {
-  if (typeof name !== 'string' || name.length < 1 || name.length > 64 || name.trim() !== name) {
-    fail(`invalid name for ${what}: "${name}"`);
+  if (typeof name !== 'string' || name.length < 1 || name.length > 64 || name.trim() !== name || CONTROL_OR_FORMAT.test(name)) {
+    fail(`invalid name for ${what}: ${JSON.stringify(name)}`);
+  }
+}
+
+/** Reads a file as strict UTF-8; a file in another encoding is refused, never guessed. */
+function readUtf8(p, what) {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(p));
+  } catch (e) {
+    if (e instanceof TypeError) fail(`${what}: not valid UTF-8`);
+    throw e;
   }
 }
 
@@ -136,7 +167,7 @@ function checkName(name, what) {
 export function loadSnapshot(dir) {
   const provPath = path.join(dir, 'PROVENANCE.md');
   if (!existsSync(provPath)) fail(`${dir}: PROVENANCE.md is missing`);
-  const prov = parseProvenance(readFileSync(provPath, 'utf8'));
+  const prov = parseProvenance(readUtf8(provPath, 'PROVENANCE.md'));
   const data = {};
   for (const file of CSV_FILES) {
     const p = path.join(dir, file);
@@ -146,7 +177,7 @@ export function loadSnapshot(dir) {
       data[file] = [];
       continue;
     }
-    const text = readFileSync(p, 'utf8');
+    const text = readUtf8(p, file);
     if (!prov.sha256[file]) fail(`PROVENANCE.md has no sha256 for ${file}`);
     if (prov.sha256[file] !== sha256(text)) fail(`${file}: sha256 does not match PROVENANCE.md`);
     data[file] = parseCsv(text, file);
@@ -196,6 +227,10 @@ export function validate(prov, data) {
     if (districtNames.has(key)) fail(`duplicate district name ${d.name} in ${d.state_code}`);
     districtNames.add(key);
   }
+  // A State/UT nobody could pick a district in would trap users (onboarding needs a pair).
+  for (const code of activeStates) {
+    if (!districts.some((d) => d.state_code === code)) fail(`State/UT ${code} has no active district`);
+  }
   const retired = retiredDistricts.map((r) => ({
     ...r,
     replaced_by: r.replaced_by === '' ? [] : r.replaced_by.split(';'),
@@ -216,7 +251,7 @@ export function validate(prov, data) {
   const aliasKeys = new Set();
   for (const a of aliases) {
     if (!activeStates.has(a.state_code)) fail(`alias "${a.alias}" needs an active State/UT, got ${a.state_code}`);
-    if (a.alias.length < 1 || a.alias.length > 64 || normalizeLabel(a.alias) !== a.alias) {
+    if (a.alias.length < 1 || a.alias.length > 64 || normalizeLabel(a.alias) !== a.alias || CONTROL_OR_FORMAT.test(a.alias)) {
       fail(`alias "${a.alias}" is not stored normalised`);
     }
     if (!ALIAS_KINDS.has(a.kind)) fail(`invalid alias kind "${a.kind}"`);
@@ -229,7 +264,9 @@ export function validate(prov, data) {
     aliasKeys.add(key);
   }
 
-  const byCode = (x, y) => Number(x.code) - Number(y.code) || x.code.localeCompare(y.code);
+  // Plain code-unit comparison: the output must not depend on the runtime's locale.
+  const cmp = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
+  const byCode = (x, y) => Number(x.code) - Number(y.code) || cmp(x.code, y.code);
   return {
     version: prov.version,
     synthetic: prov.synthetic,
@@ -239,8 +276,8 @@ export function validate(prov, data) {
     retiredStates: [...retiredStates].sort(byCode),
     districts: [...districts].sort(byCode),
     retiredDistricts: retired.sort(byCode),
-    aliases: [...aliases].sort((x, y) => x.state_code.localeCompare(y.state_code)
-      || x.alias.localeCompare(y.alias) || x.district_code.localeCompare(y.district_code)),
+    aliases: [...aliases].sort((x, y) => cmp(x.state_code, y.state_code)
+      || cmp(x.alias, y.alias) || cmp(x.district_code, y.district_code)),
   };
 }
 
@@ -271,8 +308,13 @@ const arr = (list) => `ARRAY[${list.map(q).join(', ')}]::text[]`;
 /** The seed migration for the round3830 tables. */
 export function toSeedSql(cat, { migrationVersion, round }) {
   const v = q(cat.version);
+  const digest = q(cat.digest);
   const activeStateCodes = cat.states.map((s) => s.code);
   const activeDistrictCodes = cat.districts.map((d) => d.code);
+  const retiredStateCodes = cat.retiredStates.map((s) => s.code);
+  const retiredDistrictCodes = cat.retiredDistricts.map((r) => r.code);
+  const aliasKeys = cat.aliases.map((a) => `${a.state_code}|${a.alias}|${a.district_code}`);
+  const pairs = cat.districts.map((d) => `${d.code}:${d.state_code}`);
   const lines = [];
   const add = (s = '') => lines.push(s);
   add(`-- Round ${round} — region catalogue seed ${cat.version}.`);
@@ -282,22 +324,45 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add(`-- Snapshot sha256: ${cat.digest}. ${cat.states.length} States/UTs, ${cat.districts.length} districts,`);
   add(`-- ${cat.retiredDistricts.length} retired districts, ${cat.aliases.length} aliases.`);
   add('--');
-  add('-- Retires every State/UT and district this snapshot no longer lists, upserts the rest');
-  add('-- (a rename keeps its code), records replacements and aliases, makes this version');
-  add('-- current and re-checks the result. Re-running it changes nothing. Needs round3830.');
+  add('-- Brings the catalogue exactly to this snapshot: retires what it no longer lists (only');
+  add('-- codes the snapshot lists as retired may be retired), upserts the rest (a rename keeps');
+  add('-- its code; a move to another State/UT carries aliases and stored pairs with it), makes');
+  add('-- the alias set equal to the snapshot\'s, switches the current version and re-checks the');
+  add('-- result. Re-running it changes nothing. Needs round3830.');
   add(`-- Migration version ${migrationVersion}.`);
   add('BEGIN;');
   add("SET LOCAL lock_timeout = '5s';");
   add();
+  add('-- Refuse before changing anything: different data under an existing version label, or a');
+  add('-- retirement the snapshot does not list (for example a truncated export).');
+  add('DO $$');
+  add('DECLARE');
+  add('  v_unlisted text[];');
+  add('BEGIN');
+  add(`  IF EXISTS (SELECT 1 FROM public.region_catalog_versions WHERE version = ${v} AND sha256 <> ${digest}) THEN`);
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: this version already exists with different data' USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add('  SELECT array_agg(code ORDER BY code) INTO v_unlisted FROM public.region_districts');
+  add(`   WHERE active AND NOT (code = ANY (${arr(activeDistrictCodes)})) AND NOT (code = ANY (${arr(retiredDistrictCodes)}));`);
+  add('  IF v_unlisted IS NOT NULL THEN');
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: districts would be retired without being listed in retired_districts.csv: %', v_unlisted USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add('  SELECT array_agg(code ORDER BY code) INTO v_unlisted FROM public.region_states');
+  add(`   WHERE active AND NOT (code = ANY (${arr(activeStateCodes)})) AND NOT (code = ANY (${arr(retiredStateCodes)}));`);
+  add('  IF v_unlisted IS NOT NULL THEN');
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: States/UTs would be retired without being listed in retired_states.csv: %', v_unlisted USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add('END $$;');
+  add();
   add('INSERT INTO public.region_catalog_versions (version, source_url, retrieved_on, sha256, is_current, accepts_writes, is_synthetic)');
-  add(`VALUES (${v}, ${q(cat.source.url)}, DATE ${q(cat.source.retrieved_on)}, ${q(cat.digest)}, false, true, ${cat.synthetic})`);
+  add(`VALUES (${v}, ${q(cat.source.url)}, DATE ${q(cat.source.retrieved_on)}, ${digest}, false, true, ${cat.synthetic})`);
   add('ON CONFLICT (version) DO NOTHING;');
   add();
-  add('-- Retire first, so a name freed by a retirement can be reused in the same seed.');
-  add(`UPDATE public.region_districts SET active = false, retired_in = ${v}`);
-  add(`  WHERE active AND NOT (code = ANY (${arr(activeDistrictCodes)}));`);
-  add(`UPDATE public.region_states SET active = false, retired_in = ${v}`);
-  add(`  WHERE active AND NOT (code = ANY (${arr(activeStateCodes)}));`);
+  add('-- Phase 1: take every active row out of the active set, so a rename, a swap of names or a');
+  add('-- reused name can never collide with a row this seed has not reached yet. Phase 2 below');
+  add('-- re-activates exactly the snapshot\'s rows; nothing else stays retired unless listed.');
+  add(`UPDATE public.region_districts SET active = false, retired_in = ${v} WHERE active;`);
+  add(`UPDATE public.region_states SET active = false, retired_in = ${v} WHERE active;`);
   add();
   const stateRows = [
     ...cat.states.map((s) => `  (${q(s.code)}, ${q(s.name)}, ${q(s.kind)}, true, ${v}, NULL)`),
@@ -322,12 +387,16 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add('  retired_in = CASE WHEN EXCLUDED.active THEN NULL ELSE coalesce(region_districts.retired_in, EXCLUDED.retired_in) END,');
   add('  replaced_by = EXCLUDED.replaced_by;');
   add();
+  add('-- Aliases: exactly the snapshot\'s set, so a withdrawn or retargeted alias stops resolving');
+  add('-- on the server just as it does on devices with this asset.');
+  add('DELETE FROM public.region_district_aliases a');
+  add(`  WHERE NOT ((a.state_code || '|' || a.alias_normalized || '|' || a.district_code) = ANY (${arr(aliasKeys)}));`);
   if (cat.aliases.length) {
     add('INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind, added_in) VALUES');
     add(cat.aliases.map((a) => `  (${q(a.state_code)}, ${q(a.alias)}, ${q(a.district_code)}, ${q(a.kind)}, ${v})`).join(',\n'));
-    add('ON CONFLICT (state_code, alias_normalized, district_code) DO NOTHING;');
-    add();
+    add('ON CONFLICT (state_code, alias_normalized, district_code) DO UPDATE SET kind = EXCLUDED.kind;');
   }
+  add();
   add(`UPDATE public.region_catalog_versions SET is_current = false WHERE is_current AND version <> ${v};`);
   add(`UPDATE public.region_catalog_versions SET is_current = true, accepts_writes = true WHERE version = ${v};`);
   add();
@@ -336,6 +405,9 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add('  v_bad text[] := ARRAY[]::text[];');
   add('BEGIN');
   add(`  IF public.region_current_version() IS DISTINCT FROM ${v} THEN v_bad := v_bad || 'current version'::text; END IF;`);
+  add(`  IF (SELECT sha256 FROM public.region_catalog_versions WHERE version = ${v}) IS DISTINCT FROM ${digest} THEN`);
+  add("    v_bad := v_bad || 'version checksum'::text;");
+  add('  END IF;');
   add(`  IF (SELECT coalesce(array_agg(code ORDER BY code), '{}') FROM public.region_states WHERE active)`);
   add(`     IS DISTINCT FROM (SELECT array_agg(c ORDER BY c) FROM unnest(${arr(activeStateCodes)}) c) THEN`);
   add("    v_bad := v_bad || 'active States/UTs'::text;");
@@ -344,11 +416,16 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add(`     IS DISTINCT FROM (SELECT array_agg(c ORDER BY c) FROM unnest(${arr(activeDistrictCodes)}) c) THEN`);
   add("    v_bad := v_bad || 'active districts'::text;");
   add('  END IF;');
-  const pairs = cat.districts.map((d) => `${d.code}:${d.state_code}`);
   add(`  IF EXISTS (SELECT 1 FROM unnest(${arr(pairs)}) p`);
   add('             WHERE NOT EXISTS (SELECT 1 FROM public.region_districts d');
   add("                                WHERE d.code || ':' || d.state_code = p AND d.active)) THEN");
   add("    v_bad := v_bad || 'a district did not land under its State/UT'::text;");
+  add('  END IF;');
+  add("  IF (SELECT coalesce(array_agg(k ORDER BY k), '{}')");
+  add("        FROM (SELECT a.state_code || '|' || a.alias_normalized || '|' || a.district_code AS k");
+  add('                FROM public.region_district_aliases a) t)');
+  add(`     IS DISTINCT FROM (SELECT coalesce(array_agg(c ORDER BY c), '{}') FROM unnest(${arr(aliasKeys)}) c) THEN`);
+  add("    v_bad := v_bad || 'alias set'::text;");
   add('  END IF;');
   add('  IF EXISTS (SELECT 1 FROM public.region_districts d JOIN public.region_states s ON s.code = d.state_code');
   add('             WHERE d.active AND NOT s.active) THEN');
@@ -367,9 +444,33 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   return lines.join('\n') + '\n';
 }
 
-const MAIN_ASSET = path.join('app', 'src', 'main', 'assets');
-const MIGRATIONS = path.join('supabase', 'migrations');
-const under = (file, dir) => path.resolve(file).toLowerCase().startsWith(path.resolve(dir).toLowerCase() + path.sep);
+/** The repository this script lives in, whatever the current directory is. */
+export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/** The real path of [p]: links and junctions of its nearest existing ancestor are resolved. */
+function realish(p) {
+  let cur = path.resolve(p);
+  const rest = [];
+  while (!existsSync(cur)) {
+    const parent = path.dirname(cur);
+    if (parent === cur) break;
+    rest.unshift(path.basename(cur));
+    cur = parent;
+  }
+  let real = cur;
+  try { real = realpathSync.native(cur); } catch { /* keep the resolved path */ }
+  return path.join(real, ...rest);
+}
+
+/**
+ * Whether [p] is a place synthetic data must never reach: any module's src/main/assets, or
+ * supabase/migrations — matched by path segment after resolving links, so neither the current
+ * directory nor a junction can get around it.
+ */
+export function isShippingPath(p) {
+  const segments = `/${realish(p).split(path.sep).join('/').toLowerCase()}/`;
+  return segments.includes('/src/main/assets/') || segments.includes('/supabase/migrations/');
+}
 
 export function seedFileName(cat, { migrationVersion, round }) {
   if (!/^\d{14}$/.test(String(migrationVersion))) fail('--migration-version must be 14 digits');
@@ -377,28 +478,33 @@ export function seedFileName(cat, { migrationVersion, round }) {
   return `${migrationVersion}_round${round}_region_catalog_seed_${cat.version.replace(/[^a-z0-9]+/g, '_')}.sql`;
 }
 
-/** Writes the requested artefacts; refuses to put synthetic data where it would ship. */
-export function build({ snapshot, jsonOut, sqlOut, migrationVersion, round, repoRoot = process.cwd() }) {
+/**
+ * Writes the requested artefacts; refuses to put synthetic data where it would ship. Every
+ * check runs before anything is written, so a refusal never leaves a partial result.
+ */
+export function build({ snapshot, jsonOut, sqlOut, migrationVersion, round }) {
   const cat = loadSnapshot(snapshot);
-  if (cat.synthetic && jsonOut && under(jsonOut, path.join(repoRoot, MAIN_ASSET))) {
+  const sqlTarget = sqlOut
+    ? (sqlOut.endsWith('.sql') ? (seedFileName(cat, { migrationVersion, round }), sqlOut)
+      : path.join(sqlOut, seedFileName(cat, { migrationVersion, round })))
+    : null;
+  if (cat.synthetic && jsonOut && isShippingPath(jsonOut)) {
     fail('a synthetic catalogue can never be written to the shipped asset path');
   }
-  const sqlTarget = sqlOut
-    ? (sqlOut.endsWith('.sql') ? sqlOut : path.join(sqlOut, seedFileName(cat, { migrationVersion, round })))
-    : null;
-  if (cat.synthetic && sqlTarget && under(sqlTarget, path.join(repoRoot, MIGRATIONS))) {
+  if (cat.synthetic && sqlTarget && isShippingPath(sqlTarget)) {
     fail('a synthetic catalogue can never be written to supabase/migrations');
   }
+  const json = jsonOut ? toAssetJson(cat) : null;
+  const sql = sqlTarget ? toSeedSql(cat, { migrationVersion, round }) : null;
   const written = [];
   if (jsonOut) {
     mkdirSync(path.dirname(jsonOut), { recursive: true });
-    writeFileSync(jsonOut, toAssetJson(cat));
+    writeFileSync(jsonOut, json);
     written.push(jsonOut);
   }
   if (sqlTarget) {
-    seedFileName(cat, { migrationVersion, round });
     mkdirSync(path.dirname(sqlTarget), { recursive: true });
-    writeFileSync(sqlTarget, toSeedSql(cat, { migrationVersion, round }));
+    writeFileSync(sqlTarget, sql);
     written.push(sqlTarget);
   }
   return { catalog: cat, written };

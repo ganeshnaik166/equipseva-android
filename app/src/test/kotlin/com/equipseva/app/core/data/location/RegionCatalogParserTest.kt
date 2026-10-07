@@ -55,6 +55,15 @@ class RegionCatalogParserTest {
         rejects(mutate("\"retrieved_on\": \"2026-06-01\"", "\"retrieved_on\": \"1 June 2026\""), "invalid source retrieved_on")
         rejects(mutate("\"retrieved_on\": \"2026-06-01\"", "\"retrieved_on\": \"2026-02-30\""), "invalid source retrieved_on")
         rejects(mutate("\"url\": \"synthetic://fixture/v2\"", "\"url\": \"\""), "invalid source url")
+        rejects(mutate("\"retrieved_on\": \"2026-06-01\"", "\"retrieved_on\": \"1899-12-31\""), "invalid source retrieved_on")
+    }
+
+    @Test
+    fun `every State or UT needs at least one district`() {
+        rejects(
+            mutate("\"states\": [", "\"states\": [ { \"code\": \"909\", \"name\": \"Empty Territory\", \"kind\": \"union_territory\" },"),
+            "State/UT 909 has no district",
+        )
     }
 
     @Test

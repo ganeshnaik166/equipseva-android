@@ -161,8 +161,9 @@ class HospitalOnboardingViewModel @Inject constructor(
                 _state.update { it.copy(saving = false, error = "Sign in again to save.") }
                 return@launch
             }
-            // Codes first (the RPC also writes the name labels); then the existing phone/label save.
-            when (val outcome = homeRegion.save()) {
+            // Codes first (the RPC also writes the server's current name labels); then the existing
+            // phone/label save, which reuses those names so the coded choice never looks edited.
+            val labels = when (val outcome = homeRegion.save()) {
                 is OnboardingHomeRegion.Outcome.Refused -> {
                     _state.update { it.copy(saving = false, error = OnboardingHomeRegion.REFUSED_MESSAGE) }
                     return@launch
@@ -171,13 +172,14 @@ class HospitalOnboardingViewModel @Inject constructor(
                     _state.update { it.copy(saving = false, error = outcome.error.toUserMessage()) }
                     return@launch
                 }
-                OnboardingHomeRegion.Outcome.Saved, OnboardingHomeRegion.Outcome.LegacyOnly -> Unit
+                is OnboardingHomeRegion.Outcome.Saved -> outcome.stateName to outcome.districtName
+                OnboardingHomeRegion.Outcome.LegacyOnly -> s.state.trim() to s.district.trim()
             }
             profileRepository.updateBasicInfo(
                 userId = userId,
                 phone = s.phone.trim(),
-                state = s.state.trim(),
-                district = s.district.trim(),
+                state = labels.first,
+                district = labels.second,
             ).onSuccess {
                 _state.update { it.copy(saving = false) }
                 _effects.emit(Effect.ShowMessage("Saved"))

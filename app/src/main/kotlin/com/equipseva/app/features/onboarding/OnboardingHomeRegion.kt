@@ -19,8 +19,12 @@ import javax.inject.Inject
  * With a catalogue, the options are its State/UT and district names, the choice is kept as
  * codes in a [RegionSelectionDraft], and [save] sends the codes (`set_my_home_region`, which
  * also writes the name labels) before the screen's existing phone/label save:
- *  - accepted → [Outcome.Saved];
- *  - a wrong pair, unknown or retired code → [Outcome.Refused] (nothing is saved; choose again);
+ *  - accepted → [Outcome.Saved] with the server's current names, which the screen then saves as
+ *    its labels (an older bundled catalogue may still use a district's previous name);
+ *  - a wrong pair, unknown or retired code → [Outcome.Refused] (nothing is saved; choose again),
+ *    unless the bundled catalogue is older than the server's current one: then the device list
+ *    itself is out of date, so the screen falls back to [Outcome.LegacyOnly] instead of trapping
+ *    the user;
  *  - a server that does not accept this catalogue version yet, or does not have the RPC yet →
  *    [Outcome.LegacyOnly], so nobody is blocked by a release-order gap;
  *  - anything else (network, server) → [Outcome.Failed].
@@ -30,7 +34,7 @@ class OnboardingHomeRegion @Inject constructor(
     private val regionRepository: RegionRepository,
 ) {
     sealed interface Outcome {
-        data object Saved : Outcome
+        data class Saved(val stateName: String, val districtName: String) : Outcome
         data object LegacyOnly : Outcome
         data class Refused(val error: RegionWriteError) : Outcome
         data class Failed(val error: Throwable) : Outcome
@@ -73,18 +77,23 @@ class OnboardingHomeRegion @Inject constructor(
         val c = catalog ?: return Outcome.LegacyOnly
         val d = draft?.takeIf { it.isComplete } ?: return Outcome.Refused(RegionWriteError.PairInvalid)
         return regionRepository.setMyHomeRegion(d.stateCode!!, d.districtCode!!, c.version).fold(
-            onSuccess = { Outcome.Saved },
+            onSuccess = { Outcome.Saved(it.stateName, it.districtName) },
             onFailure = { e ->
                 when (val refusal = RegionWriteError.from(e)) {
                     RegionWriteError.CatalogVersionUnsupported -> Outcome.LegacyOnly
                     RegionWriteError.PairInvalid,
                     RegionWriteError.CodeUnknown,
-                    RegionWriteError.DistrictRetired -> Outcome.Refused(refusal)
+                    RegionWriteError.DistrictRetired ->
+                        if (bundledCatalogIsBehind(c)) Outcome.LegacyOnly else Outcome.Refused(refusal)
                     else -> if (isMissingRpc(e)) Outcome.LegacyOnly else Outcome.Failed(e)
                 }
             },
         )
     }
+
+    /** True only when the server reports a different current catalogue than the bundled one. */
+    private suspend fun bundledCatalogIsBehind(c: RegionCatalog): Boolean =
+        regionRepository.catalogStatus().getOrNull()?.currentVersion?.let { it != c.version } ?: false
 
     private fun stateCode(c: RegionCatalog, stateName: String): String? =
         c.states.firstOrNull { it.name == stateName }?.code

@@ -43,7 +43,7 @@ object RegionCatalogParser {
         check(VERSION.matches(a.version)) { "invalid version" }
         check(SHA256.matches(a.source.sha256)) { "invalid source sha256" }
         check(a.source.url.length in 1..500) { "invalid source url" }
-        check(DATE.matches(a.source.retrievedOn) && runCatching { LocalDate.parse(a.source.retrievedOn) }.isSuccess) {
+        check(DATE.matches(a.source.retrievedOn) && runCatching { LocalDate.parse(a.source.retrievedOn) }.getOrNull()?.year in 1900..2999) {
             "invalid source retrieved_on"
         }
         check(a.synthetic || !(a.version.startsWith("synthetic") || a.source.url.startsWith("synthetic:"))) {
@@ -71,6 +71,9 @@ object RegionCatalogParser {
             check(activeNames.add(d.state to RegionCatalog.normalizeLabel(d.name)!!)) {
                 "duplicate district name ${d.name} in ${d.state}"
             }
+        }
+        a.states.forEach { s ->
+            check(a.districts.any { it.state == s.code }) { "State/UT ${s.code} has no district" }
         }
         a.retiredDistricts.forEach { r ->
             check(DISTRICT_CODE.matches(r.code)) { "invalid retired district code ${r.code}" }

@@ -16,7 +16,8 @@
 
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -101,7 +102,7 @@ await property('snapshot rules refuse bad input, never repair it', async () => {
   refuses(variant(v2, (f) => { f['aliases.csv'] = null; }), /lists aliases\.csv, which is missing/);
   refuses(variant(v2, (f, p) => { p.text = p.text.replace(/^- licence: .*$/m, ''); }), /missing "- licence/);
   refuses(variant(v2, (f, p) => { p.text = p.text.replace(/^- sha256 states\.csv: .*$/m, ''); }), /no sha256 for states\.csv/);
-  refuses(variant(v2, (f, p) => { p.text = p.text.replace('- retrieved_on: 2026-06-01', '- retrieved_on: 1 June 2026'); }), /retrieved_on must be YYYY-MM-DD/);
+  refuses(variant(v2, (f, p) => { p.text = p.text.replace('- retrieved_on: 2026-06-01', '- retrieved_on: 1 June 2026'); }), /retrieved_on must be a real YYYY-MM-DD date/);
   refuses(variant(v2, (f, p) => { p.text = p.text.replace('- version: synthetic-v2', '- version: Synthetic V2'); }), /invalid version/);
   refuses(variant(v2, (f, p) => { p.text = p.text.replace('- synthetic: true', '- synthetic: maybe'); }), /synthetic must be true or false/);
 });
@@ -114,11 +115,11 @@ await property('quoted fields, CRLF files and a byte-order mark are read exactly
 
 await property('synthetic catalogues can never be written where they would ship', async () => {
   const snapshot = path.join(fixtures, 'synthetic-v2');
-  assert.throws(() => gen.build({ snapshot, jsonOut: path.join(repo, 'app/src/main/assets/regions/india_regions.json'), repoRoot: repo }), /shipped asset path/);
+  assert.throws(() => gen.build({ snapshot, jsonOut: path.join(repo, 'app/src/main/assets/regions/india_regions.json') }), /shipped asset path/);
   for (const sqlOut of ['supabase/migrations', 'supabase/migrations/x.sql']) {
-    assert.throws(() => gen.build({ snapshot, sqlOut: path.join(repo, sqlOut), migrationVersion: '20263999000000', round: '9999', repoRoot: repo }), /supabase\/migrations/);
+    assert.throws(() => gen.build({ snapshot, sqlOut: path.join(repo, sqlOut), migrationVersion: '20263999000000', round: '9999' }), /supabase\/migrations/);
   }
-  assert.throws(() => gen.build({ snapshot, sqlOut: os.tmpdir(), migrationVersion: '2026', round: '1', repoRoot: repo }), /14 digits/);
+  assert.throws(() => gen.build({ snapshot, sqlOut: os.tmpdir(), migrationVersion: '2026', round: '1' }), /14 digits/);
 });
 
 await property('the generated synthetic-v2 asset is the Android test fixture, byte for byte', async () => {
@@ -230,6 +231,114 @@ await property('labels normalise exactly like the server: ASCII whitespace only'
     const server = (await db.query('SELECT public.region_normalize_label($1) AS n', [label])).rows[0].n;
     assert.equal(gen.normalizeLabel(label), server, `label ${JSON.stringify(label)}`);
   }
+});
+
+await property('no current directory, path form or partial run lets synthetic data reach a shipping path', async () => {
+  const script = path.join(repo, 'scripts/regions/build_region_catalog.mjs');
+  const node = process.execPath;
+  const run = (cwd, args) => {
+    try {
+      execFileSync(node, [script, ...args], { cwd, env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, stdio: 'pipe' });
+      return 0;
+    } catch (e) { return e.status ?? 1; }
+  };
+  // From scripts/regions with relative paths into this repository.
+  const regionsDir = path.join(repo, 'scripts/regions');
+  assert.equal(run(regionsDir, ['--snapshot', 'fixtures/synthetic-v2', '--json-out', '../../app/src/main/assets/regions/india_regions.json']), 1);
+  assert.equal(run(regionsDir, ['--snapshot', 'fixtures/synthetic-v2', '--json-out', path.join(os.tmpdir(), 'r.json'),
+    '--sql-out', '../../supabase/migrations', '--migration-version', '20263999000000', '--round', '9999']), 1);
+  assert.equal(existsSync(path.join(repo, 'app/src/main/assets/regions')), false, 'nothing was written to the asset path');
+  assert.equal(readdirSync(path.join(repo, 'supabase/migrations')).some((f) => f.includes('region_catalog_seed_synthetic')), false);
+  // Any repository's shipping paths are refused by path segment.
+  const elsewhere = mkdtempSync(path.join(os.tmpdir(), 'region-elsewhere-'));
+  const snapshot = path.join(fixtures, 'synthetic-v2');
+  assert.throws(() => gen.build({ snapshot, jsonOut: path.join(elsewhere, 'mod/src/main/assets/regions/x.json') }), /shipped asset path/);
+  assert.throws(() => gen.build({ snapshot, sqlOut: path.join(elsewhere, 'supabase/migrations'), migrationVersion: '20263999000000', round: '9999' }), /supabase\/migrations/);
+  // A refusal leaves nothing behind: the asset is not written when the seed arguments are bad.
+  const jsonOut = path.join(elsewhere, 'out/a.json');
+  assert.throws(() => gen.build({ snapshot, jsonOut, sqlOut: path.join(elsewhere, 'out/b.sql'), migrationVersion: '123', round: '1' }), /14 digits/);
+  assert.equal(existsSync(jsonOut), false, 'a refused run wrote a partial result');
+  rmSync(elsewhere, { recursive: true, force: true });
+});
+
+await property('bytes and text that would be repaired or read differently elsewhere are refused', async () => {
+  // Invalid UTF-8 (a Windows-1252 byte) is refused, never decoded to a replacement character.
+  const badBytes = variant('synthetic-v2', () => {});
+  writeFileSync(path.join(badBytes, 'districts.csv'), Buffer.concat([
+    Buffer.from('code,state_code,name\n90101,901,My'), Buffer.from([0xfb]), Buffer.from('sore\n'),
+  ]));
+  refuses(badBytes, /not valid UTF-8/);
+  refuses(variant('synthetic-v2', (f) => { f['districts.csv'] += '90199,901,"Kurnool"x\n'; }), /text after a closing quote/);
+  const tab = String.fromCharCode(9), zwsp = String.fromCharCode(0x200b), fs1c = String.fromCharCode(0x1c);
+  refuses(variant('synthetic-v2', (f) => { f['districts.csv'] += `90199,901,North${tab}Gate\n`; }), /invalid name/);
+  refuses(variant('synthetic-v2', (f) => { f['districts.csv'] += `90199,901,${zwsp}\n`; }), /invalid name/);
+  refuses(variant('synthetic-v2', (f) => { f['districts.csv'] += `90199,901,East Gate${fs1c}\n`; }), /invalid name/);
+  refuses(variant('synthetic-v2', (f, p) => { p.text = p.text.replace('- retrieved_on: 2026-06-01', '- retrieved_on: 2026-02-30'); }), /real YYYY-MM-DD date/);
+  refuses(variant('synthetic-v2', (f, p) => { p.text = p.text.replace('- retrieved_on: 2026-06-01', '- retrieved_on: 1899-12-31'); }), /real YYYY-MM-DD date/);
+  refuses(variant('synthetic-v2', (f, p) => { p.text = p.text.replace('- synthetic: true', '- synthetic: false'); }), /must be marked "synthetic: true"/);
+  refuses(variant('synthetic-v2', (f) => { f['states.csv'] += '909,Empty Territory,union_territory\n'; }), /State\/UT 909 has no active district/);
+});
+
+// Seeds for variants of synthetic-v2, applied over a database already at v1 then v2.
+async function atV2() {
+  const db2 = await freshDb();
+  await db2.exec(seed1);
+  await db2.exec(seed2);
+  return db2;
+}
+function seedOf(edit, round) {
+  const dir = variant('synthetic-v2', edit);
+  try { return gen.toSeedSql(gen.loadSnapshot(dir), { migrationVersion: `2026399${round}000000`.slice(0, 14), round }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+}
+const asV3 = (p) => { p.text = p.text.replace('- version: synthetic-v2', '- version: synthetic-v3').replace('- retrieved_on: 2026-06-01', '- retrieved_on: 2026-09-01'); };
+
+await property('aliases converge on the snapshot: a dropped alias stops resolving and a retargeted one moves', async () => {
+  const db3 = await atV2();
+  const seed3 = seedOf((f, p) => {
+    asV3(p);
+    f['aliases.csv'] = f['aliases.csv'].replace('901,old riverton,90102,renamed\n', '').replace('902,hill crest,90202,common_spelling', '902,hill crest,90201,common_spelling');
+  }, '9993');
+  await db3.exec(seed3);
+  await db3.exec(seed3);
+  const cand = async (st, label) => (await db3.query('SELECT public.region_district_candidates($1, $2) AS c', [st, label])).rows[0].c;
+  assert.deepEqual(await cand('901', 'Old Riverton'), [], 'the dropped alias no longer resolves');
+  assert.deepEqual(await cand('902', 'Hill crest'), ['90201'], 'the retargeted alias follows the snapshot');
+  assert.equal((await one(db3, 'SELECT count(*)::int AS n FROM public.region_district_aliases')).n, 3);
+});
+
+await property('a seed refuses to retire anything the snapshot does not list, and changes nothing', async () => {
+  const db3 = await atV2();
+  const truncated = seedOf((f, p) => {
+    asV3(p);
+    f['districts.csv'] = f['districts.csv'].replace('90202,902,Hillcrest\n', '');
+    f['aliases.csv'] = f['aliases.csv'].replace('902,hill crest,90202,common_spelling\n', '');
+  }, '9994');
+  await assert.rejects(() => db3.exec(truncated), /districts would be retired without being listed in retired_districts\.csv: \{90202\}/);
+  await db3.exec('ROLLBACK');
+  assert.equal((await one(db3, 'SELECT public.region_current_version() AS v')).v, 'synthetic-v2');
+  assert.equal((await one(db3, "SELECT active FROM public.region_districts WHERE code = '90202'")).active, true);
+});
+
+await property('a seed refuses different data under an existing version label', async () => {
+  const db3 = await atV2();
+  const sneaky = seedOf((f) => { f['districts.csv'] = f['districts.csv'].replace('90202,902,Hillcrest', '90202,902,Hillcrest Town'); }, '9995');
+  await assert.rejects(() => db3.exec(sneaky), /synthetic-v2: this version already exists with different data/);
+  await db3.exec('ROLLBACK');
+  assert.equal((await one(db3, "SELECT name_en FROM public.region_districts WHERE code = '90202'")).name_en, 'Hillcrest');
+});
+
+await property('renames that swap or reuse names apply in one seed', async () => {
+  const db3 = await atV2();
+  const swapped = seedOf((f, p) => {
+    asV3(p);
+    f['districts.csv'] = f['districts.csv'].replace('90104,901,Lakeside East', '90104,901,Lakeside West TMP')
+      .replace('90105,901,Lakeside West', '90105,901,Lakeside East').replace('90104,901,Lakeside West TMP', '90104,901,Lakeside West');
+  }, '9996');
+  await db3.exec(swapped);
+  await db3.exec(swapped);
+  const names = (await db3.query("SELECT code, name_en FROM public.region_districts WHERE code IN ('90104', '90105') ORDER BY code")).rows;
+  assert.deepEqual(names.map((r) => r.name_en), ['Lakeside West', 'Lakeside East']);
 });
 
 const passed = results.filter(Boolean).length;
