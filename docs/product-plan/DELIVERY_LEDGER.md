@@ -105,3 +105,5 @@ The PDF overview is a separate rendered summary of this plan; it requires visual
 |---|---|---|
 | WEB-H01 — 3D homepage | Source `41cdeec4`; independent critic 9.5 / QA 9.6; 34 browser checks, 4 text-spacing checks, 0 axe violations; [handoff](../HANDOFF_HOMEPAGE_2026-10-07.md) | PR1911 pending final-head checks, main and live verification; does not advance app release acceptance |
 
+
+WEB-H01 superseding checkpoint, 7 October: immersive source `4ac9253a` is **WIP / owner stopped**, QA65/86 and unresolved gates; earlier9.5/9.6scores do not apply. [Stop handoff](../HANDOFF_HOMEPAGE_IMMERSIVE_WIP_2026-10-07.md). No deployment.

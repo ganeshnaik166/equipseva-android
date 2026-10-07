@@ -258,3 +258,7 @@ Append dated results. Keep design, implementation, main integration and release 
 
 - Source `41cdeec46266ad3a801f0dd12b836b9e343c8eb1` on `codex/homepage-3d-20261007`; [PR1911](https://github.com/ganeshnaik166/equipseva-android/pull/1911). Public 3D homepage only: original sculpture, local licensed assets, responsive role/approach/contact sections, accessible motion and fallback. App/backend and legal/recovery sources unchanged. Independent critic **9.5**, QA **9.6**; browser **34/34**, expanded text spacing **4/4**, four axe scans **0 violations**, bundle parity and all-dependency audit passed; exact source Gitleaks **0 findings**. Final-head hosted checks and live delivery pending. [Handoff](HANDOFF_HOMEPAGE_2026-10-07.md) preserves initial scanner/harness results and scope limits. No Android or release acceptance claimed.
 
+
+## 2026-10-07 — WEB-H01 immersive rebuild saved at owner stop
+
+- WIP source `4ac9253a`: original robotic hand/monitor/campus, full-screen chapters, floating navigation and optional original audio. Bundle parity/build and dependency audit passed before stop. Initial evolving-source QA65/86 with21failures; criticprovisional8.2, noacceptance. Finalwrapfixunverified. [Stop handoff](HANDOFF_HOMEPAGE_IMMERSIVE_WIP_2026-10-07.md). PR1911unmerged, no deployment or main change. Resume only when owner asks.

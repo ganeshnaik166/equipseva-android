@@ -2,6 +2,14 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## Public homepage — OWNER STOP; saved WIP, 7 October 2026
+
+Do not continue, merge or deploy until the owner resumes. Immersive implementation `4ac9253a07c4e28a73aa48f05f938ad0f24a5da2` saved on `codex/homepage-3d-20261007`. PR1911 stays WIP/unmerged. Initial evolving-source QA **65/86**, **21 failures**; final wrapping fix unverified. Critic provisional ~**8.2**, no new acceptance score. Menu focus, dock landmark, audio assertions, rendered contrast and frozen verification remain. [Stop handoff](HANDOFF_HOMEPAGE_IMMERSIVE_WIP_2026-10-07.md) records exact scope/evidence/resume order. Earlier design scores do not apply. Existing live site and Android work unchanged.
+
+## Public homepage — original immersive rebuild in progress, 7 October 2026
+
+After the owner acknowledged the asset-rights boundary, Codex stated it would proceed with original 3D visuals and original/licensed audio matching the immersive reference style. Continuing on `codex/homepage-3d-20261007`: full-screen scene journey, floating navigation, hospitals/engineers/teams narrative. No reference assets or soundtrack will be copied. Earlier design scores are historical; the replacement needs fresh independent reviews and hosted/live verification before PR1911 can merge. Own only homepage files and safe records under docs; Android remains stopped. Owner may steer this assumption at any time.
+
 ## Public homepage — owner changed direction; do not deploy, 7 October 2026
 
 The owner replaced the initial direction with `https://why.zero.university/` and explicitly requested its exact assets and soundtrack with EquipSeva content. Integration is on hold pending an authorised asset pack or licensing arrangement. [PR1911](https://github.com/ganeshnaik166/equipseva-android/pull/1911) is marked WIP/HOLD and remains unmerged. The earlier source `41cdeec4` and receipt `34726b3a` are preserved; their scores cover only that earlier design. No reference assets/audio were downloaded or copied, no new procedural art file was written, and the art subtask is stopped. Do not deploy the earlier layout as fulfilment of the updated request. Android work stays stopped and separate.
