@@ -1,5 +1,6 @@
 package com.equipseva.app.features.profile.forms
 
+import com.equipseva.app.core.util.Validators
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -128,6 +129,43 @@ class AddressFormValidatorTest {
         assertEquals(
             "Name, phone, line 1, city, state, pincode are required.",
             out,
+        )
+    }
+
+    // ---- WP24.T01 (ARCH-13): the shared PIN and mobile rules ----
+
+    @Test fun `pincode rule matches Validators pincodeError`() {
+        listOf("012345", "500001", "50001", "5000a1").forEach { pin ->
+            assertEquals(
+                "pincode \"$pin\"",
+                Validators.pincodeError(pin) != null,
+                validateAddressForm(form(pincode = pin)) != null,
+            )
+        }
+    }
+
+    @Test fun `pincode starting with 0 says why`() {
+        assertEquals("Pincode can't start with 0.", validateAddressForm(form(pincode = "012345")))
+    }
+
+    @Test fun `phone must be an Indian mobile number`() {
+        val error = "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+        assertEquals(error, validateAddressForm(form(phone = "12345")))
+        assertEquals(error, validateAddressForm(form(phone = "+914012345678")))
+        assertEquals(error, validateAddressForm(form(phone = "04023456789")))
+        assertNull(validateAddressForm(form(phone = "9123456789")))
+        assertNull(validateAddressForm(form(phone = "+919123456789")))
+        assertNull(validateAddressForm(form(phone = "919812345678")))
+    }
+
+    @Test fun `phone rule runs after the required-fields check and before the pincode rule`() {
+        assertEquals(
+            "Name, phone, line 1, city, state, pincode are required.",
+            validateAddressForm(form(fullName = "", phone = "12345")),
+        )
+        assertEquals(
+            "Enter a 10-digit mobile number starting with 6, 7, 8 or 9.",
+            validateAddressForm(form(phone = "12345", pincode = "012345")),
         )
     }
 }

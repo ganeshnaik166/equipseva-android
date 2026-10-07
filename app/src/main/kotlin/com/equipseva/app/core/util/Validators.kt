@@ -58,15 +58,22 @@ object Validators {
     // starting 6-9 (India mobile prefix range).
     private val INDIA_MOBILE_DIGITS = Regex("^[6-9][0-9]{9}$")
 
+    /**
+     * The national digits (ASCII only) of a freely typed Indian mobile number. "91" is read as
+     * the country code only after a '+' or when exactly 12 digits were typed, so a bare
+     * 10-digit number that itself starts with 91 keeps all its digits (WP24.T01).
+     */
+    fun indiaMobileNationalDigits(value: String): String {
+        val trimmed = value.trim()
+        val digits = trimmed.filter { it in '0'..'9' }
+        val hasCountryCode = (trimmed.startsWith('+') || digits.length == 12) && digits.startsWith("91")
+        return if (hasCountryCode) digits.substring(2) else digits
+    }
+
     /** Empty = not required at this layer; non-empty must match the India mobile shape. */
     fun indiaMobileError(value: String): String? {
-        val trimmed = value.trim()
-        if (trimmed.isEmpty()) return null
-        val digits = trimmed
-            .removePrefix("+91")
-            .removePrefix("+")
-            .removePrefix("91")
-            .filter { it.isDigit() }
+        if (value.isBlank()) return null
+        val digits = indiaMobileNationalDigits(value)
         if (digits.length != 10) return "Enter 10 digits"
         if (!INDIA_MOBILE_DIGITS.matches(digits)) return "Indian mobile must start with 6, 7, 8, or 9"
         return null
@@ -84,4 +91,12 @@ object Validators {
         if (!PINCODE_REGEX.matches(v)) return "Invalid PIN code"
         return null
     }
+
+    // UPI ID, loose shape: letters, digits, '.', '_' or '-' before '@' and a letters-only
+    // handle (the set Razorpay accepts; the server re-validates). Surrounding spaces are
+    // ignored, and callers send the trimmed value. Shared by the engineer's payout form and
+    // the founder payout screen so the two can't disagree again (WP24.T01).
+    private val VPA_REGEX = Regex("^[a-zA-Z0-9._-]+@[a-zA-Z]+$")
+
+    fun vpaIsValid(value: String): Boolean = VPA_REGEX.matches(value.trim())
 }

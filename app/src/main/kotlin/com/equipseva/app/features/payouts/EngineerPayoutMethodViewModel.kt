@@ -6,6 +6,7 @@ import com.equipseva.app.core.data.payouts.EngineerPayoutMethod
 import com.equipseva.app.core.data.payouts.EngineerPayoutRepository
 import com.equipseva.app.core.data.payouts.PayoutMethodKind
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.Validators
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -196,14 +197,12 @@ class EngineerPayoutMethodViewModel @Inject constructor(
     }
 
     companion object {
-        // Loose VPA shape — matches Razorpay's accepted set (alnum + . _ -
-        // before @, alpha-only handle). Server-side RPC re-validates with
-        // the same regex; Razorpay rejects bad VPAs at the payouts call.
-        private val VPA_REGEX = Regex("^[a-zA-Z0-9._-]+@[a-zA-Z]+$")
         // IFSC: 4-letter bank + "0" + 6 alnum, total 11.
         private val IFSC_REGEX = Regex("^[A-Z]{4}0[A-Z0-9]{6}$")
 
-        fun vpaValid(v: String): Boolean = VPA_REGEX.matches(v.trim())
+        // The shared UPI ID shape (Validators.vpaIsValid); Razorpay still
+        // rejects bad VPAs at the payouts call.
+        fun vpaValid(v: String): Boolean = Validators.vpaIsValid(v)
         fun ifscValid(v: String): Boolean = IFSC_REGEX.matches(v.trim().uppercase())
         fun accountNumberValid(v: String): Boolean = v.length in 9..18 && v.all { it.isDigit() }
     }

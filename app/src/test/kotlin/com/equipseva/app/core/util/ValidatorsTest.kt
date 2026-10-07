@@ -103,6 +103,40 @@ class ValidatorsTest {
         assertEquals("Enter 10 digits", Validators.indiaMobileError("98765432101"))
     }
 
+    // WP24.T01 (ARCH-13) — a bare 10-digit number may itself start with 91.
+    @Test fun `india mobile accepts bare 10-digit numbers starting 91`() {
+        assertNull(Validators.indiaMobileError("9123456789"))
+        assertNull(Validators.indiaMobileError("919123456789"))
+        assertNull(Validators.indiaMobileError("+91 91234 56789"))
+        assertEquals("Enter 10 digits", Validators.indiaMobileError("91234567"))
+    }
+
+    @Test fun `india mobile national digits drop 91 only after a plus or from 12 digits`() {
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("9123456789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits(" 91234 56789 "))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("+919123456789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("+ 91 91234-56789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("919123456789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("(91) 91234 56789"))
+        assertEquals("91234567", Validators.indiaMobileNationalDigits("91234567"))
+        assertEquals("14155551234", Validators.indiaMobileNationalDigits("+1 415 555 1234"))
+        assertEquals("", Validators.indiaMobileNationalDigits("   "))
+    }
+
+    @Test fun `india mobile counts only ASCII digits`() {
+        // Char.isDigit() would also count Devanagari digits; the stored number must be ASCII.
+        assertEquals("", Validators.indiaMobileNationalDigits("९८७६५४३२१०"))
+        assertEquals("Enter 10 digits", Validators.indiaMobileError("९८७६५४३२१०"))
+    }
+
+    @Test fun `vpa accepts UPI IDs with surrounding spaces and rejects other shapes`() {
+        assertTrue(Validators.vpaIsValid("name@okaxis"))
+        assertTrue(Validators.vpaIsValid(" name@okaxis "))
+        assertFalse(Validators.vpaIsValid("name@bank.com"))
+        assertFalse(Validators.vpaIsValid("name with space@upi"))
+        assertFalse(Validators.vpaIsValid(""))
+    }
+
     // Round 441 — pincodeError validator
     @Test fun `pincode empty is treated as not-required`() {
         assertNull(Validators.pincodeError(""))

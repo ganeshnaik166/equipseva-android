@@ -45,6 +45,7 @@ import com.equipseva.app.core.data.addresses.AddressRepository
 import com.equipseva.app.core.data.location.IndiaLocations
 import com.equipseva.app.core.network.toUserMessage
 import com.equipseva.app.core.location.LocationFetcher
+import com.equipseva.app.core.util.Validators
 import com.equipseva.app.designsystem.components.ESBackTopBar
 import com.equipseva.app.designsystem.components.EsDropdown
 import com.equipseva.app.designsystem.theme.AccentLime
@@ -512,7 +513,9 @@ internal fun locationFillInfo(
 /**
  * Pure form-validation for the user address form. Returns null on
  * success; a user-facing one-line error message otherwise. India-only:
- * the pincode is exactly 6 ASCII digits.
+ * the phone and pincode follow the shared rules in [Validators] — an
+ * Indian mobile number, and 6 ASCII digits not starting with 0
+ * (WP24.T01).
  *
  * Extracted so the validation can be exercised without the
  * AddressRepository / LocationFetcher scaffolding around the VM.
@@ -523,8 +526,13 @@ internal fun validateAddressForm(f: AddressFormViewModel.Form): String? {
     ) {
         return "Name, phone, line 1, city, state, pincode are required."
     }
-    if (f.pincode.length != 6 || !f.pincode.all { it in '0'..'9' }) {
-        return "Pincode must be 6 digits."
+    if (Validators.indiaMobileError(f.phone) != null) {
+        return "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+    }
+    val pincode = f.pincode.trim()
+    if (Validators.pincodeError(pincode) != null) {
+        val sixDigits = pincode.length == 6 && pincode.all { it in '0'..'9' }
+        return if (sixDigits) "Pincode can't start with 0." else "Pincode must be 6 digits."
     }
     return null
 }

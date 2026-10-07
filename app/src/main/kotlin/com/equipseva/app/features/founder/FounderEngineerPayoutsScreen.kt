@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.equipseva.app.R
 import com.equipseva.app.core.network.toUserMessage
+import com.equipseva.app.core.util.Validators
 import com.equipseva.app.core.util.formatRupees
 import com.equipseva.app.core.util.relativeLabel
 import com.equipseva.app.designsystem.components.EmptyStateView
@@ -895,7 +896,8 @@ private fun DestinationActionRow(
         )
         return
     }
-    val isUpi = looksLikeVpa(destination)
+    val upiVpa = upiPayTarget(destination)
+    val isUpi = upiVpa != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -917,11 +919,11 @@ private fun DestinationActionRow(
                 onClick = { copyToClipboard(context, destination, "EquipSeva destination") },
                 kind = EsBtnKind.Secondary,
             )
-            if (isUpi) {
+            if (upiVpa != null) {
                 EsBtn(
                     text = "Pay via UPI",
                     onClick = {
-                        val uri = buildUpiDeeplink(destination, engineerName, amountRupees, jobNumber)
+                        val uri = buildUpiDeeplink(upiVpa, engineerName, amountRupees, jobNumber)
                         openUpiIntent(context, uri)
                     },
                     kind = EsBtnKind.Primary,
@@ -938,8 +940,10 @@ private fun DestinationActionRow(
     }
 }
 
-internal fun looksLikeVpa(s: String): Boolean =
-    s.matches(Regex("^[a-zA-Z0-9._-]+@[a-zA-Z]+\$"))
+internal fun looksLikeVpa(s: String): Boolean = Validators.vpaIsValid(s)
+
+/** The UPI ID to pay, trimmed, when [destination] is one; null for bank labels and free text. */
+internal fun upiPayTarget(destination: String): String? = destination.trim().takeIf(Validators::vpaIsValid)
 
 /**
  * UPI deeplink per NPCI spec: upi://pay?pa=<vpa>&pn=<name>&am=<amount>&cu=INR&tn=<note>
