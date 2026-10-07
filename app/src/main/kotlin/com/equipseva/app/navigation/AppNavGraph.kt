@@ -9,6 +9,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,19 +53,21 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
         sessionViewModel.messages.collect { msg -> showSnackbar(msg) }
     }
 
-    // WP22.T03 — shown once after the local database had to be discarded; it
-    // is acknowledged only after it was on screen, so a process death first
-    // shows it again on the next launch.
+    // WP22.T03 — shown once after the local database had to be discarded. It
+    // stays until the user dismisses it: on a device check the notification
+    // permission prompt covered that launch and a timed snackbar expired
+    // unseen. It is acknowledged only on that dismissal, so a process death
+    // first shows it again on the next launch.
     val localDataResetPending by sessionViewModel.localDataResetPending.collectAsStateWithLifecycle()
     val localDataResetMessage = stringResource(R.string.local_data_reset_notice)
     LaunchedEffect(localDataResetPending) {
         if (localDataResetPending) {
-            snackbarHost.showSnackbar(
+            val result = snackbarHost.showSnackbar(
                 localDataResetMessage,
                 withDismissAction = true,
-                duration = SnackbarDuration.Long,
+                duration = SnackbarDuration.Indefinite,
             )
-            sessionViewModel.onLocalDataResetNoticeShown()
+            if (result == SnackbarResult.Dismissed) sessionViewModel.onLocalDataResetNoticeShown()
         }
     }
 
