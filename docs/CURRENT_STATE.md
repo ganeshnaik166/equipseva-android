@@ -2,9 +2,9 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
-## Public homepage — implementation in progress, 7 October 2026
+## Public homepage — local reviews passed; delivery pending, 7 October 2026
 
-Owner: Codex on `codex/homepage-3d-20261007`, isolated from application work. Base: `49c163ebfe9bacc6b693b95a5218c9c1ac749dd8`. Scope: original lime/ink 3D marketing homepage, local assets, accessibility and delivery checks. Preserve legal routes, account recovery, Android source and all other sessions. No application acceptance or production-backend change is implied. Reviews and deployment verification are pending.
+Owner: Codex on `codex/homepage-3d-20261007`, isolated from application work. Base: `49c163ebfe9bacc6b693b95a5218c9c1ac749dd8`. Scope: original lime/ink 3D marketing homepage, local assets, accessibility and delivery checks. Preserve legal routes, account recovery, Android source and all other sessions. Reviewed final source: `41cdeec46266ad3a801f0dd12b836b9e343c8eb1`. Critic **9.5**, QA **9.6**; browser **34/34**, text spacing **4/4**, four axe scans **0 violations**, bundle parity and dependency audit passed. Exact two-commit Gitleaks **0 findings**; initial-source hosted checks passed. [PR1911](https://github.com/ganeshnaik166/equipseva-android/pull/1911) final-head hosted checks, main integration and live Pages verification remain. [Handoff](HANDOFF_HOMEPAGE_2026-10-07.md) preserves exact evidence, initial failures and limits. No application acceptance or production-backend change is implied. Next: complete homepage deployment only.
 
 ## A3 inbox observed-owner fence — merged main, 28 September 2026
 
