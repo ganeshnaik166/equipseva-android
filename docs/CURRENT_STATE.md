@@ -2,6 +2,10 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## Public homepage — implementation in progress, 7 October 2026
+
+Owner: Codex on `codex/homepage-3d-20261007`, isolated from application work. Base: `49c163ebfe9bacc6b693b95a5218c9c1ac749dd8`. Scope: original lime/ink 3D marketing homepage, local assets, accessibility and delivery checks. Preserve legal routes, account recovery, Android source and all other sessions. No application acceptance or production-backend change is implied. Reviews and deployment verification are pending.
+
 ## A3 inbox observed-owner fence — merged main, 28 September 2026
 
 [PR1909](https://github.com/ganeshnaik166/equipseva-android/pull/1909) merged reviewed source `1ff859ce` and docs `b1169db5` into main **`eba0d8e3ae4ef14844c141de983b86577f5b2868`**. The exact PR head passed both hosted Android debug/release R8 builds, goldens verification and both Gitleaks checks; record-goldens was skipped. On the exact merge commit, main-push Android unit/lint/design ratchet/debug/release R8 and mapping upload, goldens, Gitleaks, Pages build/deploy and status **all succeeded**. Local exact-source full unit **2,985/0**, lint **0 errors**, debug/unsigned R8 and design ratchet passed; separate scoped critic and QA scored **9.6/9.6**. This closes only the inbox's **observed** owner presentation/action boundary. A3-02 buffered external-tap replay remains RED and unmerged; SDK-unobserved identity, mutation-time server/outbox ownership, final route authorization, device/TalkBack and signed release remain open. The [source handoff](HANDOFF_A3_INBOX_OWNER_2026-09-28.md) has tests and limits. Next: design a fail-closed external-tap contract; do not treat an automatic queued inbox route as safe recovery.
