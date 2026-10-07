@@ -44,7 +44,8 @@
 -- text and a catalogue rename alone is never a change.
 --   * Home region: when an older app version later edits profiles.state/district
 --     directly, the latest text wins: my_region_profile reports home_stale and
---     the next backfill re-resolves the new text exactly.
+--     the next backfill re-resolves the new text exactly. (Text cleared after a
+--     choice keeps the chosen row, reported stale.)
 --   * Service districts: an engineer's own choice is never overridden by the
 --     backfill. Free service-area text carries no State/UT, so re-deriving it
 --     could silently drop a cross-State/UT choice; instead my_region_profile
@@ -55,8 +56,16 @@
 -- Resolution queue: the backfill opens an item per unresolved text and closes
 -- its own items as 'superseded' when the text changes or goes, or 'resolved'
 -- when it resolves; a choice made in the app also closes them as 'resolved'.
--- Operators close an item with 'dismissed' to stop it being re-queued while
--- the text stays the same.
+-- Operators close an item with 'dismissed' to stop that text (for too_many: any
+-- over-cap list of that engineer) from being queued again, even if it goes and
+-- later comes back. Other operator edits to items are outside this contract.
+--
+-- Catalogue data changes only together with a new current version (generated
+-- seeds always add one and refuse different data under an existing version);
+-- the backfill relies on this when it treats a resolved row on the current
+-- version with unchanged text as current. A chosen code that a later version
+-- retires stays stored; my_region_profile reports it as inactive
+-- (home.district_active, service_districts[].active) so the app can ask again.
 --
 -- Refusals (RAISE message = code; clients map the code, never the wording):
 --   not_authenticated                     42501  no JWT subject
@@ -215,6 +224,8 @@ CREATE TABLE IF NOT EXISTS public.region_resolution_queue (
   created_at          timestamptz NOT NULL DEFAULT now(),
   resolved_at         timestamptz
 );
+CREATE INDEX IF NOT EXISTS region_resolution_queue_subject_idx
+  ON public.region_resolution_queue (subject_user_id, subject_kind);
 CREATE UNIQUE INDEX IF NOT EXISTS region_resolution_queue_one_open
   ON public.region_resolution_queue
      (subject_kind, subject_user_id, coalesce(raw_state_label, ''), coalesce(raw_district_label, ''))
@@ -472,7 +483,7 @@ BEGIN
   END IF;
 
   -- Serialises against concurrent saves and the backfill for this user.
-  PERFORM 1 FROM public.profiles p WHERE p.id = v_uid FOR UPDATE;
+  PERFORM 1 FROM public.profiles p WHERE p.id = v_uid FOR NO KEY UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0001';
   END IF;
@@ -533,7 +544,7 @@ BEGIN
   END IF;
   -- Locking the engineer row serialises concurrent saves and the backfill, so
   -- the replace below stays atomic and within the cap.
-  SELECT e.id INTO v_engineer FROM public.engineers e WHERE e.user_id = v_uid FOR UPDATE;
+  SELECT e.id INTO v_engineer FROM public.engineers e WHERE e.user_id = v_uid FOR NO KEY UPDATE;
   IF v_engineer IS NULL THEN
     RAISE EXCEPTION 'not_an_engineer' USING ERRCODE = '42501';
   END IF;
@@ -617,6 +628,7 @@ DECLARE
   v_service jsonb := '[]'::jsonb;
   v_service_source text := 'none';
   v_service_stale boolean := false;
+  v_home_active boolean := NULL;
   r record;
 BEGIN
   IF v_uid IS NULL THEN
@@ -627,6 +639,10 @@ BEGIN
 
   SELECT * INTO v_row FROM public.profile_regions pr WHERE pr.user_id = v_uid;
   v_has_row := FOUND;
+  IF v_has_row AND v_row.district_code IS NOT NULL THEN
+    v_home_active := EXISTS (SELECT 1 FROM public.region_districts d JOIN public.region_states s ON s.code = d.state_code
+                              WHERE d.code = v_row.district_code AND d.active AND s.active);
+  END IF;
   IF v_has_row THEN
     v_stale := NOT (public.region_labels_equal(v_row.legacy_state_label, v_profile_state)
                 AND public.region_labels_equal(v_row.legacy_district_label, v_profile_district));
@@ -645,9 +661,12 @@ BEGIN
   IF v_engineer IS NOT NULL THEN
     SELECT coalesce(jsonb_agg(jsonb_build_object(
              'district_code', esd.district_code, 'catalog_version', esd.catalog_version,
-             'source', esd.source) ORDER BY esd.district_code), '[]'::jsonb)
+             'source', esd.source, 'active', d.active AND s.active) ORDER BY esd.district_code), '[]'::jsonb)
       INTO v_service
-      FROM public.engineer_service_districts esd WHERE esd.engineer_id = v_engineer;
+      FROM public.engineer_service_districts esd
+      JOIN public.region_districts d ON d.code = esd.district_code
+      JOIN public.region_states s ON s.code = d.state_code
+     WHERE esd.engineer_id = v_engineer;
     v_service_source := CASE
       WHEN EXISTS (SELECT 1 FROM public.engineer_service_districts esd
                     WHERE esd.engineer_id = v_engineer AND esd.source = 'engineer') THEN 'engineer'
@@ -675,6 +694,7 @@ BEGIN
     'home', CASE WHEN v_has_row THEN jsonb_build_object(
         'state_code', v_row.state_code, 'district_code', v_row.district_code,
         'catalog_version', v_row.catalog_version, 'status', v_row.status, 'source', v_row.source,
+        'district_active', v_home_active,
         'legacy_state_label', v_row.legacy_state_label,
         'legacy_district_label', v_row.legacy_district_label) END,
     'home_stale', v_stale,
@@ -705,15 +725,18 @@ $$;
 --     header). For the rest, the legacy_backfill set is exactly the distinct
 --     codes their current service-area text resolves to inside their own
 --     State/UT (the KYC State/UT; the profile's only when the KYC one is
---     blank), or nothing when that is more than 30 (queued as too_many).
+--     blank), or nothing when the text names more than 30 distinct labels
+--     (one too_many item, no per-label items).
 --   * a queue item is added for each unresolved text that has neither an open
 --     nor an operator-dismissed item; the backfill closes its own items as
---     'superseded' when their text changes or goes ('resolved' when it
---     resolves), keeps the reason and candidates of open items current, and
---     supersedes the items of users who are no longer engineers.
--- Rows are locked before they are re-read (lock_timeout 2s while applying),
--- so a concurrent user save is never overwritten; run it off-peak. Returns
--- counts only: no ids, labels or codes leave this function.
+--     'resolved' when their text now resolves and 'superseded' when it changed
+--     or went, keeps the reason, candidates, State/UT label and catalogue
+--     version of open items current, and supersedes the items of users who are
+--     no longer engineers.
+-- Rows are locked (FOR NO KEY UPDATE) before they are re-read, so a concurrent
+-- user save is never overwritten; while applying, lock_timeout is 2s for the
+-- rest of the calling transaction. Run it off-peak. Returns counts only: no
+-- ids, labels or codes leave this function.
 CREATE OR REPLACE FUNCTION public.region_legacy_backfill_report(p_apply boolean)
 RETURNS TABLE(
   profiles_considered integer,
@@ -751,6 +774,7 @@ DECLARE
   v_scope text; v_scope_label text;
   v_label text; v_norm text; v_seen text[]; v_candidates text[];
   v_resolved text[]; v_resolved_labels text[]; v_target text[]; v_existing text[];
+  v_labels text[]; v_resolved_norms text[];
   v_restamp boolean;
   v_un_labels text[]; v_un_reasons text[]; v_un_candidates jsonb; v_cand text[];
   v_expected text[]; v_open_vanished integer; v_missing integer; v_stale_items integer;
@@ -778,7 +802,7 @@ BEGIN
     v_p_considered := v_p_considered + 1;
     IF p_apply THEN
       SELECT pf.state, pf.district INTO v_state_label, v_district_label
-        FROM public.profiles pf WHERE pf.id = v_id FOR UPDATE;
+        FROM public.profiles pf WHERE pf.id = v_id FOR NO KEY UPDATE;
     ELSE
       SELECT pf.state, pf.district INTO v_state_label, v_district_label
         FROM public.profiles pf WHERE pf.id = v_id;
@@ -825,10 +849,12 @@ BEGIN
        WHERE q.subject_kind = 'profile_home' AND q.subject_user_id = v_id AND q.status = 'open'
          AND public.region_labels_equal(q.raw_state_label, v_state_label)
          AND public.region_labels_equal(q.raw_district_label, v_district_label)
-         AND (q.reason IS DISTINCT FROM r.reason OR q.candidate_codes IS DISTINCT FROM r.candidate_codes);
+         AND (q.reason IS DISTINCT FROM r.reason OR q.candidate_codes IS DISTINCT FROM r.candidate_codes
+                OR q.catalog_version IS DISTINCT FROM v_version);
       v_updated := v_updated + v_n;
       IF p_apply AND v_n > 0 THEN
-        UPDATE public.region_resolution_queue q SET reason = r.reason, candidate_codes = r.candidate_codes
+        UPDATE public.region_resolution_queue q
+           SET reason = r.reason, candidate_codes = r.candidate_codes, catalog_version = v_version
          WHERE q.subject_kind = 'profile_home' AND q.subject_user_id = v_id AND q.status = 'open'
            AND public.region_labels_equal(q.raw_state_label, v_state_label)
            AND public.region_labels_equal(q.raw_district_label, v_district_label);
@@ -881,10 +907,12 @@ BEGIN
          WHERE q.subject_kind = 'profile_home' AND q.subject_user_id = v_id AND q.status = 'open'
            AND public.region_labels_equal(q.raw_state_label, v_state_label)
            AND public.region_labels_equal(q.raw_district_label, v_district_label)
-           AND (q.reason IS DISTINCT FROM r.reason OR q.candidate_codes IS DISTINCT FROM r.candidate_codes);
+           AND (q.reason IS DISTINCT FROM r.reason OR q.candidate_codes IS DISTINCT FROM r.candidate_codes
+                OR q.catalog_version IS DISTINCT FROM v_version);
         v_updated := v_updated + v_n;
         IF p_apply AND v_n > 0 THEN
-          UPDATE public.region_resolution_queue q SET reason = r.reason, candidate_codes = r.candidate_codes
+          UPDATE public.region_resolution_queue q
+           SET reason = r.reason, candidate_codes = r.candidate_codes, catalog_version = v_version
            WHERE q.subject_kind = 'profile_home' AND q.subject_user_id = v_id AND q.status = 'open'
              AND public.region_labels_equal(q.raw_state_label, v_state_label)
              AND public.region_labels_equal(q.raw_district_label, v_district_label);
@@ -920,7 +948,7 @@ BEGIN
     v_e_considered := v_e_considered + 1;
     IF p_apply THEN
       SELECT en.user_id, en.state, en.service_areas INTO v_user, v_kyc_state, v_areas
-        FROM public.engineers en WHERE en.id = v_id FOR UPDATE;
+        FROM public.engineers en WHERE en.id = v_id FOR NO KEY UPDATE;
     ELSE
       SELECT en.user_id, en.state, en.service_areas INTO v_user, v_kyc_state, v_areas
         FROM public.engineers en WHERE en.id = v_id;
@@ -934,33 +962,41 @@ BEGIN
     SELECT pf.state INTO v_profile_state FROM public.profiles pf WHERE pf.id = v_user;
     v_scope_label := CASE WHEN public.region_normalize_label(v_kyc_state) IS NOT NULL
                           THEN v_kyc_state ELSE v_profile_state END;
-    v_scope := public.region_resolve_state_label(v_scope_label);
 
-    v_seen := '{}'; v_resolved := '{}'; v_resolved_labels := '{}';
-    v_un_labels := '{}'; v_un_reasons := '{}'; v_un_candidates := '[]'::jsonb;
+    -- Distinct labels of the current text, first spelling kept.
+    v_seen := '{}'; v_labels := '{}';
     FOREACH v_label IN ARRAY coalesce(v_areas, '{}'::text[]) LOOP
       v_norm := public.region_normalize_label(v_label);
       CONTINUE WHEN v_norm IS NULL OR v_norm = ANY (v_seen);
       v_seen := v_seen || v_norm;
-      v_candidates := CASE WHEN v_scope IS NULL THEN '{}'::text[]
-                           ELSE public.region_district_candidates(v_scope, v_label) END;
-      IF cardinality(v_candidates) = 1 THEN
-        IF NOT (v_candidates[1] = ANY (v_resolved)) THEN
-          v_resolved := v_resolved || v_candidates[1];
-          v_resolved_labels := v_resolved_labels || v_label;
-        END IF;
-      ELSE
-        v_un_labels := v_un_labels || v_label;
-        v_un_reasons := v_un_reasons || CASE WHEN v_scope IS NULL THEN 'state_unknown'
-                                             WHEN cardinality(v_candidates) = 0 THEN 'no_match'
-                                             ELSE 'ambiguous' END;
-        v_un_candidates := v_un_candidates || jsonb_build_array(to_jsonb(v_candidates));
-      END IF;
+      v_labels := v_labels || v_label;
     END LOOP;
 
-    v_over := cardinality(v_resolved) > c_max;
-    v_target := CASE WHEN v_over THEN '{}'::text[]
-                     ELSE coalesce((SELECT array_agg(c ORDER BY c) FROM unnest(v_resolved) c), '{}') END;
+    -- More labels than the 30-district cap can never be saved as codes: one too_many item,
+    -- no rows and no per-label items (this also bounds the work done per engineer).
+    v_over := cardinality(v_labels) > c_max;
+    v_resolved := '{}'; v_resolved_labels := '{}'; v_resolved_norms := '{}';
+    v_un_labels := '{}'; v_un_reasons := '{}'; v_un_candidates := '[]'::jsonb;
+    IF NOT v_over THEN
+      FOR i IN 1 .. coalesce(cardinality(v_labels), 0) LOOP
+        -- The same exact resolver as profiles: inside the scope State/UT only, with retired
+        -- names suggesting their replacements.
+        SELECT * INTO r FROM public.region_resolve_legacy_pair(v_scope_label, v_labels[i]);
+        IF r.status = 'resolved' THEN
+          v_resolved_norms := v_resolved_norms || v_seen[i];
+          IF NOT (r.district_code = ANY (v_resolved)) THEN
+            v_resolved := v_resolved || r.district_code;
+            v_resolved_labels := v_resolved_labels || v_labels[i];
+          END IF;
+        ELSE
+          v_un_labels := v_un_labels || v_labels[i];
+          v_un_reasons := v_un_reasons || r.reason;
+          v_un_candidates := v_un_candidates || jsonb_build_array(to_jsonb(r.candidate_codes));
+        END IF;
+      END LOOP;
+    END IF;
+
+    v_target := coalesce((SELECT array_agg(c ORDER BY c) FROM unnest(v_resolved) c), '{}');
     SELECT coalesce(array_agg(esd.district_code ORDER BY esd.district_code), '{}')
       INTO v_existing
       FROM public.engineer_service_districts esd
@@ -968,29 +1004,34 @@ BEGIN
     v_restamp := EXISTS (SELECT 1 FROM public.engineer_service_districts esd
                           WHERE esd.engineer_id = v_id AND esd.source = 'legacy_backfill'
                             AND esd.catalog_version <> v_version);
-    v_expected := CASE WHEN v_over THEN ARRAY[c_too_many]
-                       ELSE coalesce((SELECT array_agg(public.region_normalize_label(l)) FROM unnest(v_un_labels) l), '{}') END;
+    v_expected := coalesce((SELECT array_agg(public.region_normalize_label(l)) FROM unnest(v_un_labels) l), '{}');
+
+    -- Open items that no longer describe the text. too_many items are matched by reason and
+    -- label items by label only, so no label can ever be confused with the too_many marker.
     SELECT count(*) INTO v_open_vanished
       FROM public.region_resolution_queue q
      WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user AND q.status = 'open'
-       AND NOT (CASE WHEN q.reason = 'too_many' THEN c_too_many
-                     ELSE public.region_normalize_label(q.raw_district_label) END = ANY (v_expected));
-    SELECT count(*) INTO v_missing
-      FROM unnest(v_expected) x(label)
-     WHERE NOT EXISTS (
-       SELECT 1 FROM public.region_resolution_queue q
-        WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user
-          AND q.status IN ('open', 'dismissed')
-          AND CASE WHEN q.reason = 'too_many' THEN c_too_many
-                   ELSE public.region_normalize_label(q.raw_district_label) END = x.label);
-    -- Open items for text that is still expected but whose details changed.
+       AND CASE WHEN q.reason = 'too_many' THEN NOT v_over
+                ELSE v_over OR NOT coalesce(public.region_normalize_label(q.raw_district_label) = ANY (v_expected), false) END;
+    SELECT (CASE WHEN v_over AND NOT EXISTS (
+              SELECT 1 FROM public.region_resolution_queue q
+               WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user
+                 AND q.status IN ('open', 'dismissed') AND q.reason = 'too_many') THEN 1 ELSE 0 END)
+         + (SELECT count(*) FROM unnest(v_expected) x(label)
+             WHERE NOT EXISTS (
+               SELECT 1 FROM public.region_resolution_queue q
+                WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user
+                  AND q.status IN ('open', 'dismissed') AND q.reason <> 'too_many'
+                  AND public.region_normalize_label(q.raw_district_label) = x.label))
+      INTO v_missing;
+    -- Open items for text that is still current but whose details changed.
     IF v_over THEN
       SELECT count(*) INTO v_stale_items
         FROM public.region_resolution_queue q
        WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user AND q.status = 'open'
          AND q.reason = 'too_many'
-         AND (q.raw_state_label IS DISTINCT FROM v_scope_label
-              OR q.candidate_codes IS DISTINCT FROM (SELECT array_agg(c ORDER BY c) FROM unnest(v_resolved) c));
+         AND (q.raw_state_label IS DISTINCT FROM v_scope_label OR q.candidate_codes <> '{}'::text[]
+              OR q.catalog_version IS DISTINCT FROM v_version);
     ELSE
       v_stale_items := 0;
       FOR i IN 1 .. coalesce(cardinality(v_un_labels), 0) LOOP
@@ -1000,9 +1041,8 @@ BEGIN
          WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user AND q.status = 'open'
            AND q.reason <> 'too_many'
            AND public.region_labels_equal(q.raw_district_label, v_un_labels[i])
-           AND (q.reason IS DISTINCT FROM v_un_reasons[i]
-                OR q.candidate_codes IS DISTINCT FROM v_cand
-                OR q.raw_state_label IS DISTINCT FROM v_scope_label);
+           AND (q.reason IS DISTINCT FROM v_un_reasons[i] OR q.candidate_codes IS DISTINCT FROM v_cand
+                OR q.raw_state_label IS DISTINCT FROM v_scope_label OR q.catalog_version IS DISTINCT FROM v_version);
       END LOOP;
     END IF;
 
@@ -1025,32 +1065,33 @@ BEGIN
       DELETE FROM public.engineer_service_districts esd
        WHERE esd.engineer_id = v_id AND esd.source = 'legacy_backfill'
          AND NOT (esd.district_code = ANY (v_target));
-      IF NOT v_over THEN
-        INSERT INTO public.engineer_service_districts AS esd
-               (engineer_id, district_code, catalog_version, source, label_snapshot)
-        SELECT v_id, t.code, v_version, 'legacy_backfill', t.label
-          FROM unnest(v_resolved, v_resolved_labels) AS t(code, label)
-        ON CONFLICT (engineer_id, district_code) DO UPDATE
-           SET catalog_version = EXCLUDED.catalog_version, label_snapshot = EXCLUDED.label_snapshot
-         WHERE esd.source = 'legacy_backfill';
-      END IF;
+      INSERT INTO public.engineer_service_districts AS esd
+             (engineer_id, district_code, catalog_version, source, label_snapshot)
+      SELECT v_id, t.code, v_version, 'legacy_backfill', t.label
+        FROM unnest(v_resolved, v_resolved_labels) AS t(code, label)
+      ON CONFLICT (engineer_id, district_code) DO UPDATE
+         SET catalog_version = EXCLUDED.catalog_version, label_snapshot = EXCLUDED.label_snapshot
+       WHERE esd.source = 'legacy_backfill';
 
-      UPDATE public.region_resolution_queue q SET status = 'superseded', resolved_at = now()
+      -- Close what no longer describes the text: 'resolved' when the label now resolves.
+      UPDATE public.region_resolution_queue q
+         SET status = CASE WHEN q.reason <> 'too_many'
+                            AND coalesce(public.region_normalize_label(q.raw_district_label) = ANY (v_resolved_norms), false)
+                           THEN 'resolved' ELSE 'superseded' END,
+             resolved_at = now()
        WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user AND q.status = 'open'
-         AND NOT (CASE WHEN q.reason = 'too_many' THEN c_too_many
-                       ELSE public.region_normalize_label(q.raw_district_label) END = ANY (v_expected));
+         AND CASE WHEN q.reason = 'too_many' THEN NOT v_over
+                  ELSE v_over OR NOT coalesce(public.region_normalize_label(q.raw_district_label) = ANY (v_expected), false) END;
 
       IF v_over THEN
         UPDATE public.region_resolution_queue q
-           SET raw_state_label = v_scope_label,
-               candidate_codes = (SELECT array_agg(c ORDER BY c) FROM unnest(v_resolved) c)
+           SET raw_state_label = v_scope_label, candidate_codes = '{}', catalog_version = v_version
          WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user AND q.status = 'open'
            AND q.reason = 'too_many';
         INSERT INTO public.region_resolution_queue
                (subject_kind, subject_user_id, raw_state_label, raw_district_label, reason,
                 candidate_codes, catalog_version)
-        SELECT 'engineer_service', v_user, v_scope_label, NULL, 'too_many',
-               (SELECT array_agg(c ORDER BY c) FROM unnest(v_resolved) c), v_version
+        SELECT 'engineer_service', v_user, v_scope_label, NULL, 'too_many', '{}', v_version
          WHERE NOT EXISTS (
            SELECT 1 FROM public.region_resolution_queue q
             WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user
@@ -1060,7 +1101,8 @@ BEGIN
         FOR i IN 1 .. coalesce(cardinality(v_un_labels), 0) LOOP
           v_cand := ARRAY(SELECT jsonb_array_elements_text(v_un_candidates -> (i - 1)));
           UPDATE public.region_resolution_queue q
-             SET reason = v_un_reasons[i], candidate_codes = v_cand, raw_state_label = v_scope_label
+             SET reason = v_un_reasons[i], candidate_codes = v_cand, raw_state_label = v_scope_label,
+                 catalog_version = v_version
            WHERE q.subject_kind = 'engineer_service' AND q.subject_user_id = v_user AND q.status = 'open'
              AND q.reason <> 'too_many'
              AND public.region_labels_equal(q.raw_district_label, v_un_labels[i]);

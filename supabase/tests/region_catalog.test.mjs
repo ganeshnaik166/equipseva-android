@@ -347,7 +347,7 @@ const PROPERTIES = [
       `SELECT raw_district_label, reason FROM public.region_resolution_queue
         WHERE subject_user_id = $1 AND subject_kind = $2 AND status = 'open' ORDER BY raw_district_label`, [user, kind])).rows;
 
-    // An older app shortens the service-area text: the coded set shrinks and the vanished item is dismissed.
+    // An older app shortens the service-area text: the coded set shrinks and the vanished item is superseded.
     await db.query("UPDATE public.engineers SET service_areas = ARRAY['Riverton'] WHERE id = $1", [LEG_ENG12]);
     const shrink = await backfill();
     assert.deepEqual(await serviceCodes(db, LEG_ENG12), ['90102']);
@@ -505,9 +505,9 @@ const PROPERTIES = [
     await addEngineer(db, 32, { profileState: null, kycState: 'Many Districts State', areas: [...MANY_NAMES, 'Nowhere'] });
     await backfill();
     assert.deepEqual(await open(userId(32), 'engineer_service'), [null], 'only too_many while over the cap');
-    await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [[...MANY_NAMES.slice(0, 30), 'Nowhere'], engId(32)]);
+    await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [[...MANY_NAMES.slice(0, 29), 'Nowhere'], engId(32)]);
     await backfill();
-    assert.equal((await serviceCodes(db, engId(32))).length, 30);
+    assert.equal((await serviceCodes(db, engId(32))).length, 29);
     assert.deepEqual(await open(userId(32), 'engineer_service'), ['Nowhere']);
     await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [MANY_NAMES, engId(32)]);
     await backfill();
@@ -556,6 +556,33 @@ const PROPERTIES = [
     await backfill();
     assert.deepEqual((await items(userId(35), 'profile_home')).map((i) => i.status), ['resolved']);
 
+    // Service text naming a retired district gets the same 'retired' suggestion as home text.
+    await addEngineer(db, 36, { profileState: null, kycState: 'Alpha State', areas: ['Westmoor', 'Northfield'] });
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(36)), ['90101']);
+    assert.deepEqual((await items(userId(36), 'engineer_service')).map((i) => [i.label, i.reason, i.candidates]),
+      [['Westmoor', 'retired', ['90101', '90102']]]);
+
+    // More than 30 distinct labels is too_many even when few of them resolve; no per-label items.
+    const many = [...Array.from({ length: 30 }, (_, i) => `Unknown Place ${i}`), 'Northfield'];
+    await addEngineer(db, 37, { profileState: null, kycState: 'Alpha State', areas: many });
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(37)), []);
+    assert.deepEqual((await items(userId(37), 'engineer_service')).map((i) => [i.label, i.reason, i.status]), [[null, 'too_many', 'open']]);
+
+    // A literal label that looks like the too_many marker is just an unresolved label.
+    await db.query('UPDATE public.engineers SET service_areas = $1 WHERE id = $2', [['Northfield', '(Too Many Districts)'], engId(37)]);
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(37)), ['90101']);
+    assert.deepEqual((await items(userId(37), 'engineer_service')).map((i) => [i.label, i.reason, i.status]),
+      [[null, 'too_many', 'superseded'], ['(Too Many Districts)', 'no_match', 'open']]);
+
+    // An engineer item whose text now resolves closes as resolved, not superseded.
+    await db.query("INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind) VALUES ('901', '(too many districts)', '90102', 'common_spelling')");
+    await backfill();
+    assert.deepEqual(await serviceCodes(db, engId(37)), ['90101', '90102']);
+    assert.deepEqual((await items(userId(37), 'engineer_service')).map((i) => i.status), ['superseded', 'resolved']);
+
     const settled = await backfill();
     assert.equal(settled.queue_rows_added + settled.queue_rows_closed + settled.queue_rows_updated, 0);
   } },
@@ -591,6 +618,57 @@ const PROPERTIES = [
     const ambiguous = await mine(U.leg(5));
     assert.equal(ambiguous.home.status, 'needs_confirmation');
     assert.deepEqual([ambiguous.legacy_preview.reason, ambiguous.legacy_preview.candidate_codes], ['ambiguous', ['90104', '90105']]);
+  } },
+
+  { kind: 'new-only', name: 'a new catalogue version re-stamps derived rows and open items; a scope-label edit refreshes items; retired choices are flagged', run: async (db) => {
+    const backfill = async () => (await as(db, 'service_role', 'SELECT * FROM public.region_legacy_backfill_report(true)')).rows[0];
+    const item = async (user, label) => one(db, `SELECT raw_state_label, catalog_version, status FROM public.region_resolution_queue
+                                                  WHERE subject_user_id = $1 AND raw_district_label = $2 ORDER BY id DESC LIMIT 1`, [user, label]);
+    await addEngineer(db, 50, { profileState: null, kycState: 'Alpha State', areas: ['Nowhere Fifty', 'Riverton'] });
+    // An engineer whose text fully resolves: only the version re-stamp can change its rows.
+    await addEngineer(db, 52, { profileState: null, kycState: 'Alpha State', areas: ['Northfield'] });
+    await backfill();
+
+    // Only the spelling of the scope State/UT changes: the item follows the text.
+    await db.query("UPDATE public.engineers SET state = 'ALPHA STATE' WHERE id = $1", [engId(50)]);
+    const scope = await backfill();
+    assert.ok(scope.queue_rows_updated >= 1);
+    assert.equal((await item(userId(50), 'Nowhere Fifty')).raw_state_label, 'ALPHA STATE');
+
+    // A version-only bump: backfilled rows and open items move to the new version.
+    await db.query(`INSERT INTO public.region_catalog_versions (version, source_url, retrieved_on, sha256, is_current, accepts_writes, is_synthetic)
+                    VALUES ('synthetic-v3', 'synthetic://fixture/v3', DATE '2026-09-01', '${'c'.repeat(64)}', false, true, true)`);
+    await db.query("UPDATE public.region_catalog_versions SET is_current = false WHERE is_current");
+    await db.query("UPDATE public.region_catalog_versions SET is_current = true WHERE version = 'synthetic-v3'");
+    try {
+      const bump = await backfill();
+      assert.ok(bump.queue_rows_updated >= 1);
+      assert.equal((await one(db, "SELECT catalog_version FROM public.engineer_service_districts WHERE engineer_id = $1", [engId(50)])).catalog_version, 'synthetic-v3');
+      assert.equal((await item(userId(50), 'Nowhere Fifty')).catalog_version, 'synthetic-v3');
+      assert.equal((await one(db, "SELECT catalog_version FROM public.engineer_service_districts WHERE engineer_id = $1", [engId(52)])).catalog_version, 'synthetic-v3');
+      assert.equal((await homeRow(db, U.leg(4))).catalog_version, 'synthetic-v3');
+      // An open profile item for unchanged, still-unresolved text moves to the new version too.
+      assert.equal((await one(db, "SELECT catalog_version FROM public.region_resolution_queue WHERE subject_user_id = $1 AND status = 'open'", [U.leg(7)])).catalog_version, 'synthetic-v3');
+    } finally {
+      await db.query("UPDATE public.region_catalog_versions SET is_current = false WHERE is_current");
+      await db.query(`UPDATE public.region_catalog_versions SET is_current = true WHERE version = '${V2}'`);
+    }
+
+    // A chosen code that a later version retires stays stored and is reported inactive.
+    await addEngineer(db, 51, { profileState: null, kycState: 'Beta Territory', areas: [] });
+    await asUser(db, userId(51), SET_HOME, ['902', '90202', V2]);
+    await asUser(db, userId(51), SET_SERVICE, [['90202', '90101'], V2]);
+    const before = (await asUser(db, userId(51), MY_REGION)).rows[0].r;
+    assert.equal(before.home.district_active, true);
+    assert.deepEqual(before.service_districts.map((d) => [d.district_code, d.active]), [['90101', true], ['90202', true]]);
+    await db.query("UPDATE public.region_districts SET active = false, retired_in = $1 WHERE code = '90202'", [V2]);
+    try {
+      const after = (await asUser(db, userId(51), MY_REGION)).rows[0].r;
+      assert.equal(after.home.district_active, false);
+      assert.deepEqual(after.service_districts.map((d) => [d.district_code, d.active]), [['90101', true], ['90202', false]]);
+    } finally {
+      await db.query("UPDATE public.region_districts SET active = true, retired_in = NULL WHERE code = '90202'");
+    }
   } },
 
   { kind: 'control', mutantMustFail: /^anon can execute public./, name: 'grants_and_definer_shape: client RPCs are definer with a pinned search_path and signed-in-only EXECUTE; the report is service-only; helpers and tables expose nothing extra', run: async (db) => {

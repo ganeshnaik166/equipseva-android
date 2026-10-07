@@ -78,6 +78,8 @@ data class MyRegionProfile(
         val source: String,
         @SerialName("legacy_state_label") val legacyStateLabel: String? = null,
         @SerialName("legacy_district_label") val legacyDistrictLabel: String? = null,
+        /** False when a later catalogue retired the stored district (or its State/UT); null without a district. */
+        @SerialName("district_active") val districtActive: Boolean? = null,
     ) {
         val isResolved: Boolean get() = status == "resolved" && stateCode != null && districtCode != null
     }
@@ -100,6 +102,8 @@ data class MyRegionProfile(
         @SerialName("district_code") val districtCode: String,
         @SerialName("catalog_version") val catalogVersion: String,
         val source: String,
+        /** False when a later catalogue retired this district (or its State/UT). */
+        val active: Boolean = true,
     )
 }
 

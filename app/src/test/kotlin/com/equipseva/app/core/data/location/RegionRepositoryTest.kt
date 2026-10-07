@@ -49,10 +49,10 @@ class RegionRepositoryTest {
     @Test
     fun `my_region_profile decodes a coded row, a stale preview and a legacy-only user`() {
         val coded = json.decodeFromString<MyRegionProfile>(
-            """{"home":{"state_code":"901","district_code":"90102","catalog_version":"synthetic-v2","status":"resolved","source":"legacy_backfill","legacy_state_label":"Alpha State","legacy_district_label":"Old Riverton"},
+            """{"home":{"state_code":"901","district_code":"90102","catalog_version":"synthetic-v2","status":"resolved","source":"legacy_backfill","legacy_state_label":"Alpha State","legacy_district_label":"Old Riverton","district_active":false},
                "home_stale":true,"legacy_state_label":"Alpha State","legacy_district_label":"Riverton",
                "legacy_preview":{"status":"resolved","state_code":"901","district_code":"90102","reason":null,"candidate_codes":["90102"],"catalog_version":"synthetic-v2"},
-               "is_engineer":true,"service_districts":[{"district_code":"90101","catalog_version":"synthetic-v2","source":"legacy_backfill"}],
+               "is_engineer":true,"service_districts":[{"district_code":"90101","catalog_version":"synthetic-v2","source":"legacy_backfill","active":false}],
                "service_source":"legacy_backfill","service_stale":false,
                "current_catalog_version":"synthetic-v2"}""",
         )
@@ -62,6 +62,8 @@ class RegionRepositoryTest {
         assertTrue(coded.homeStale)
         assertEquals("90102", coded.legacyPreview!!.districtCode)
         assertEquals("90101", coded.serviceDistricts.single().districtCode)
+        assertEquals(false, coded.home!!.districtActive)
+        assertFalse(coded.serviceDistricts.single().active)
 
         val legacyOnly = json.decodeFromString<MyRegionProfile>(
             """{"home":null,"home_stale":false,"legacy_state_label":"Alpha State","legacy_district_label":"Lakeside",
