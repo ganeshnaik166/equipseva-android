@@ -17,12 +17,9 @@
     <string name="add_phone_field_hint">Phone (e.g. +919999999999)</string>
 
     <!--
-        Round 514 (v0.4 P5 #9) â i18n seed. These 30 keys cover the
-        hottest hospital + engineer surfaces. NO Compose call-sites are
-        rewired in this round; the resources exist so a native-speaker
-        review pass can land before we flip Text("…") â stringResource().
-        Until then `values/strings.xml` stays the source of truth at
-        runtime even on Hindi/Telugu devices.
+        Round 514 (v0.4 P5 #9) seeded these keys for translation. Owner decision,
+        23 September 2026: the product is English only, so this is the only
+        catalogue and there are no translated copies to keep in step.
     -->
 
     <!-- Common UI -->
