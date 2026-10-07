@@ -129,11 +129,14 @@ class ValidatorsTest {
     }
 
     @Test fun `india mobile refuses digits from other scripts instead of ignoring them`() {
-        // Char.isDigit() also matches Devanagari digits; the national digits count ASCII only,
-        // and a number holding any other digit is refused rather than stored as typed.
-        assertEquals("", Validators.indiaMobileNationalDigits("९८७६५४३२१०"))
-        assertEquals("Use the digits 0 to 9 only", Validators.indiaMobileError("९८७६५४३२१०"))
-        assertEquals("Use the digits 0 to 9 only", Validators.indiaMobileError("9876543210९"))
+        // Char.isDigit() also matches Devanagari digits (U+0966..U+096F, built from code points
+        // here); the national digits count ASCII only, and a number holding any other digit is
+        // refused rather than stored as typed.
+        val devanagari = (0x96F downTo 0x966).map { Char(it) }.joinToString("")
+        assertEquals(10, devanagari.length)
+        assertEquals("", Validators.indiaMobileNationalDigits(devanagari))
+        assertEquals("Use the digits 0 to 9 only", Validators.indiaMobileError(devanagari))
+        assertEquals("Use the digits 0 to 9 only", Validators.indiaMobileError("9876543210" + Char(0x96F)))
     }
 
     @Test fun `vpa accepts UPI IDs with surrounding spaces and rejects other shapes`() {

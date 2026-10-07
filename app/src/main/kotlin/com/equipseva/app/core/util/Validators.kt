@@ -51,7 +51,8 @@ object Validators {
     }
 
     // Round 441 — Indian mobile-shape check for the optional secondary
-    // phone fields (hospital reception, biomed contact). The primary
+    // phone fields (hospital reception, biomed contact) and, since
+    // WP24.T01, the address form's required mobile number. The primary
     // sign-in / KYC phone path uses normalizeIndiaMobileInput +
     // AddPhoneScreen dedup (r287). For form fields where the user
     // types freely, accept either "+91" + 10 digits or just 10 digits

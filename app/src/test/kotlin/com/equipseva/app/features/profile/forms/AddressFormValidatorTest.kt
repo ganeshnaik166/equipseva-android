@@ -148,6 +148,8 @@ class AddressFormValidatorTest {
 
     @Test fun `pincode starting with 0 says why`() {
         assertEquals("Pincode can't start with 0.", validateAddressForm(form(pincode = "012345")))
+        // Reachable through the keyboard's Done action, which saves without the button's check.
+        assertEquals("Pincode can't start with 0.", validateAddressForm(form(pincode = "01234")))
     }
 
     @Test fun `phone must be an Indian mobile number`() {
