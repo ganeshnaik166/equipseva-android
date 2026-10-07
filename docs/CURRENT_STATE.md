@@ -2,6 +2,21 @@
 
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
+## WP25.T01 region catalogue v1 — Claude, 7 October 2026, sub-slice A in progress
+
+Builds the PRODUCT_PLAN §6 / ledger P2.2 region catalogue: India → State/UT → district by stable codes plus a catalogue version, with no maps, GPS or fuzzy matching. Branch `claudedev-region-catalog-20261007` is stacked on `claudedev-english-only-20261007` (`d8f85fcf`) so new strings need no Hindi/Telugu copies; it must merge after that branch. Delivered in reviewed sub-slices: **A** server schema and RPCs; **B** catalogue generator (Node, because this laptop has no Python); **C** client catalogue, code-based selection draft and repository; **D** onboarding/KYC/service-area forms saving codes. No feed, attendance, directory, map or permission change in any sub-slice.
+
+| Item | Value |
+|---|---|
+| Sub-slice A owned files | New `supabase/migrations/20263915000000_round3830_region_catalog_v1.sql`; new `supabase/tests/region_catalog.fixture.sql` and `region_catalog.test.mjs`; `supabase/tests/package.json` (one script, no new dependency, lock unchanged); `.github/workflows/supabase-sql-s3a.yml` (one path entry and one step); continuity records |
+| Version allocation | `20263915000000` / round 3830: the first version above main (`20263905000000`), open draft PR1901 (`20263906000000`) and every provisional version in other local checkouts (up to `20263914000000`). Re-check for collisions before integration |
+| Server design | Catalogue tables `region_catalog_versions`, `region_states`, `region_districts`, `region_district_aliases` (public read-only); `profile_regions` and `engineer_service_districts` (own-row read, RPC write, ON DELETE CASCADE from profile/engineer rows); `region_resolution_queue` (no client access). RPCs `region_catalog_current`, `set_my_home_region`, `set_my_service_districts`, `my_region_profile`; service-only `region_legacy_backfill_report(p_apply)` returning counts only. Legacy text resolution is exact-only after case/space normalisation and happens inside these functions, **not** in a trigger: adding no table, column, trigger, policy or enum to `profiles`/`engineers` keeps other pending migrations that pin those tables applicable. The RPCs keep `profiles.state/district` and `engineers.service_areas` label text in sync |
+| Data | The migration seeds **no** catalogue rows. Tests use a synthetic mini-catalogue. A real seed needs an owner-approved, dated LGD district snapshot (source, date, licence, checksum) |
+| Not touched | `profiles`/`engineers` definitions, triggers, policies and grants; account deletion and export functions; directory/feed/nearby/attendance functions; Android code |
+| Evidence plan | PGlite LEGACY/NEW suite (controls must fail on LEGACY, regressions pass on both, migration applied twice), unchanged round3828 suite, then independent critic and QA |
+
+Nothing here is applied to any Supabase project or merged.
+
 ## WP18.T01 English only on main — Claude, 7 October 2026, locally verified; merge needs the owner
 
 Owner decision of 23 September 2026 (English only) is still not on main: `values-hi`/`values-te`, `StringsParityTest` and `localeFilters += setOf("en", "hi", "te")` remain at main `49c163eb`. Branch `claudedev-english-only-20261007` ports only the English-only source commits — Claude's original `a6e58067`, as re-prepared test-first by Codex on 1 October with five guards (test file and build script byte-identical to that candidate) — and then closes the gaps the critic found in the guards. It is the first task of the programme because every later change that adds or edits strings depends on it. [Handoff](HANDOFF_WP18_T01_ENGLISH_ONLY_2026-10-07.md).
