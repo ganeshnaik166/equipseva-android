@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,12 +19,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.equipseva.app.R
 import com.equipseva.app.features.auth.SessionState
 import com.equipseva.app.features.auth.SessionViewModel
 import kotlinx.coroutines.launch
@@ -47,6 +51,26 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
 
     LaunchedEffect(sessionViewModel) {
         sessionViewModel.messages.collect { msg -> showSnackbar(msg) }
+    }
+
+    // WP22.T03 — shown once after the local database had to be discarded. It
+    // stays until the user dismisses it: on a device check the notification
+    // permission prompt covered that launch and a timed snackbar expired
+    // unseen. It is acknowledged only on that dismissal, so a process death
+    // first shows it again on the next launch. While it is up, other messages
+    // on this shared host wait behind it; for a one-time data-loss notice that
+    // trade-off is intended.
+    val localDataResetPending by sessionViewModel.localDataResetPending.collectAsStateWithLifecycle()
+    val localDataResetMessage = stringResource(R.string.local_data_reset_notice)
+    LaunchedEffect(localDataResetPending) {
+        if (localDataResetPending) {
+            val result = snackbarHost.showSnackbar(
+                localDataResetMessage,
+                withDismissAction = true,
+                duration = SnackbarDuration.Indefinite,
+            )
+            if (result == SnackbarResult.Dismissed) sessionViewModel.onLocalDataResetNoticeShown()
+        }
     }
 
     // Re-fetch the profile on each foreground except the very first.

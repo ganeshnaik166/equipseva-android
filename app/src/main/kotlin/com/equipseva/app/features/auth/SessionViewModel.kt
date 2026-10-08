@@ -7,6 +7,7 @@ import com.equipseva.app.core.auth.AuthSession
 import com.equipseva.app.core.auth.SignOutCleanup
 import com.equipseva.app.core.data.prefs.UserPrefs
 import com.equipseva.app.core.data.profile.ProfileRepository
+import com.equipseva.app.core.data.secure.LocalDataResetNotice
 import com.equipseva.app.core.push.DeviceTokenRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -37,7 +38,17 @@ class SessionViewModel @Inject constructor(
     private val userPrefs: UserPrefs,
     private val deviceTokenRegistrar: DeviceTokenRegistrar,
     private val signOutCleanup: SignOutCleanup,
+    private val localDataReset: LocalDataResetNotice,
 ) : ViewModel() {
+
+    /**
+     * WP22.T03 — true until the one-time "offline changes could not be
+     * recovered" notice has been dismissed after the local database had to be
+     * discarded (its Keystore key was lost).
+     */
+    val localDataResetPending: StateFlow<Boolean> = localDataReset.pending
+
+    fun onLocalDataResetNoticeShown() = localDataReset.acknowledge()
 
     private val bootstrapping = MutableStateFlow(false)
 
