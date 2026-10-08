@@ -2,6 +2,13 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-10-08 — English-only merged; remaining Claude candidates stay draft
+
+- [PR1915](https://github.com/ganeshnaik166/equipseva-android/pull/1915) merged exact head `c0a590d473bb9d5e31b3759600d283b43b10bfcb` to main **`e0d95de4f83a146a8b286c508d0c8ad2aa1cea05`** after both Android debug/release-R8 checks, golden verification and both Gitleaks checks succeeded. Main app tree `91629ae6ceb6d7b95b1742073fc6f4b0c4873c1f` matches frozen code `60579c47`. Original English ancestry is preserved; PR1912 closed superseded, branch retained. [Hosted run links and full evidence](HANDOFF_ENGLISH_GUARD_CACHE_2026-10-08.md).
+- Local executed evidence remains **2,989 tests / 350 suites / zero failures/errors/skips**, lint **0 errors / 87 warnings / 2 hints**, debug assembly, intended RED cache probes and valid cache restoration; critic/QA **9.6/9.6** for the local whole-English scope. Main-push CI is distinct from pre-merge checks. No signed release or physical-device acceptance.
+- PR1913/1914 retargeted to main but stay draft: wider region/reliability review blockers remain. Owned region generator draft PR1916 (`88e272c5`, code `c2a8bc7a`) has test-first **20/28 RED -> 28/28 GREEN** and independent generator-only **9.6/9.6**, each reviewer rerunning the suite. It targets the region feature branch; no whole-region acceptance or production dataset/migration apply. Hosted follow-up and combined integration checks remain separate.
+- This continuity checkpoint changes documentation only. Next: isolated test-first reliability recovery fixes and region ownership/concurrency review gates; keep sensitive details private, preserve all other checkouts/reservations, and leave website work paused.
+
 ## 2026-10-08 — English-only cache follow-up locally accepted; hosted/main pending
 
 - Isolated owned `codex/english-guard-inputs-20261008`, base `d8f85fcf`, frozen code **`60579c4738efc04d7204b023670bf65021450495`**, app tree **`91629ae6ceb6d7b95b1742073fc6f4b0c4873c1f`**. Fifteen added build-script lines declare raw resource and build-script inputs, including empty directories, without disabling caching or changing runtime resources/assertions.

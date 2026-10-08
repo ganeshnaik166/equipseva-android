@@ -1,5 +1,19 @@
 # English resource guard cache follow-up — 8 October 2026
 
+## Main integration receipt — supersedes pending statements below
+
+[PR1915](https://github.com/ganeshnaik166/equipseva-android/pull/1915) merged exact head **`c0a590d473bb9d5e31b3759600d283b43b10bfcb`** as main **`e0d95de4f83a146a8b286c508d0c8ad2aa1cea05`** on 8 October 2026. Fetch verified the merge, preserved original English commit ancestry, and identical app tree **`91629ae6ceb6d7b95b1742073fc6f4b0c4873c1f`** at the frozen source and main. PR1912 was closed unmerged as superseded; its branch remains. These exact-head checks all completed successfully before merge:
+
+| Check | Successful hosted evidence |
+|---|---|
+| Android PR: debug and release R8 | [run 37747479073](https://github.com/ganeshnaik166/equipseva-android/actions/runs/37747479073/job/113212305058) |
+| Android push: debug and release R8 | [run 37747462506](https://github.com/ganeshnaik166/equipseva-android/actions/runs/37747462506/job/113212249858) |
+| Golden verification | [run 37747479153](https://github.com/ganeshnaik166/equipseva-android/actions/runs/37747479153/job/113212306120) |
+| Gitleaks PR | [run 37747479038](https://github.com/ganeshnaik166/equipseva-android/actions/runs/37747479038/job/113212304687) |
+| Gitleaks push | [run 37747462435](https://github.com/ganeshnaik166/equipseva-android/actions/runs/37747462435/job/113212248635) |
+
+Record-goldens was skipped as intended; no golden was re-recorded. Separate main-push checks are not implied by the table. Hosted release R8 assembly is not a release-signed shipment. Device/TalkBack and provider/release acceptance remain outside this milestone. Region PR1913 and reliability PR1914 now target main and remain draft/unaccepted. Generator-only follow-up PR1916 targets the region branch separately. No new local Gradle run was needed for this documentation-only receipt.
+
 ## Scope and source
 
 Owned branch `codex/english-guard-inputs-20261008`, isolated checkout `work/eqs-english-20261008`, base `d8f85fcf655a44c98d635121233d0654c54c763f` (English PR1912). Frozen code **`60579c4738efc04d7204b023670bf65021450495`**, app tree **`91629ae6ceb6d7b95b1742073fc6f4b0c4873c1f`**. Follow-up owns only unit-test input declaration and safe continuity records. Claude's region/reliability branches and website hold are preserved.
