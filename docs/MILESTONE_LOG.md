@@ -2,6 +2,12 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-10-08 — Region generator replay/path correction, bounded local acceptance
+
+- Owned `codex/region-generator-replay-20261008`, base `3d25ac76`, frozen code **`c2a8bc7a22e33ac5fc0c61465b27f795f9ebf9e0`**. Only generator/test implementation changes. An imported non-current or withdrawn version cannot be replayed to restore data or re-enable writes. Current/writable identical replay and digest refusal remain. Synthetic outputs check both lexical and resolved shipping paths; resolution errors refuse.
+- Test-first original **20/27** with 7 intended failures, first GREEN **27/27**; final identical-test original control **20/28** with 8 intended failures, frozen GREEN **28/28**, all exits recorded. All 18 original properties remain. Native Windows junctions, existing-file sentinels, companion outputs, resolver-error and ordinary-path controls execute. Seven region tables are compared across replay controls.
+- Independent [critic](helper-reviews/codex-20261008/region-generator-critic.md) and [QA](helper-reviews/codex-20261008/region-generator-qa.md) each independently ran **28/28**, exit 0, and score **9.6/10 for this local generator-only boundary**. [Handoff](HANDOFF_REGION_GENERATOR_2026-10-08.md). No Gradle, deployed database, real snapshot or migration applied. Hosted follow-up verification and integration pending; wider region ownership/concurrency/export/dataset/rollout gates remain. Corrected earlier documentation scope/input and unseeded-effect overclaims. Website stays paused.
+
 ## 2026-10-07 — WP18.T01 English-only resources locally verified (Claude); main merge pending owner
 
 - Branch `claudedev-english-only-20261007` from main `49c163eb`; verified code head **`6460ee89c49545154cb0cd3dc8b860f254d413ca`**. Deletes `values-hi`/`values-te` and `StringsParityTest`, sets `localeFilters += setOf("en")`, adds `EnglishOnlyResourcesTest` (five guards, ported byte-identical from Codex's 1 October test-first candidate of `a6e58067`, then hardened for Unicode escapes, every resource type and source set, `resourceConfigurations` and dead blocks), and replaces one stale `values/strings.xml` comment.

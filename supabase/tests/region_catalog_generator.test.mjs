@@ -16,7 +16,7 @@
 
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -311,6 +311,82 @@ await property('no current directory, path form or partial run lets synthetic da
   rmSync(elsewhere, { recursive: true, force: true });
 });
 
+// Junctions need no Windows symlink privilege. Both directions matter: resolving an outward
+// link must not erase the fact that the requested name is in a shipping directory.
+for (const shippingDir of SHIPPING_DIRS) {
+  await property(`synthetic output refuses inward and outward links at ${shippingDir}`, async () => {
+    const root = fakeRepo();
+    const storage = path.join(root, 'ordinary-storage');
+    mkdirSync(storage);
+    const outward = path.join(root, shippingDir, 'outward');
+    const inward = path.join(root, 'inward');
+    const links = [outward, inward];
+    try {
+      const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+      symlinkSync(storage, outward, linkType);
+      symlinkSync(path.join(root, shippingDir), inward, linkType);
+      const snapshot = path.join(root, 'scripts/regions/fixtures/synthetic-v2');
+      for (const [n, linkedDir] of links.entries()) {
+        const target = path.join(linkedDir, `blocked-${n}.${shippingDir === 'supabase/migrations' ? 'sql' : 'json'}`);
+        const companion = path.join(storage, `companion-${n}.json`);
+        const args = shippingDir === 'supabase/migrations'
+          ? { snapshot, jsonOut: companion, sqlOut: target, migrationVersion: '20263999000000', round: '9999' }
+          : { snapshot, jsonOut: target };
+        assert.throws(() => gen.build(args), /synthetic catalogue can never be written/);
+        assert.equal(existsSync(target), false, 'a refused linked target was written');
+        assert.equal(existsSync(companion), false, 'a refused SQL target left a partial asset');
+        // Repeat with a real target file so realpath resolves the full file, not only its
+        // parent. The existing bytes must survive through both names of the link.
+        writeFileSync(target, 'existing reviewed bytes');
+        assert.throws(() => gen.build(args), /synthetic catalogue can never be written/);
+        assert.equal(read(target), 'existing reviewed bytes', 'an existing linked target was overwritten');
+        assert.equal(existsSync(companion), false, 'a refused existing SQL target left a partial asset');
+      }
+      const ordinary = path.join(storage, 'ordinary.json');
+      const ordinarySql = path.join(storage, 'ordinary.sql');
+      gen.build({ snapshot, jsonOut: ordinary, sqlOut: ordinarySql, migrationVersion: '20263999000000', round: '9999' });
+      assert.equal(JSON.parse(read(ordinary)).synthetic, true, 'ordinary scratch output is still allowed');
+      assert.match(read(ordinarySql), /region catalogue seed synthetic-v2/, 'ordinary scratch SQL is still allowed');
+    } finally {
+      // Remove links before recursively removing only this generated temporary root.
+      for (const link of links) rmSync(link, { force: true });
+      assert.equal(path.dirname(path.resolve(root)), path.resolve(os.tmpdir()));
+      assert.ok(path.basename(root).startsWith('region-repo-'));
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
+
+await property('a path resolution error refuses synthetic output before either artifact is written', async () => {
+  const root = fakeRepo();
+  const ordinary = path.join(root, 'ordinary');
+  const unresolved = path.join(root, 'unresolved');
+  mkdirSync(ordinary);
+  mkdirSync(unresolved);
+  const nativeRealpath = realpathSync.native;
+  try {
+    // Inject a filesystem EACCES only for this generated scratch directory. This exercises
+    // the error branch on Windows without changing real ACLs or requiring elevated rights.
+    realpathSync.native = (p, ...options) => {
+      if (path.resolve(p) === path.resolve(unresolved)) {
+        throw Object.assign(new Error('synthetic resolver EACCES'), { code: 'EACCES' });
+      }
+      return nativeRealpath(p, ...options);
+    };
+    const jsonOut = path.join(ordinary, 'catalogue.json');
+    const sqlOut = path.join(unresolved, 'seed.sql');
+    assert.throws(() => gen.build({ snapshot: path.join(fixtures, 'synthetic-v2'), jsonOut, sqlOut,
+      migrationVersion: '20263999000000', round: '9999' }), /cannot resolve output path.*synthetic resolver EACCES/);
+    assert.equal(existsSync(jsonOut), false, 'resolution failure left a partial asset');
+    assert.equal(existsSync(sqlOut), false, 'resolution failure wrote the seed');
+  } finally {
+    realpathSync.native = nativeRealpath;
+    assert.equal(path.dirname(path.resolve(root)), path.resolve(os.tmpdir()));
+    assert.ok(path.basename(root).startsWith('region-repo-'));
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 await property('bytes and text that would be repaired or read differently elsewhere are refused', async () => {
   // Invalid UTF-8 (a Windows-1252 byte) is refused, never decoded to a replacement character.
   const badBytes = variant('synthetic-v2', () => {});
@@ -342,6 +418,71 @@ function seedOf(edit, round) {
   finally { rmSync(dir, { recursive: true, force: true }); }
 }
 const asV3 = (p) => { p.text = p.text.replace('- version: synthetic-v2', '- version: synthetic-v3').replace('- retrieved_on: 2026-06-01', '- retrieved_on: 2026-09-01'); };
+
+// Include dependent rows as well as the dictionary: a refused replay must leave all of them
+// unchanged, not merely retain the current-version flag.
+async function regionSnapshot(db) {
+  const snapshot = {};
+  for (const table of ['region_catalog_versions', 'region_states', 'region_districts', 'region_district_aliases',
+    'profile_regions', 'engineer_service_districts', 'region_resolution_queue']) {
+    snapshot[table] = (await db.query(`SELECT to_jsonb(t) AS row FROM public.${table} t ORDER BY to_jsonb(t)::text`)).rows;
+  }
+  return snapshot;
+}
+
+await property('an older seed replay refuses without restoring withdrawn aliases or moving the current version', async () => {
+  const db3 = await atV2();
+  try {
+    await db3.query('SELECT * FROM public.region_legacy_backfill_report(true)');
+    const seed3 = seedOf((f, p) => {
+      asV3(p);
+      // Version labels are opaque: the newest imported label sorts before v2 here.
+      p.text = p.text.replace('- version: synthetic-v3', '- version: aaa-current');
+      f['aliases.csv'] = f['aliases.csv'].replace('901,old riverton,90102,renamed\n', '');
+    }, '9993');
+    await db3.exec(seed3);
+    const before = await regionSnapshot(db3);
+    await assert.rejects(() => db3.exec(seed2), /already imported.*not current or writable/);
+    await db3.exec('ROLLBACK');
+    assert.deepEqual(await regionSnapshot(db3), before);
+  } finally { await db3.close(); }
+});
+
+for (const withdrawn of ['latest', 'older']) {
+  await property(`replaying an operator-withdrawn ${withdrawn} version refuses without re-enabling it`, async () => {
+    const db3 = await atV2();
+    try {
+      if (withdrawn === 'older') await db3.exec(seedOf((f, p) => asV3(p), '9993'));
+      await db3.query("UPDATE public.region_catalog_versions SET is_current = false, accepts_writes = false WHERE version = 'synthetic-v2'");
+      const before = await regionSnapshot(db3);
+      await assert.rejects(() => db3.exec(seed2), /already imported.*not current or writable/);
+      await db3.exec('ROLLBACK');
+      assert.deepEqual(await regionSnapshot(db3), before);
+    } finally { await db3.close(); }
+  });
+}
+
+await property('an identical current seed replay preserves all region rows', async () => {
+  const db3 = await atV2();
+  try {
+    await db3.query('SELECT * FROM public.region_legacy_backfill_report(true)');
+    const before = await regionSnapshot(db3);
+    await db3.exec(seed2);
+    assert.deepEqual(await regionSnapshot(db3), before);
+  } finally { await db3.close(); }
+});
+
+await property('changed data under a withdrawn version still fails the digest check first', async () => {
+  const db3 = await atV2();
+  try {
+    await db3.query("UPDATE public.region_catalog_versions SET is_current = false, accepts_writes = false WHERE version = 'synthetic-v2'");
+    const changed = seedOf((f) => { f['districts.csv'] = f['districts.csv'].replace('90202,902,Hillcrest', '90202,902,Hillcrest Town'); }, '9995');
+    const before = await regionSnapshot(db3);
+    await assert.rejects(() => db3.exec(changed), /this version already exists with different data/);
+    await db3.exec('ROLLBACK');
+    assert.deepEqual(await regionSnapshot(db3), before);
+  } finally { await db3.close(); }
+});
 
 await property('aliases converge on the snapshot: a dropped alias stops resolving and a retargeted one moves', async () => {
   const db3 = await atV2();
