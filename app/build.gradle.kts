@@ -2,6 +2,7 @@
 
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import java.util.Properties
+import org.gradle.api.tasks.PathSensitivity
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -47,6 +48,11 @@ val hasReleaseKeystore: Boolean =
         && releaseStorePassword != null
         && releaseKeyAlias != null
         && releaseKeyPassword != null
+
+// Keep this tree live: guards also inspect resource roots AGP does not compile.
+val englishOnlyResourceSources = fileTree("src") {
+    include("*/res/**")
+}
 
 android {
     namespace = "com.equipseva.app"
@@ -191,6 +197,15 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             all {
+                // EnglishOnlyResourcesTest reads raw XML, names and empty directories,
+                // not just merged resources. Track those observations for cache reuse.
+                it.inputs.files(englishOnlyResourceSources)
+                    .withPropertyName("englishOnlyResourceSources")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+                    .ignoreEmptyDirectories(false)
+                it.inputs.file(layout.projectDirectory.file("build.gradle.kts"))
+                    .withPropertyName("englishOnlyBuildScript")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
                 // Roborazzi renders Compose through Robolectric's NATIVE
                 // graphics mode; hardware pixel-copy is what makes the
                 // captured bitmap match what the device draws (software
@@ -213,17 +228,10 @@ android {
         }
     }
 
-    // Round 514 (v0.4 P5 #9) — ship only the locales we actually
-    // translate, so Play Asset Delivery doesn't bake stub translations
-    // from AndroidX libraries for ~80 unsupported languages into the APK.
-    // Migrated off the deprecated defaultConfig.resourceConfigurations
-    // (AGP 9.1.1 warning: "Support for resource configurations will be
-    // removed... use androidResources.localeFilters") — confirmed via
-    // javap on the actual AGP 9.2.1 gradle-api.jar that localeFilters is
-    // a Set<String> getter (add-only, no setter) on
-    // ApplicationAndroidResources, not defaultConfig/BaseFlavor.
+    // Owner decision: ship English only, including dependency resources.
+    // AGP's ApplicationAndroidResources exposes an add-only Set getter.
     androidResources {
-        localeFilters += setOf("en", "hi", "te")
+        localeFilters += setOf("en")
     }
 }
 

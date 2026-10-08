@@ -4,7 +4,7 @@
 > [MILESTONE_LOG.md](MILESTONE_LOG.md). Follow the repository [AGENTS.md](../AGENTS.md)
 > entry/save contract; the dated tables below retain historical implementation evidence.
 
-> **English only (owner decision 23 September 2026):** no Hindi/Telugu translations, words or locale resources anywhere in the product. `values-hi`/`values-te` are removed on `claudedev-build-20260923`; the en/hi/te rules quoted in older tables below are historical. See [AGENTS.md](../AGENTS.md).
+> **English only (owner decision 23 September 2026):** no Hindi/Telugu translations, words or locale resources anywhere in the product. `values-hi`/`values-te` are removed, and `EnglishOnlyResourcesTest` guards against re-adding them, on `claudedev-english-only-20261007` (to main by PR); the en/hi/te rules quoted in older tables below are historical. See [AGENTS.md](../AGENTS.md).
 
 > **Product direction updated 19 September 2026:** read
 > [PRODUCT_PLAN.md](../PRODUCT_PLAN.md) and the
