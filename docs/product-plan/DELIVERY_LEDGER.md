@@ -4,6 +4,8 @@ Updated 28 September 2026. Governing decisions: [PRODUCT_PLAN.md](../../PRODUCT_
 
 This is a requirements/evidence ledger, not a percentage-complete counter. A design review does not accept an implementation. No app-wide numeric score is assigned.
 
+**8 October region generator follow-up (P2.2 / WP25.T01):** owned `codex/region-generator-replay-20261008` at source `c2a8bc7a` has final same-test RED **20/28** on original generator and GREEN **28/28**, plus independent critic/QA reruns **28/28** and scores **9.6/9.6 for local sequential replay/output-path scope only**. [Handoff](../HANDOFF_REGION_GENERATOR_2026-10-08.md). No whole-region acceptance, main integration, approved dataset or production apply; follow-up hosted checks, onboarding ownership, catalogue concurrency, export and rollout remain separate gates. English prerequisite PR1915 remains separate.
+
 ## Source and branch reconciliation
 
 | Item | Verified source | Meaning |

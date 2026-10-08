@@ -6,7 +6,7 @@ Status: **built and pushed; four review rounds fixed; the round-5 acceptance rev
 
 PRODUCT_PLAN §6 and delivery ledger P2.2 describe location as India → State/UT → district, stored as stable codes plus the catalogue version they came from. There are no maps or GPS, and fuzzy or substring matching never decides anything. This slice builds the server, the data pipeline, the device-side catalogue and the onboarding save path for it.
 
-All of it stays **inert in production** until the owner approves a real district snapshot:
+No production catalogue asset or seed is bundled. Applying the schema migration still changes schema/permissions and takes locks. Without a seeded catalogue:
 - no catalogue is bundled and no seed migration exists;
 - the server refuses every coded write (`region_catalog_version_unsupported`);
 - onboarding keeps its existing label-only save.
@@ -17,7 +17,7 @@ Branch `claudedev-region-catalog-20261007` is stacked on `claudedev-english-only
 
 | Sub-slice | Files | What it does |
 |---|---|---|
-| **A** Server (`round3830`, version `20263915000000`) | `supabase/migrations/20263915000000_round3830_region_catalog_v1.sql`; tests `supabase/tests/region_catalog*.{fixture.sql,test.mjs}`; `package.json` `test:regions`; `supabase-sql-s3a.yml` | Public read-only catalogue tables; `profile_regions` and `engineer_service_districts` (own-row read, RPC write, cascade on delete); `region_resolution_queue` (no client access). RPCs `region_catalog_current`, `set_my_home_region`, `set_my_service_districts` (1–30 codes, any State/UT), `my_region_profile`; service-only `region_legacy_backfill_report(p_apply)` (counts only, dry run equals apply). Exact-only resolution; the queue has its own lifecycle (open/resolved/superseded/dismissed); label snapshots; State/UT moves cascade. No trigger, column, policy, grant or enum on `profiles`/`engineers` |
+| **A** Server (`round3830`, version `20263915000000`) | `supabase/migrations/20263915000000_round3830_region_catalog_v1.sql`; tests `supabase/tests/region_catalog*.{fixture.sql,test.mjs}`; `package.json` `test:regions`; `supabase-sql-s3a.yml` | Public read-only catalogue tables; `profile_regions` and `engineer_service_districts` (own-row read, RPC write, cascade on delete); `region_resolution_queue` (no client access). RPCs `region_catalog_current`, `set_my_home_region`, `set_my_service_districts` (1–30 codes, any State/UT), `my_region_profile`; service-only `region_legacy_backfill_report(p_apply)` (counts only, dry run equals apply). Exact-only resolution; the queue has its own lifecycle (open/resolved/superseded/dismissed); label snapshots; State/UT moves cascade. No new application column, policy, grant or enum on `profiles`/`engineers`; foreign keys create internal constraint triggers and take locks |
 | **B** Generator | `scripts/regions/build_region_catalog.mjs`, `README.md`, `fixtures/synthetic-v1`, `fixtures/synthetic-v2` | Turns a reviewed snapshot folder (provenance and checksums) into the Android asset and a seed migration. It validates every rule and refuses rather than repairs. Synthetic data can never reach the shipped asset or `supabase/migrations/` |
 | **C** Client core | `app/src/main/kotlin/com/equipseva/app/core/data/location/Region*.kt` | Code-based catalogue (normalisation identical to the server's), strict asset parser, code-based selection draft, asset loader (none bundled means null; synthetic is refused outside debug builds), repository for the four RPCs, Hilt module |
 | **D1** Onboarding | `features/onboarding/OnboardingHomeRegion.kt`, the hospital and engineer onboarding ViewModels, `OnboardingLocationFields.kt` | With a catalogue, onboarding saves the home State/UT and district as codes before the existing phone/label save. Without one, nothing changes. A server that isn't ready falls back to today's save; the NeedsOnboarding gate is untouched |
@@ -63,3 +63,7 @@ Apply round3830 to staging, then run a read-only catalogue check (definer, `sear
 - **D2.** A service-district picker in the engineer profile; today's free-text service areas stay as they are. The plan puts that screen with another package, and it is only useful once a catalogue ships.
 - **Feeds and attendance.** The district-based job feed and attendance work (WP25.T02 onwards) is unchanged by this slice.
 - **Export.** `export_my_data` does not yet include the new tables (account-deletion cascades are in place).
+
+## 8 October generator follow-up
+
+The owned follow-up [records a bounded replay/path correction](HANDOFF_REGION_GENERATOR_2026-10-08.md). It does not accept the complete region feature. The prior tests and review rounds above retain their historical scope; final integration, dataset and rollout gates remain open.
