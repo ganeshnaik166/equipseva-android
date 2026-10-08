@@ -27,10 +27,11 @@ import javax.crypto.spec.GCMParameterSpec
  * StrongBox on devices that support it.
  *
  * When the sealed copy can never be unwrapped again (key invalidated or
- * unreadable, corrupt file) the Keystore key is discarded, a new passphrase is
- * minted under a fresh key, and the caller must discard the encrypted Room DB —
- * it is a cache + outbox, not canonical state — and then [Passphrase.commit] the
- * new one. [Passphrase.mintedFresh] is how the caller learns that it has to.
+ * unreadable, corrupt file) a new passphrase is minted. Every new passphrase is
+ * sealed under a fresh Keystore key (the old one is discarded first). The caller
+ * must then discard the encrypted Room DB — it is a cache + outbox, not
+ * canonical state — and [Passphrase.commit] the new passphrase.
+ * [Passphrase.mintedFresh] is how the caller learns that it has to.
  *
  * Any failure that is not clearly permanent is retried once. One that still
  * looks like the Keystore being busy or restarting is thrown without touching
@@ -72,8 +73,7 @@ class DbPassphraseStore internal constructor(
     fun getOrCreate(): Passphrase {
         val sealedFile = File(dir, SEALED_FILE)
         val strikesFile = File(dir, STRIKES_FILE)
-        val hadSealedCopy = sealedFile.exists()
-        if (hadSealedCopy) {
+        if (sealedFile.exists()) {
             val sealed = sealedFile.readBytes()
             var failure = runCatching { sealer.unseal(sealed) }
                 .onSuccess { strikesFile.delete(); return Passphrase(it, mintedFresh = false) }
@@ -90,10 +90,11 @@ class DbPassphraseStore internal constructor(
                     throw failure
                 }
             }
-            // The old key can never unwrap this copy again, and a broken key entry would
-            // fail the seal below too, so the new passphrase goes under a fresh key.
-            sealer.discardKey()
         }
+        // Every mint goes under a fresh key. The old key can never unwrap anything that is
+        // still kept, and a broken key entry would fail the seal below too — including on
+        // devices where an older version deleted the sealed copy and then failed to seal.
+        sealer.discardKey()
         // Either there was never a sealed copy, or it can never be unwrapped
         // again. Both leave a passphrase that cannot open an already-encrypted
         // database file, which is why the flag is set even on first run.
@@ -142,7 +143,7 @@ class DbPassphraseStore internal constructor(
 }
 
 /** The sealed passphrase file is unreadable (bad Base64, or too short for its header). */
-class CorruptSealedPassphrase(message: String, cause: Throwable? = null) : GeneralSecurityException(message, cause)
+internal class CorruptSealedPassphrase(message: String, cause: Throwable? = null) : GeneralSecurityException(message, cause)
 
 /** Wraps and unwraps the passphrase; a seam so JVM tests can force each failure. */
 interface PassphraseSealer {
@@ -154,7 +155,10 @@ interface PassphraseSealer {
 }
 
 /** AES-256/GCM under an Android Keystore key; output is Base64 of [iv len][iv][ciphertext+tag]. */
-internal class KeystorePassphraseSealer : PassphraseSealer {
+internal class KeystorePassphraseSealer(
+    // A device test passes its own alias, so it can never touch the app's key.
+    private val alias: String = KEY_ALIAS,
+) : PassphraseSealer {
 
     override fun seal(plain: ByteArray): ByteArray {
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -188,16 +192,16 @@ internal class KeystorePassphraseSealer : PassphraseSealer {
     }
 
     override fun discardKey() {
-        runCatching { KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }.deleteEntry(KEY_ALIAS) }
+        runCatching { KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }.deleteEntry(alias) }
     }
 
     private fun getOrCreateKey(): SecretKey {
         val ks = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        (ks.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        (ks.getKey(alias, null) as? SecretKey)?.let { return it }
 
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
         val spec = KeyGenParameterSpec.Builder(
-            KEY_ALIAS,
+            alias,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
         )
             .setBlockModes(KeyProperties.BLOCK_MODE_GCM)

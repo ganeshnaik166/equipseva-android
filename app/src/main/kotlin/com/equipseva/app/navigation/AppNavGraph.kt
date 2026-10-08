@@ -57,7 +57,9 @@ fun AppNavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
     // stays until the user dismisses it: on a device check the notification
     // permission prompt covered that launch and a timed snackbar expired
     // unseen. It is acknowledged only on that dismissal, so a process death
-    // first shows it again on the next launch.
+    // first shows it again on the next launch. While it is up, other messages
+    // on this shared host wait behind it; for a one-time data-loss notice that
+    // trade-off is intended.
     val localDataResetPending by sessionViewModel.localDataResetPending.collectAsStateWithLifecycle()
     val localDataResetMessage = stringResource(R.string.local_data_reset_notice)
     LaunchedEffect(localDataResetPending) {

@@ -43,7 +43,7 @@ class DbPassphraseStoreTest {
         assertTrue(p.mintedFresh)
         assertEquals(32, p.bytes.size)
         assertFalse("nothing is stored before commit", sealedFile.exists())
-        assertEquals("a first run has no key to discard", 0, sealer.discards)
+        assertEquals("a leftover key is never reused", 1, sealer.discards)
         p.commit()
         assertArrayEquals(FakeSealer.MARKER + p.bytes, sealedFile.readBytes())
         assertFalse(File(tmp.root, "${DbPassphraseStore.SEALED_FILE}.tmp").exists())
@@ -85,6 +85,17 @@ class DbPassphraseStoreTest {
         // On Android an unreadable or invalidated key entry fails getKey/init for sealing too.
         sealOriginal()
         val sealer = FakeSealer(KeyPermanentlyInvalidatedException(), brokenKey = true)
+        val p = store(sealer).getOrCreate()
+        assertTrue(p.mintedFresh)
+        assertEquals(1, sealer.discards)
+        p.commit()
+        assertArrayEquals(FakeSealer.MARKER + p.bytes, sealedFile.readBytes())
+    }
+
+    @Test
+    fun `a broken key with no sealed copy, as older versions left it, also recovers`() {
+        // The old code deleted the sealed copy first and then failed to seal under the broken key.
+        val sealer = FakeSealer(brokenKey = true)
         val p = store(sealer).getOrCreate()
         assertTrue(p.mintedFresh)
         assertEquals(1, sealer.discards)

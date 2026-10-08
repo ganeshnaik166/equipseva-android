@@ -121,6 +121,19 @@ class DatabaseKeyLossRecoveryTest {
     }
 
     @Test
+    fun `a device an older version left with no sealed copy and a broken key recovers too`() {
+        writeEncrypted()
+        var records = 0
+        val (bytes, prep) = passphraseForDatabase(
+            DbPassphraseStore(tmp.root, FakeSealer(brokenKey = true)), db, stash,
+        ) { records++ }
+        assertEquals(DatabaseFilesPrep.DiscardedAfterKeyLoss, prep)
+        assertEquals(1, records)
+        assertEquals(emptyList<String>(), existing())
+        assertArrayEquals(FakeSealer.MARKER + bytes, sealedFile.readBytes())
+    }
+
+    @Test
     fun `a healthy start changes nothing`() {
         sealOriginal()
         writeEncrypted()
