@@ -1,5 +1,9 @@
 # EquipSeva — current work and resume point
 
+## Region generator correction — Codex, 8 October 2026, WIP
+
+Owned isolated branch `codex/region-generator-replay-20261008` starts at fetched region head `3d25ac761837358457afe6b6746a9787ef0120ac`. Bound this slice to generator replay semantics and synthetic output-path validation, with failing synthetic regression tests first. The implementation agent owns only `scripts/regions/build_region_catalog.mjs` and `supabase/tests/region_catalog_generator.test.mjs`; the coordinator owns Git, continuity and acceptance. No Android, migration, live data, real catalogue snapshot, production apply or other Claude checkout edits. Source-derived concerns must be dynamically reproduced before being called confirmed. Whole-region acceptance stays blocked on independent onboarding ownership/concurrency review, dataset/rollout gates and final combined verification. English prerequisite has its own reviewed candidate PR1915; this branch does not bypass it. Website stays paused.
+
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
 ## WP25.T01 region catalogue v1 — Claude, 7–8 October 2026, built and pushed; round-5 acceptance review pending

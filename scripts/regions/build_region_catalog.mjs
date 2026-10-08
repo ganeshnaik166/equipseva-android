@@ -7,7 +7,8 @@
 //   * a seed migration for the round3830 tables: it inserts the catalogue version,
 //     retires every State/UT and district the snapshot no longer lists, upserts the
 //     rest (renames keep their code), adds aliases, makes the version current and
-//     re-checks the result in a DO block. Re-running it changes nothing.
+//     re-checks the result in a DO block. Replay requires that the imported
+//     version is still current and writable; it never re-enables a withdrawal.
 //
 // Snapshot folder (see scripts/regions/README.md):
 //   PROVENANCE.md          "- key: value" lines: version, source_url, retrieved_on
@@ -363,7 +364,8 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add('-- codes the snapshot lists as retired may be retired), upserts the rest (a rename keeps');
   add('-- its code; a move to another State/UT carries aliases and stored pairs with it), makes');
   add('-- the alias set equal to the snapshot\'s, switches the current version and re-checks the');
-  add('-- result. Re-running it changes nothing. Needs round3830.');
+  add('-- result. Re-running the current writable version changes nothing; an already imported');
+  add('-- non-current or withdrawn version is refused. Needs round3830.');
   add(`-- Migration version ${migrationVersion}.`);
   add('BEGIN;');
   add("SET LOCAL lock_timeout = '5s';");
@@ -376,6 +378,9 @@ export function toSeedSql(cat, { migrationVersion, round }) {
   add('BEGIN');
   add(`  IF EXISTS (SELECT 1 FROM public.region_catalog_versions WHERE version = ${v} AND sha256 <> ${digest}) THEN`);
   add(`    RAISE EXCEPTION 'region seed ${cat.version}: this version already exists with different data' USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add(`  IF EXISTS (SELECT 1 FROM public.region_catalog_versions WHERE version = ${v} AND (NOT is_current OR NOT accepts_writes)) THEN`);
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: already imported but not current or writable; use a new reviewed version' USING ERRCODE = 'P0001';`);
   add('  END IF;');
   add('  SELECT array_agg(code ORDER BY code) INTO v_unlisted FROM public.region_districts');
   add(`   WHERE active AND NOT (code = ANY (${arr(activeDistrictCodes)})) AND NOT (code = ANY (${arr(retiredDistrictCodes)}));`);
@@ -497,20 +502,25 @@ function realish(p) {
     rest.unshift(path.basename(cur));
     cur = parent;
   }
-  let real = cur;
-  try { real = realpathSync.native(cur); } catch { /* keep the resolved path */ }
-  return path.join(real, ...rest);
+  try {
+    return path.join(realpathSync.native(cur), ...rest);
+  } catch (e) {
+    fail(`cannot resolve output path ${p}: ${e.message}`);
+  }
 }
 
 /**
  * Whether [p] is a place synthetic data must never reach: any module's src/<source set>/assets,
- * or supabase/migrations — matched by path segment after resolving links, so neither the
- * current directory nor a junction can get around it.
+ * or supabase/migrations — matched by path segment both before and after resolving links.
+ * An outward junction must not erase a shipping name, nor may an inward link hide its target.
  */
 export function isShippingPath(p) {
-  const segments = `/${realish(p).split(path.sep).join('/').toLowerCase()}/`;
-  // Assets of any source set ship in some build (main, release, debug, flavours).
-  return /\/src\/[^/]+\/assets\//.test(segments) || segments.includes('/supabase/migrations/');
+  const protectedPath = (candidate) => {
+    const segments = `/${candidate.split(path.sep).join('/').toLowerCase()}/`;
+    // Assets of any source set ship in some build (main, release, debug, flavours).
+    return /\/src\/[^/]+\/assets\//.test(segments) || segments.includes('/supabase/migrations/');
+  };
+  return protectedPath(path.resolve(p)) || protectedPath(realish(p));
 }
 
 export function seedFileName(cat, { migrationVersion, round }) {
