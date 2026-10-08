@@ -1,5 +1,11 @@
 # EquipSeva — current work and resume point
 
+## English guard cache verification — Codex, 8 October 2026, WIP
+
+Owned isolated branch `codex/english-guard-inputs-20261008` starts at fetched English PR1912 head `d8f85fcf655a44c98d635121233d0654c54c763f`. Scope: reproduce the raw-resource cache gap, declare complete test inputs including empty resource directories and the module build script, then verify cache/configuration-cache behavior and the existing English-only scope. The coordinator owns this build wiring and evidence; critic and QA are independent reviewers. Claude's delivered branches and checkouts remain unchanged. This follow-up targets the English branch before region/reliability integration; no main merge or release acceptance is claimed.
+
+Test-first sequence: warm unchanged focused tests; introduce a synthetic empty locale directory in a previously absent source set and show whether the old task wrongly skips; fix input tracking; require the same probe to execute and fail; remove it and require green, with subsequent unchanged cache reuse still working. Add resource-content/build-script probes as applicable, then full unit/lint/debug and hosted Android/golden/secret checks. No assertion, screenshot threshold or product copy changes. Prior review provenance is superseded only by fresh reviews tied to the frozen follow-up. Website work remains paused.
+
 Read the newest sections first. Older checkpoint paragraphs preserve what was pending at their recorded commit; later main merges above supersede those historical pending statements.
 
 ## WP18.T01 English only on main — Claude, 7 October 2026, locally verified; merge needs the owner
