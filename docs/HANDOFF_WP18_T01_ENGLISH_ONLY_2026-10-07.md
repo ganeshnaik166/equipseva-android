@@ -54,6 +54,6 @@ Deliberately unchanged:
 
 - **Merge to main needs the owner's go-ahead.** Open a PR from `claudedev-english-only-20261007` to `main`; hosted Android/goldens/Gitleaks checks then run on the PR head.
 - Later string-changing work no longer needs `translatable="false"` markers or Hindi/Telugu copies. Removing the nine existing markers is a separate, owner-approved cleanup.
-- QA noted that the guard reads source files Gradle does not track as test inputs. With the local build cache, an edit that leaves compiled resources unchanged (a comment, an empty directory) could be served from cache. A clean CI run always executes it. Declaring `src/*/res` as test inputs would close this; it was out of scope here.
+- QA noted that the guard reads source files Gradle did not track as test inputs. A clean checkout alone does not guarantee execution because CI restores Gradle caches. The 8 October follow-up reproduced an incorrect UP-TO-DATE result, then declared raw resource/build-script inputs and verified directory/content/cache behavior. Read [the follow-up](HANDOFF_ENGLISH_GUARD_CACHE_2026-10-08.md); the 7 October review numbers above remain historical claims, not the follow-up's acceptance evidence.
 - Older plans still mention Hindi/Telugu work (`docs/ROADMAP_v05.md`, `docs/UX_UPLIFT_PLAN.md`), but the standing decision in [AGENTS.md](../AGENTS.md) overrides them.
 - Device and TalkBack checks, signed release and store listing languages are separate release gates.

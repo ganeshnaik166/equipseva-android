@@ -4,6 +4,8 @@ Updated 28 September 2026. Governing decisions: [PRODUCT_PLAN.md](../../PRODUCT_
 
 This is a requirements/evidence ledger, not a percentage-complete counter. A design review does not accept an implementation. No app-wide numeric score is assigned.
 
+**8 October English-only follow-up (P7.1 / WP18.T01):** original public English head `d8f85fcf` has hosted Android/goldens/Gitleaks success. Owned follow-up `codex/english-guard-inputs-20261008`, frozen code `60579c47`, reproduces and fixes raw-source test-cache invalidation. Five intended negative probes execute/fail correctly; valid restoration and no-op caching remain. Fresh local full unit **2,989/0**, lint **0 errors / 87 warnings / 2 hints**, debug assembly and design ratchet pass; independent whole-slice critic/QA **9.6/9.6**. New-candidate hosted checks and main integration remain pending. [Exact scope and evidence](../HANDOFF_ENGLISH_GUARD_CACHE_2026-10-08.md).
+
 ## Source and branch reconciliation
 
 | Item | Verified source | Meaning |

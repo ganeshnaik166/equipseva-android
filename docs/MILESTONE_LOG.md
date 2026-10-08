@@ -2,6 +2,13 @@
 
 Append dated results. Keep design, implementation, main integration and release evidence separate. The latest resume pointer lives in [CURRENT_STATE.md](CURRENT_STATE.md).
 
+## 2026-10-08 — English-only cache follow-up locally accepted; hosted/main pending
+
+- Isolated owned `codex/english-guard-inputs-20261008`, base `d8f85fcf`, frozen code **`60579c4738efc04d7204b023670bf65021450495`**, app tree **`91629ae6ceb6d7b95b1742073fc6f4b0c4873c1f`**. Fifteen added build-script lines declare raw resource and build-script inputs, including empty directories, without disabling caching or changing runtime resources/assertions.
+- Original new-source empty locale directory returned an incorrect UP-TO-DATE success; forced execution proved **5/1** expected RED. Five post-fix negative probes each execute and fail the intended guard (**5/1**), while valid ordinary directories pass and restored/unchanged inputs correctly use FROM-CACHE/UP-TO-DATE. All probes removed; raw commands, hashes and XML retained locally.
+- Exact-source full `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug --console=plain`, synthetic CI config: exit 0, **2,989 tests / 350 suites / 0 failures/errors/skips**, lint **0 errors / 87 warnings / 2 hints**, debug built. Initial design-ratchet printing failed with Windows cp1252; Python `-X utf8` rerun passed without code/baseline changes. New hosted Android/R8/goldens/Gitleaks and main integration remain pending; no device or signed-release acceptance.
+- Fresh independent [critic](helper-reviews/codex-20261008/english-critic.md) and [QA](helper-reviews/codex-20261008/english-qa.md) each **9.6/10 for the full local English-only plus cache-input scope**, superseding reliance on unresolvable historical review provenance. Original three PR heads have green hosted CI, but region/reliability remain draft review work. [Handoff](HANDOFF_ENGLISH_GUARD_CACHE_2026-10-08.md). Slot released at 08:02 UTC after daemon/worker exit. Next: owned replacement English PR to main, preserve original ancestry, require its own hosted checks; then reconcile the stacked drafts. Website remains paused.
+
 ## 2026-10-07 — WP18.T01 English-only resources locally verified (Claude); main merge pending owner
 
 - Branch `claudedev-english-only-20261007` from main `49c163eb`; verified code head **`6460ee89c49545154cb0cd3dc8b860f254d413ca`**. Deletes `values-hi`/`values-te` and `StringsParityTest`, sets `localeFilters += setOf("en")`, adds `EnglishOnlyResourcesTest` (five guards, ported byte-identical from Codex's 1 October test-first candidate of `a6e58067`, then hardened for Unicode escapes, every resource type and source set, `resourceConfigurations` and dead blocks), and replaces one stale `values/strings.xml` comment.
