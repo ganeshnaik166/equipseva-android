@@ -1,0 +1,591 @@
+#!/usr/bin/env node
+// Region catalogue generator (WP25.T01 sub-slice B; PRODUCT_PLAN §6, ledger P2.2).
+//
+// Turns one reviewed snapshot folder into the two artefacts the product uses:
+//   * the Android asset (app/src/main/assets/regions/india_regions.json, format 1),
+//     read by RegionCatalogParser on the device;
+//   * a seed migration for the round3830 tables: it inserts the catalogue version,
+//     retires every State/UT and district the snapshot no longer lists, upserts the
+//     rest (renames keep their code), adds aliases, makes the version current and
+//     re-checks the result in a DO block. Re-running it changes nothing.
+//
+// Snapshot folder (see scripts/regions/README.md):
+//   PROVENANCE.md          "- key: value" lines: version, source_url, retrieved_on
+//                          (YYYY-MM-DD), licence, synthetic (true|false), and one
+//                          "- sha256 <file>: <hex>" line per CSV (sha256 of the file's
+//                          UTF-8 text with CRLF normalised to LF)
+//   states.csv             code,name,kind                       (active States/UTs)
+//   districts.csv          code,state_code,name                 (active districts)
+//   retired_states.csv     code,name,kind                       (header only when none)
+//   retired_districts.csv  code,state_code,name,replaced_by     (header only when none;
+//                                                                 replaced_by is ';'-separated)
+//   aliases.csv            state_code,alias,district_code,kind  (header only when none;
+//                                                                 alias stored normalised)
+// All five files are required and no other CSV file may be in the folder.
+//
+// Every rule the server and the device enforce is checked here first; any problem
+// stops the build with a message. Nothing is repaired, guessed or fuzzily matched.
+// Synthetic snapshots can never be written to the shipped asset path or to
+// supabase/migrations.
+//
+// Usage:
+//   node scripts/regions/build_region_catalog.mjs --snapshot <dir> --json-out <file>
+//        [--sql-out <file> --migration-version <14 digits> --round <n>]
+//   node scripts/regions/build_region_catalog.mjs --hash <dir>   (prints sha256 lines)
+
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const FORMAT = 1;
+const VERSION = /^[a-z0-9][a-z0-9._-]{2,63}$/;
+const STATE_CODE = /^[0-9]{1,3}$/;
+const DISTRICT_CODE = /^[0-9]{1,6}$/;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const KINDS = new Set(['state', 'union_territory']);
+const ALIAS_KINDS = new Set(['official', 'legacy_bundled', 'renamed', 'common_spelling']);
+const CSV_FILES = ['states.csv', 'districts.csv', 'retired_states.csv', 'retired_districts.csv', 'aliases.csv'];
+const HEADERS = {
+  'states.csv': ['code', 'name', 'kind'],
+  'districts.csv': ['code', 'state_code', 'name'],
+  'retired_states.csv': ['code', 'name', 'kind'],
+  'retired_districts.csv': ['code', 'state_code', 'name', 'replaced_by'],
+  'aliases.csv': ['state_code', 'alias', 'district_code', 'kind'],
+};
+
+export class CatalogError extends Error {}
+function fail(message) { throw new CatalogError(message); }
+
+/**
+ * Mirrors the server's region_normalize_label and RegionCatalog.normalizeLabel: lower case, and
+ * runs of ASCII whitespace (space, tab, newline, carriage return, form feed, vertical tab) collapsed
+ * to one space and trimmed. Non-breaking and other Unicode spaces are kept, as on the server.
+ */
+export function normalizeLabel(raw) {
+  if (raw == null) return null;
+  const s = String(raw).replace(/[ \t\n\r\f\v]+/g, ' ').replace(/^ | $/g, '').toLowerCase();
+  return s === '' ? null : s;
+}
+
+const lf = (text) => text.replace(/\r\n/g, '\n');
+export const sha256 = (text) => createHash('sha256').update(lf(text), 'utf8').digest('hex');
+
+/** Minimal RFC 4180 reader: quoted fields, doubled quotes, LF or CRLF rows. */
+export function parseCsv(text, file) {
+  const rows = [];
+  const blank = []; // only a line with no characters at all is skipped, never one holding ""
+  let row = [], field = '', i = 0, quoted = false, closed = false, content = false;
+  const raw = lf(text);
+  const src = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw; // drop a UTF-8 byte-order mark
+  while (i < src.length) {
+    const c = src[i];
+    if (!(c === '\n' && !quoted)) content = true;
+    if (quoted) {
+      if (c === '"') {
+        if (src[i + 1] === '"') { field += '"'; i += 2; continue; }
+        quoted = false; closed = true; i++; continue;
+      }
+      field += c; i++; continue;
+    }
+    if (c === ',') { row.push(field); field = ''; closed = false; i++; continue; }
+    if (c === '\n') {
+      row.push(field); rows.push(row); blank.push(!content);
+      row = []; field = ''; closed = false; content = false; i++; continue;
+    }
+    // Anything between a closing quote and the next separator is refused, never joined on.
+    if (closed) fail(`${file}: text after a closing quote in row ${rows.length + 1}`);
+    if (c === '"') {
+      if (field !== '') fail(`${file}: stray quote in row ${rows.length + 1}`);
+      quoted = true; i++; continue;
+    }
+    field += c; i++;
+  }
+  if (quoted) fail(`${file}: unterminated quote`);
+  if (content) { row.push(field); rows.push(row); blank.push(false); }
+  const nonEmpty = rows.filter((r, n) => !blank[n]);
+  if (!nonEmpty.length) fail(`${file}: empty`);
+  const [header, ...body] = nonEmpty;
+  const expected = HEADERS[file];
+  if (header.join(',') !== expected.join(',')) fail(`${file}: header must be ${expected.join(',')}`);
+  return body.map((r, n) => {
+    if (r.length !== expected.length) fail(`${file}: row ${n + 2} has ${r.length} fields, expected ${expected.length}`);
+    return Object.fromEntries(expected.map((k, j) => [k, r[j]]));
+  });
+}
+
+export function parseProvenance(text) {
+  const out = { sha256: {} };
+  for (const line of lf(text).split('\n')) {
+    const hash = /^- sha256 ([a-z_]+\.csv): ([0-9a-f]{64})\s*$/.exec(line);
+    if (hash) {
+      if (hash[1] in out.sha256) fail(`PROVENANCE.md: more than one sha256 line for ${hash[1]}`);
+      out.sha256[hash[1]] = hash[2];
+      continue;
+    }
+    const kv = /^- (version|source_url|retrieved_on|licence|synthetic): (.+?)\s*$/.exec(line);
+    if (kv) {
+      if (kv[1] in out) fail(`PROVENANCE.md: more than one "- ${kv[1]}:" line`);
+      out[kv[1]] = kv[2];
+    }
+  }
+  for (const key of ['version', 'source_url', 'retrieved_on', 'licence', 'synthetic']) {
+    if (!out[key]) fail(`PROVENANCE.md: missing "- ${key}: ..."`);
+  }
+  if (!VERSION.test(out.version)) fail(`PROVENANCE.md: invalid version ${out.version}`);
+  if (!isCalendarDate(out.retrieved_on)) fail('PROVENANCE.md: retrieved_on must be a real YYYY-MM-DD date');
+  if (out.source_url.length > 500) fail('PROVENANCE.md: source_url longer than 500 characters');
+  if (out.synthetic !== 'true' && out.synthetic !== 'false') fail('PROVENANCE.md: synthetic must be true or false');
+  out.synthetic = out.synthetic === 'true';
+  // Same rule as RegionCatalogParser: something that looks synthetic must say so.
+  if (!out.synthetic && (out.version.startsWith('synthetic') || out.source_url.startsWith('synthetic:'))) {
+    fail('PROVENANCE.md: a synthetic-looking catalogue must be marked "synthetic: true"');
+  }
+  return out;
+}
+
+/** YYYY-MM-DD naming a real day between 1900 and 2999 (also what the device parser accepts). */
+export function isCalendarDate(text) {
+  const m = DATE.exec(text);
+  if (!m) return false;
+  const [y, mo, d] = text.split('-').map(Number);
+  if (y < 1900 || y > 2999) return false;
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
+}
+
+// Control and format characters (tabs, newlines, U+001C-U+001F, zero-width spaces, BOMs...)
+// are refused outright: the device and the server would otherwise trim or compare them
+// differently, and nothing legitimate needs them in a place name.
+const CONTROL_OR_FORMAT = /[\p{Cc}\p{Cf}]/u;
+
+/**
+ * The first character outside printable ASCII and the Latin-1 letters, or null. Only these are
+ * lowercased identically by the device (Kotlin), the server (PostgreSQL lower()) and this
+ * script; letters such as U+0130 or a final sigma are not, and LGD English names never need them.
+ */
+export function unsupportedChar(text) {
+  for (const ch of text) {
+    const c = ch.codePointAt(0);
+    const ok = (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff && c !== 0xd7 && c !== 0xf7);
+    if (!ok) return `U+${c.toString(16).toUpperCase().padStart(4, '0')}`;
+  }
+  return null;
+}
+
+function checkName(name, what) {
+  if (typeof name !== 'string' || name.length < 1 || name.length > 64 || name.trim() !== name || CONTROL_OR_FORMAT.test(name)) {
+    fail(`invalid name for ${what}: ${JSON.stringify(name)}`);
+  }
+  const bad = unsupportedChar(name);
+  if (bad) fail(`unsupported character ${bad} in the name for ${what}`);
+}
+
+/** Reads a file as strict UTF-8; a file in another encoding is refused, never guessed. */
+function readUtf8(p, what) {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(p));
+  } catch (e) {
+    if (e instanceof TypeError) fail(`${what}: not valid UTF-8`);
+    throw e;
+  }
+}
+
+/** Reads, verifies and validates one snapshot folder. Returns the normalised catalogue. */
+export function loadSnapshot(dir) {
+  const provPath = path.join(dir, 'PROVENANCE.md');
+  if (!existsSync(provPath)) fail(`${dir}: PROVENANCE.md is missing`);
+  const prov = parseProvenance(readUtf8(provPath, 'PROVENANCE.md'));
+  // Every file must be present (a header-only file for an empty list): a missing or misspelled
+  // aliases.csv would otherwise make the seed withdraw every alias on the server.
+  for (const name of readdirSync(dir)) {
+    if (name.toLowerCase().endsWith('.csv') && !CSV_FILES.includes(name)) fail(`${dir}: unexpected file ${name}`);
+  }
+  const data = {};
+  for (const file of CSV_FILES) {
+    const p = path.join(dir, file);
+    if (!existsSync(p)) {
+      if (prov.sha256[file]) fail(`PROVENANCE.md lists ${file}, which is missing`);
+      fail(`${dir}: ${file} is missing (use a file with only the header line for an empty list)`);
+    }
+    const text = readUtf8(p, file);
+    if (!prov.sha256[file]) fail(`PROVENANCE.md has no sha256 for ${file}`);
+    if (prov.sha256[file] !== sha256(text)) fail(`${file}: sha256 does not match PROVENANCE.md`);
+    data[file] = parseCsv(text, file);
+  }
+  for (const file of Object.keys(prov.sha256)) if (!CSV_FILES.includes(file)) fail(`PROVENANCE.md lists unknown file ${file}`);
+  return validate(prov, data);
+}
+
+export function validate(prov, data) {
+  const states = data['states.csv'];
+  const districts = data['districts.csv'];
+  const retiredStates = data['retired_states.csv'];
+  const retiredDistricts = data['retired_districts.csv'];
+  const aliases = data['aliases.csv'];
+  if (!states.length || !districts.length) fail('a catalogue needs at least one State/UT and one district');
+
+  const stateCodes = new Set();
+  const activeStates = new Set();
+  const stateNames = new Set();
+  for (const [list, active] of [[states, true], [retiredStates, false]]) {
+    for (const s of list) {
+      if (!STATE_CODE.test(s.code)) fail(`invalid State/UT code ${s.code}`);
+      checkName(s.name, `State/UT ${s.code}`);
+      if (!KINDS.has(s.kind)) fail(`invalid kind "${s.kind}" for State/UT ${s.code}`);
+      if (stateCodes.has(s.code)) fail(`duplicate State/UT code ${s.code}`);
+      stateCodes.add(s.code);
+      if (active) {
+        activeStates.add(s.code);
+        const key = normalizeLabel(s.name);
+        if (stateNames.has(key)) fail(`duplicate State/UT name ${s.name}`);
+        stateNames.add(key);
+      }
+    }
+  }
+
+  const districtCodes = new Set();
+  const activeDistricts = new Map();
+  const districtNames = new Set();
+  for (const d of districts) {
+    if (!DISTRICT_CODE.test(d.code)) fail(`invalid district code ${d.code}`);
+    checkName(d.name, `district ${d.code}`);
+    if (!activeStates.has(d.state_code)) fail(`district ${d.code} needs an active State/UT, got ${d.state_code}`);
+    if (districtCodes.has(d.code)) fail(`duplicate district code ${d.code}`);
+    districtCodes.add(d.code);
+    activeDistricts.set(d.code, d);
+    const key = `${d.state_code}|${normalizeLabel(d.name)}`;
+    if (districtNames.has(key)) fail(`duplicate district name ${d.name} in ${d.state_code}`);
+    districtNames.add(key);
+  }
+  // A State/UT nobody could pick a district in would trap users (onboarding needs a pair).
+  for (const code of activeStates) {
+    if (!districts.some((d) => d.state_code === code)) fail(`State/UT ${code} has no active district`);
+  }
+  const retired = retiredDistricts.map((r) => ({
+    ...r,
+    replaced_by: r.replaced_by === '' ? [] : r.replaced_by.split(';'),
+  }));
+  for (const r of retired) {
+    if (!DISTRICT_CODE.test(r.code)) fail(`invalid retired district code ${r.code}`);
+    checkName(r.name, `retired district ${r.code}`);
+    if (!stateCodes.has(r.state_code)) fail(`retired district ${r.code} has unknown State/UT ${r.state_code}`);
+    if (districtCodes.has(r.code)) fail(`duplicate district code ${r.code}`);
+    districtCodes.add(r.code);
+  }
+  for (const r of retired) {
+    for (const c of r.replaced_by) {
+      if (!districtCodes.has(c) || c === r.code) fail(`unknown replacement ${c} for ${r.code}`);
+    }
+  }
+
+  const aliasKeys = new Set();
+  for (const a of aliases) {
+    if (!activeStates.has(a.state_code)) fail(`alias "${a.alias}" needs an active State/UT, got ${a.state_code}`);
+    if (a.alias.length < 1 || a.alias.length > 64 || normalizeLabel(a.alias) !== a.alias || CONTROL_OR_FORMAT.test(a.alias)) {
+      fail(`alias "${a.alias}" is not stored normalised`);
+    }
+    const bad = unsupportedChar(a.alias);
+    if (bad) fail(`unsupported character ${bad} in alias "${a.alias}"`);
+    if (!ALIAS_KINDS.has(a.kind)) fail(`invalid alias kind "${a.kind}"`);
+    const target = activeDistricts.get(a.district_code);
+    if (!target || target.state_code !== a.state_code) {
+      fail(`alias "${a.alias}" does not point at an active district of ${a.state_code}`);
+    }
+    const key = `${a.state_code}|${a.alias}|${a.district_code}`;
+    if (aliasKeys.has(key)) fail(`duplicate alias "${a.alias}"`);
+    aliasKeys.add(key);
+  }
+
+  // Plain code-unit comparison: the output must not depend on the runtime's locale.
+  const cmp = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
+  const byCode = (x, y) => Number(x.code) - Number(y.code) || cmp(x.code, y.code);
+  return {
+    version: prov.version,
+    synthetic: prov.synthetic,
+    source: { url: prov.source_url, retrieved_on: prov.retrieved_on, licence: prov.licence },
+    digest: snapshotDigest(prov.sha256),
+    states: [...states].sort(byCode),
+    retiredStates: [...retiredStates].sort(byCode),
+    districts: [...districts].sort(byCode),
+    retiredDistricts: retired.sort(byCode),
+    aliases: [...aliases].sort((x, y) => cmp(x.state_code, y.state_code)
+      || cmp(x.alias, y.alias) || cmp(x.district_code, y.district_code)),
+  };
+}
+
+/** One checksum for the whole snapshot: sha256 over sorted "file<TAB>sha256" lines. */
+export function snapshotDigest(fileHashes) {
+  const lines = Object.keys(fileHashes).sort().map((f) => `${f}\t${fileHashes[f]}\n`).join('');
+  return createHash('sha256').update(lines, 'utf8').digest('hex');
+}
+
+/** The Android asset (format 1), as RegionCatalogParser reads it. */
+export function toAssetJson(cat) {
+  const asset = {
+    format: FORMAT,
+    version: cat.version,
+    synthetic: cat.synthetic,
+    source: { url: cat.source.url, retrieved_on: cat.source.retrieved_on, sha256: cat.digest },
+    states: cat.states.map((s) => ({ code: s.code, name: s.name, kind: s.kind })),
+    districts: cat.districts.map((d) => ({ code: d.code, state: d.state_code, name: d.name })),
+    retired_districts: cat.retiredDistricts.map((r) => ({ code: r.code, state: r.state_code, name: r.name, replaced_by: r.replaced_by })),
+    aliases: cat.aliases.map((a) => ({ state: a.state_code, alias: a.alias, district: a.district_code, kind: a.kind })),
+  };
+  return JSON.stringify(asset, null, 2) + '\n';
+}
+
+// Placeholder for the DO blocks' dollar-quote tag; a NUL can never be part of a validated name.
+const DQ = String.fromCharCode(0) + 'DQ' + String.fromCharCode(0);
+const q = (v) => (v == null ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
+const arr = (list) => `ARRAY[${list.map(q).join(', ')}]::text[]`;
+
+/** The seed migration for the round3830 tables. */
+export function toSeedSql(cat, { migrationVersion, round }) {
+  const v = q(cat.version);
+  const digest = q(cat.digest);
+  const activeStateCodes = cat.states.map((s) => s.code);
+  const activeDistrictCodes = cat.districts.map((d) => d.code);
+  const retiredStateCodes = cat.retiredStates.map((s) => s.code);
+  const retiredDistrictCodes = cat.retiredDistricts.map((r) => r.code);
+  const aliasKeys = cat.aliases.map((a) => `${a.state_code}|${a.alias}|${a.district_code}`);
+  const pairs = cat.districts.map((d) => `${d.code}:${d.state_code}`);
+  const lines = [];
+  const add = (s = '') => lines.push(s);
+  add(`-- Round ${round} — region catalogue seed ${cat.version}.`);
+  add('--');
+  add('-- GENERATED by scripts/regions/build_region_catalog.mjs from a reviewed snapshot; do not edit.');
+  add(`-- Source: ${cat.source.url} (retrieved ${cat.source.retrieved_on}; licence: ${cat.source.licence}).`);
+  add(`-- Snapshot sha256: ${cat.digest}. ${cat.states.length} States/UTs, ${cat.districts.length} districts,`);
+  add(`-- ${cat.retiredDistricts.length} retired districts, ${cat.aliases.length} aliases.`);
+  add('--');
+  add('-- Brings the catalogue exactly to this snapshot: retires what it no longer lists (only');
+  add('-- codes the snapshot lists as retired may be retired), upserts the rest (a rename keeps');
+  add('-- its code; a move to another State/UT carries aliases and stored pairs with it), makes');
+  add('-- the alias set equal to the snapshot\'s, switches the current version and re-checks the');
+  add('-- result. Re-running it changes nothing. Needs round3830.');
+  add(`-- Migration version ${migrationVersion}.`);
+  add('BEGIN;');
+  add("SET LOCAL lock_timeout = '5s';");
+  add();
+  add('-- Refuse before changing anything: different data under an existing version label, or a');
+  add('-- retirement the snapshot does not list (for example a truncated export).');
+  add(`DO ${DQ}`);
+  add('DECLARE');
+  add('  v_unlisted text[];');
+  add('BEGIN');
+  add(`  IF EXISTS (SELECT 1 FROM public.region_catalog_versions WHERE version = ${v} AND sha256 <> ${digest}) THEN`);
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: this version already exists with different data' USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add('  SELECT array_agg(code ORDER BY code) INTO v_unlisted FROM public.region_districts');
+  add(`   WHERE active AND NOT (code = ANY (${arr(activeDistrictCodes)})) AND NOT (code = ANY (${arr(retiredDistrictCodes)}));`);
+  add('  IF v_unlisted IS NOT NULL THEN');
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: districts would be retired without being listed in retired_districts.csv: %', v_unlisted USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add('  SELECT array_agg(code ORDER BY code) INTO v_unlisted FROM public.region_states');
+  add(`   WHERE active AND NOT (code = ANY (${arr(activeStateCodes)})) AND NOT (code = ANY (${arr(retiredStateCodes)}));`);
+  add('  IF v_unlisted IS NOT NULL THEN');
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: States/UTs would be retired without being listed in retired_states.csv: %', v_unlisted USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add(`END ${DQ};`);
+  add();
+  add('INSERT INTO public.region_catalog_versions (version, source_url, retrieved_on, sha256, is_current, accepts_writes, is_synthetic)');
+  add(`VALUES (${v}, ${q(cat.source.url)}, DATE ${q(cat.source.retrieved_on)}, ${digest}, false, true, ${cat.synthetic})`);
+  add('ON CONFLICT (version) DO NOTHING;');
+  add();
+  add('-- Phase 1: take every active row out of the active set, so a rename, a swap of names or a');
+  add('-- reused name can never collide with a row this seed has not reached yet. Phase 2 below');
+  add('-- re-activates exactly the snapshot\'s rows; nothing else stays retired unless listed.');
+  add(`UPDATE public.region_districts SET active = false, retired_in = ${v} WHERE active;`);
+  add(`UPDATE public.region_states SET active = false, retired_in = ${v} WHERE active;`);
+  add();
+  const stateRows = [
+    ...cat.states.map((s) => `  (${q(s.code)}, ${q(s.name)}, ${q(s.kind)}, true, ${v}, NULL)`),
+    ...cat.retiredStates.map((s) => `  (${q(s.code)}, ${q(s.name)}, ${q(s.kind)}, false, ${v}, ${v})`),
+  ];
+  add('INSERT INTO public.region_states (code, name_en, kind, active, introduced_in, retired_in) VALUES');
+  add(stateRows.join(',\n'));
+  add('ON CONFLICT (code) DO UPDATE SET name_en = EXCLUDED.name_en, kind = EXCLUDED.kind,');
+  add('  active = EXCLUDED.active,');
+  add('  retired_in = CASE WHEN EXCLUDED.active THEN NULL ELSE coalesce(region_states.retired_in, EXCLUDED.retired_in) END;');
+  add();
+  const districtRows = [
+    ...cat.districts.map((d) => `  (${q(d.code)}, ${q(d.state_code)}, ${q(d.name)}, true, ${v}, NULL, '{}'::text[])`),
+    ...cat.retiredDistricts.map((r) => `  (${q(r.code)}, ${q(r.state_code)}, ${q(r.name)}, false, ${v}, ${v}, ${arr(r.replaced_by)})`),
+  ];
+  add('-- A district may move to another State/UT under the same code (LGD has done this);');
+  add('-- round3830 cascades the move to its aliases and stored home pairs.');
+  add('INSERT INTO public.region_districts (code, state_code, name_en, active, introduced_in, retired_in, replaced_by) VALUES');
+  add(districtRows.join(',\n'));
+  add('ON CONFLICT (code) DO UPDATE SET state_code = EXCLUDED.state_code, name_en = EXCLUDED.name_en,');
+  add('  active = EXCLUDED.active,');
+  add('  retired_in = CASE WHEN EXCLUDED.active THEN NULL ELSE coalesce(region_districts.retired_in, EXCLUDED.retired_in) END,');
+  add('  replaced_by = EXCLUDED.replaced_by;');
+  add();
+  add('-- Aliases: exactly the snapshot\'s set, so a withdrawn or retargeted alias stops resolving');
+  add('-- on the server just as it does on devices with this asset.');
+  add('DELETE FROM public.region_district_aliases a');
+  add(`  WHERE NOT ((a.state_code || '|' || a.alias_normalized || '|' || a.district_code) = ANY (${arr(aliasKeys)}));`);
+  if (cat.aliases.length) {
+    add('INSERT INTO public.region_district_aliases (state_code, alias_normalized, district_code, kind, added_in) VALUES');
+    add(cat.aliases.map((a) => `  (${q(a.state_code)}, ${q(a.alias)}, ${q(a.district_code)}, ${q(a.kind)}, ${v})`).join(',\n'));
+    add('ON CONFLICT (state_code, alias_normalized, district_code) DO UPDATE SET kind = EXCLUDED.kind;');
+  }
+  add();
+  add(`UPDATE public.region_catalog_versions SET is_current = false WHERE is_current AND version <> ${v};`);
+  add(`UPDATE public.region_catalog_versions SET is_current = true, accepts_writes = true WHERE version = ${v};`);
+  add();
+  add(`DO ${DQ}`);
+  add('DECLARE');
+  add('  v_bad text[] := ARRAY[]::text[];');
+  add('BEGIN');
+  add(`  IF public.region_current_version() IS DISTINCT FROM ${v} THEN v_bad := v_bad || 'current version'::text; END IF;`);
+  add(`  IF (SELECT sha256 FROM public.region_catalog_versions WHERE version = ${v}) IS DISTINCT FROM ${digest} THEN`);
+  add("    v_bad := v_bad || 'version checksum'::text;");
+  add('  END IF;');
+  add(`  IF (SELECT coalesce(array_agg(code ORDER BY code), '{}') FROM public.region_states WHERE active)`);
+  add(`     IS DISTINCT FROM (SELECT array_agg(c ORDER BY c) FROM unnest(${arr(activeStateCodes)}) c) THEN`);
+  add("    v_bad := v_bad || 'active States/UTs'::text;");
+  add('  END IF;');
+  add(`  IF (SELECT coalesce(array_agg(code ORDER BY code), '{}') FROM public.region_districts WHERE active)`);
+  add(`     IS DISTINCT FROM (SELECT array_agg(c ORDER BY c) FROM unnest(${arr(activeDistrictCodes)}) c) THEN`);
+  add("    v_bad := v_bad || 'active districts'::text;");
+  add('  END IF;');
+  add(`  IF EXISTS (SELECT 1 FROM unnest(${arr(pairs)}) p`);
+  add('             WHERE NOT EXISTS (SELECT 1 FROM public.region_districts d');
+  add("                                WHERE d.code || ':' || d.state_code = p AND d.active)) THEN");
+  add("    v_bad := v_bad || 'a district did not land under its State/UT'::text;");
+  add('  END IF;');
+  add("  IF (SELECT coalesce(array_agg(k ORDER BY k), '{}')");
+  add("        FROM (SELECT a.state_code || '|' || a.alias_normalized || '|' || a.district_code AS k");
+  add('                FROM public.region_district_aliases a) t)');
+  add(`     IS DISTINCT FROM (SELECT coalesce(array_agg(c ORDER BY c), '{}') FROM unnest(${arr(aliasKeys)}) c) THEN`);
+  add("    v_bad := v_bad || 'alias set'::text;");
+  add('  END IF;');
+  add('  IF EXISTS (SELECT 1 FROM public.region_districts d JOIN public.region_states s ON s.code = d.state_code');
+  add('             WHERE d.active AND NOT s.active) THEN');
+  add("    v_bad := v_bad || 'active district under a retired State/UT'::text;");
+  add('  END IF;');
+  add('  IF EXISTS (SELECT 1 FROM public.region_districts d, unnest(d.replaced_by) r');
+  add('             WHERE NOT EXISTS (SELECT 1 FROM public.region_districts x WHERE x.code = r)) THEN');
+  add("    v_bad := v_bad || 'unknown replacement code'::text;");
+  add('  END IF;');
+  add('  IF array_length(v_bad, 1) IS NOT NULL THEN');
+  add(`    RAISE EXCEPTION 'region seed ${cat.version}: not as intended: %', v_bad USING ERRCODE = 'P0001';`);
+  add('  END IF;');
+  add(`END ${DQ};`);
+  add();
+  add('COMMIT;');
+  // The DO blocks embed names and aliases, so their dollar-quote tag must be one that no text
+  // in this snapshot contains (an alias may legally contain two dollar signs).
+  const sql = lines.join('\n') + '\n';
+  let tag = '$seed$';
+  for (let n = 1; sql.includes(tag); n++) tag = `$seed${n}$`;
+  return sql.split(DQ).join(tag);
+}
+
+/** The repository this script lives in, whatever the current directory is. */
+export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/** The real path of [p]: links and junctions of its nearest existing ancestor are resolved. */
+function realish(p) {
+  let cur = path.resolve(p);
+  const rest = [];
+  while (!existsSync(cur)) {
+    const parent = path.dirname(cur);
+    if (parent === cur) break;
+    rest.unshift(path.basename(cur));
+    cur = parent;
+  }
+  let real = cur;
+  try { real = realpathSync.native(cur); } catch { /* keep the resolved path */ }
+  return path.join(real, ...rest);
+}
+
+/**
+ * Whether [p] is a place synthetic data must never reach: any module's src/<source set>/assets,
+ * or supabase/migrations — matched by path segment after resolving links, so neither the
+ * current directory nor a junction can get around it.
+ */
+export function isShippingPath(p) {
+  const segments = `/${realish(p).split(path.sep).join('/').toLowerCase()}/`;
+  // Assets of any source set ship in some build (main, release, debug, flavours).
+  return /\/src\/[^/]+\/assets\//.test(segments) || segments.includes('/supabase/migrations/');
+}
+
+export function seedFileName(cat, { migrationVersion, round }) {
+  if (!/^\d{14}$/.test(String(migrationVersion))) fail('--migration-version must be 14 digits');
+  if (!/^\d+$/.test(String(round))) fail('--round must be a number');
+  return `${migrationVersion}_round${round}_region_catalog_seed_${cat.version.replace(/[^a-z0-9]+/g, '_')}.sql`;
+}
+
+/**
+ * Writes the requested artefacts; refuses to put synthetic data where it would ship. Every
+ * check runs before anything is written, so a refusal never leaves a partial result.
+ */
+export function build({ snapshot, jsonOut, sqlOut, migrationVersion, round }) {
+  const cat = loadSnapshot(snapshot);
+  const sqlTarget = sqlOut
+    ? (sqlOut.endsWith('.sql') ? (seedFileName(cat, { migrationVersion, round }), sqlOut)
+      : path.join(sqlOut, seedFileName(cat, { migrationVersion, round })))
+    : null;
+  if (cat.synthetic && jsonOut && isShippingPath(jsonOut)) {
+    fail('a synthetic catalogue can never be written to the shipped asset path');
+  }
+  if (cat.synthetic && sqlTarget && isShippingPath(sqlTarget)) {
+    fail('a synthetic catalogue can never be written to supabase/migrations');
+  }
+  const json = jsonOut ? toAssetJson(cat) : null;
+  const sql = sqlTarget ? toSeedSql(cat, { migrationVersion, round }) : null;
+  const written = [];
+  if (jsonOut) {
+    mkdirSync(path.dirname(jsonOut), { recursive: true });
+    writeFileSync(jsonOut, json);
+    written.push(jsonOut);
+  }
+  if (sqlTarget) {
+    mkdirSync(path.dirname(sqlTarget), { recursive: true });
+    writeFileSync(sqlTarget, sql);
+    written.push(sqlTarget);
+  }
+  return { catalog: cat, written };
+}
+
+function cli(argv) {
+  const args = {};
+  for (let i = 0; i < argv.length; i++) {
+    const k = argv[i];
+    if (!k.startsWith('--')) fail(`unexpected argument ${k}`);
+    args[k.slice(2)] = argv[i + 1];
+    i++;
+  }
+  if (args.hash) {
+    // Decoded exactly as loadSnapshot decodes (strict UTF-8, byte-order mark dropped), so the
+    // printed lines always match what the build checks.
+    for (const file of CSV_FILES) {
+      const p = path.join(args.hash, file);
+      if (existsSync(p)) console.log(`- sha256 ${file}: ${sha256(readUtf8(p, file))}`);
+    }
+    return;
+  }
+  if (!args.snapshot || (!args['json-out'] && !args['sql-out'])) {
+    fail('usage: --snapshot <dir> --json-out <file> [--sql-out <file|dir> --migration-version <14 digits> --round <n>]');
+  }
+  const { catalog, written } = build({
+    snapshot: args.snapshot,
+    jsonOut: args['json-out'],
+    sqlOut: args['sql-out'],
+    migrationVersion: args['migration-version'],
+    round: args.round,
+  });
+  console.log(`catalogue ${catalog.version}: ${catalog.states.length} States/UTs, ${catalog.districts.length} districts`);
+  for (const w of written) console.log(`wrote ${w}`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try { cli(process.argv.slice(2)); }
+  catch (e) {
+    if (e instanceof CatalogError) { console.error(`error: ${e.message}`); process.exit(1); }
+    throw e;
+  }
+}
