@@ -103,6 +103,50 @@ class ValidatorsTest {
         assertEquals("Enter 10 digits", Validators.indiaMobileError("98765432101"))
     }
 
+    // WP24.T01 (ARCH-13) — a bare 10-digit number may itself start with 91.
+    @Test fun `india mobile accepts bare 10-digit numbers starting 91`() {
+        assertNull(Validators.indiaMobileError("9123456789"))
+        assertNull(Validators.indiaMobileError("919123456789"))
+        assertNull(Validators.indiaMobileError("+91 91234 56789"))
+        assertEquals("Enter 10 digits", Validators.indiaMobileError("91234567"))
+    }
+
+    @Test fun `india mobile national digits drop 91 only after a plus or from 12 digits`() {
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("9123456789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits(" 91234 56789 "))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("+919123456789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("+ 91 91234-56789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("919123456789"))
+        assertEquals("9123456789", Validators.indiaMobileNationalDigits("(91) 91234 56789"))
+        assertEquals("91234567", Validators.indiaMobileNationalDigits("91234567"))
+        assertEquals("14155551234", Validators.indiaMobileNationalDigits("+1 415 555 1234"))
+        assertEquals("", Validators.indiaMobileNationalDigits("   "))
+    }
+
+    @Test fun `india mobile drops 91 after a plus even when 10 digits follow`() {
+        assertEquals("23456789", Validators.indiaMobileNationalDigits("+9123456789"))
+        assertEquals("Enter 10 digits", Validators.indiaMobileError("+9123456789"))
+    }
+
+    @Test fun `india mobile refuses digits from other scripts instead of ignoring them`() {
+        // Char.isDigit() also matches Devanagari digits (U+0966..U+096F, built from code points
+        // here); the national digits count ASCII only, and a number holding any other digit is
+        // refused rather than stored as typed.
+        val devanagari = (0x96F downTo 0x966).map { Char(it) }.joinToString("")
+        assertEquals(10, devanagari.length)
+        assertEquals("", Validators.indiaMobileNationalDigits(devanagari))
+        assertEquals("Use the digits 0 to 9 only", Validators.indiaMobileError(devanagari))
+        assertEquals("Use the digits 0 to 9 only", Validators.indiaMobileError("9876543210" + Char(0x96F)))
+    }
+
+    @Test fun `vpa accepts UPI IDs with surrounding spaces and rejects other shapes`() {
+        assertTrue(Validators.vpaIsValid("name@okaxis"))
+        assertTrue(Validators.vpaIsValid(" name@okaxis "))
+        assertFalse(Validators.vpaIsValid("name@bank.com"))
+        assertFalse(Validators.vpaIsValid("name with space@upi"))
+        assertFalse(Validators.vpaIsValid(""))
+    }
+
     // Round 441 — pincodeError validator
     @Test fun `pincode empty is treated as not-required`() {
         assertNull(Validators.pincodeError(""))
