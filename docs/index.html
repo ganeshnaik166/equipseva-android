@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>EquipSeva: verified engineers for hospital equipment</title>
+  <meta name="description" content="Book KYC-checked biomedical engineers for repairs and AMC visits on hospital and clinic equipment in India. Your payment stays in escrow until the job is done." />
+  <meta name="theme-color" content="#0b0d0c" />
+  <meta name="color-scheme" content="dark" />
+  <!-- share preview: og.jpg = public/og.jpg (1200x630, a frame of this site); vite.config.js makes the
+       image URLs absolute and adds canonical + og:url when the site URL is known (SITE_URL) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="EquipSeva" />
+  <meta property="og:locale" content="en_IN" />
+  <meta property="og:title" content="EquipSeva: verified engineers for hospital equipment" />
+  <meta property="og:description" content="Post a repair, compare bids from KYC-checked biomedical engineers and pay through escrow. AMC contracts with scheduled visits." />
+  <meta property="og:image" content="https://equipseva.com/og.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="The EquipSeva home: a glowing vitals-monitor hologram above a stone pool in a banyan grove at dawn" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="EquipSeva: verified engineers for hospital equipment" />
+  <meta name="twitter:description" content="Post a repair, compare bids from KYC-checked biomedical engineers and pay through escrow. AMC contracts with scheduled visits." />
+  <meta name="twitter:image" content="https://equipseva.com/og.jpg" />
+  <meta name="twitter:image:alt" content="The EquipSeva home: a glowing vitals-monitor hologram above a stone pool in a banyan grove at dawn" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* page shell only: the HUD styles itself (src/styles/ui.css), the world draws into #webgl */
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0d0c; color: #fff; overscroll-behavior: none; }
+    #webgl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+    /* no WebGL 2: the HUD runs over a still dawn-grove gradient instead of the 3D world */
+    .no-webgl #webgl { display: none; }
+    .no-webgl body {
+      background:
+        radial-gradient(28% 36% at 50% 40%, rgba(236, 255, 247, 0.32), rgba(236, 255, 247, 0) 70%),
+        linear-gradient(to bottom, #3c4766 0%, #b48f98 52%, #6c6064 64%, #15130f 82%, #0b0d0c 100%);
+    }
+    /* Boot shell: the first frame of the HUD loader (.esu-loader in ui.css: backdrop, orbit lines,
+       progress track and counter) painted before the script bundle arrives. src/main.js removes it
+       the moment the HUD attaches its own loader in the same place. */
+    #boot { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; overflow: hidden; pointer-events: none;
+      background: radial-gradient(110% 90% at 50% 46%, #141816 0%, #0c0f0d 52%, #070908 100%);
+      font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: #fff; text-transform: uppercase; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    #boot svg { position: absolute; left: 50%; top: 50%; width: 145vmax; height: 145vmax; transform: translate(-50%, -50%); }
+    #boot circle { fill: none; stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    #boot circle:nth-child(2n) { stroke: rgba(255, 255, 255, 0.04); }
+    #boot .c { position: relative; display: flex; flex-direction: column; align-items: center; transform: translateY(-1.5vh); }
+    #boot .logo { width: 24px; height: 24px; margin-bottom: 20px; }
+    #boot .l1 { margin: 0; font-size: 9.5px; font-weight: 500; letter-spacing: 0.22em; line-height: 1.5; visibility: hidden; }
+    #boot .l2 { margin: 6px 0 0; font-size: 8px; letter-spacing: 0.24em; visibility: hidden; }
+    #boot .bar { width: 96px; height: 1px; margin-top: 22px; background: rgba(255, 255, 255, 0.12); }
+    #boot .pc { position: absolute; right: clamp(16px, 2.8vw, 44px); bottom: 34px; font-size: 9px; letter-spacing: 0.22em; color: rgba(255, 255, 255, 0.62); font-variant-numeric: tabular-nums; }
+    noscript p { position: fixed; z-index: 11; left: 24px; right: 24px; bottom: 32px; margin: 0; font: 14px/1.5 system-ui, sans-serif; color: rgba(255, 255, 255, 0.8); }
+    noscript a { color: #7cf5c8; }
+  </style>
+  <noscript><style>#boot { display: none; }</style></noscript>
+  <script type="module" crossorigin src="./assets/index-C2AvhM7L.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DAstGAbK.css">
+  <link rel="canonical" href="https://equipseva.com/">
+  <meta property="og:url" content="https://equipseva.com/">
+</head>
+<body>
+  <canvas id="webgl" aria-hidden="true"></canvas>
+  <div id="ui">
+    <div id="boot" aria-hidden="true">
+      <svg viewBox="0 0 1000 1000" focusable="false"><circle cx="500" cy="500" r="330"/><circle cx="500" cy="500" r="470"/><circle cx="90" cy="820" r="520"/><circle cx="930" cy="140" r="480"/><circle cx="-60" cy="260" r="430"/><circle cx="760" cy="1080" r="400"/><circle cx="300" cy="-120" r="560"/></svg>
+      <div class="c"><div class="logo"></div><p class="l1">INITIALISING SEVA NETWORK</p><p class="l2">LOADING, PLEASE WAIT</p><div class="bar"></div></div>
+      <span class="pc">000</span>
+    </div>
+  </div>
+  <noscript>
+    <p>EquipSeva connects hospitals and clinics in India with KYC-checked biomedical engineers for repairs and AMC contracts.
+      <a href="mailto:support@equipseva.com?subject=Service%20request">Request service</a> ·
+      <a href="mailto:support@equipseva.com?subject=Engineer%20sign-up">Join as an engineer</a> ·
+      <a href="https://equipseva.com/privacy/">Privacy</a> ·
+      <a href="https://equipseva.com/terms/">Terms</a> ·
+      <a href="https://equipseva.com/refunds/">Refunds</a></p>
+  </noscript>
+</body>
+</html>

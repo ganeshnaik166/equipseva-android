@@ -1,3 +1,8 @@
+---
+title: EquipSeva hub
+permalink: /hub/
+---
+
 # EquipSeva
 
 India's marketplace for hospital equipment, spare parts, and biomedical engineers.
